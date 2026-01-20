@@ -1,17 +1,19 @@
-from typing import Union
-
+from app.core.config import settings
 from fastapi import FastAPI
-from .routers.health import router as health_router
+from app.api.v1.router import api_router
 
 app = FastAPI(
-    title="API Analytics",
-    description="Track and analyze API performance metrics",
-    version="1.0.0",
+    title=settings.PROJECT_NAME,
+    description=settings.PROJECT_DESCRIPTION,
 )
 
-app.include_router(health_router)
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")
 async def root():
-    return {"message": "API Analytics Service", "version": "1.0.0", "docs": "/docs"}
+    return {
+        "message": settings.PROJECT_NAME,
+        "description": settings.PROJECT_DESCRIPTION,
+        "docs": "/docs",
+    }

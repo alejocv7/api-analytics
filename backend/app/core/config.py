@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -22,4 +23,4 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URI: str
 
 
-settings = Settings()
+settings = Settings()  # type: ignore

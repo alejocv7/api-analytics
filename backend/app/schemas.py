@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 
-class APIMetricBase(BaseModel):
+class MetricBase(BaseModel):
     project_id: str
     url_path: str
     method: str
@@ -14,15 +14,15 @@ class APIMetricBase(BaseModel):
     ip_hash: Optional[str] = None
 
 
-class APIMetricCreate(APIMetricBase):
+class MetricCreate(MetricBase):
     pass
 
 
-class APIMetricInDBBase(APIMetricBase):
+class MetricInDBBase(MetricBase):
     id: int
     timestamp: datetime
     model_config = ConfigDict(from_attributes=True)
 
 
-class APIMetric(APIMetricInDBBase):
+class Metric(MetricInDBBase):
     pass

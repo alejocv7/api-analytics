@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 from app.core.db import Base
 
 
-class APIMetric(Base):
+class Metric(Base):
     """
     Database model for storing API request metrics.
     """
@@ -33,9 +33,7 @@ class APIMetric(Base):
     )
 
     def __repr__(self):
-        return (
-            f"<APIMetric {self.method} {self.url_path} - {self.response_status_code}>"
-        )
+        return f"<Metric {self.method} {self.url_path} - {self.response_status_code}>"
 
     @hybrid_property
     def ip_hash(self):

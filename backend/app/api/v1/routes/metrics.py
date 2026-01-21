@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 
 import app.crud as crud
+from app import schemas
 from app.dependencies import SessionDep
-from app.schemas import APIMetric
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[APIMetric])
+@router.get("/", response_model=list[schemas.Metric])
 async def read_metrics(
     session: SessionDep,
     skip: int = 0,

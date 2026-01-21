@@ -6,7 +6,7 @@ from app.api.v1.router import router as v1_router
 from app.core import db
 from app.core.config import settings
 from app.health import router as health_router
-from app.middleware import APIMetricMiddleware
+from app.middleware import MetricMiddleware
 
 
 @asynccontextmanager
@@ -36,4 +36,4 @@ app.include_router(health_router, tags=["health"])
 app.include_router(v1_router, prefix=settings.API_V1_STR)
 
 # Middleware
-app.add_middleware(APIMetricMiddleware)
+app.add_middleware(MetricMiddleware)

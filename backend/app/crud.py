@@ -3,9 +3,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 
 
-def create_metric(
-    session: Session, *, metric_in: schemas.MetricCreate
-) -> models.Metric:
+def add_metric(session: Session, *, metric_in: schemas.MetricCreate) -> models.Metric:
     """Create a new metric entry."""
 
     metric = models.Metric(**metric_in.model_dump())

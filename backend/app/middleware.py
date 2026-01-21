@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app import schemas
 from app.core import db
 from app.core.config import settings
-from app.crud import create_metric
+from app.crud import add_metric
 
 
 def log_metric(
@@ -19,7 +19,7 @@ def log_metric(
     """
     try:
         with db.Session() as session:
-            create_metric(session, metric_in=metric_in)
+            add_metric(session, metric_in=metric_in)
     except Exception as e:
         print(f"Error logging metric in background: {e}")
 

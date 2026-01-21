@@ -7,7 +7,7 @@ from app.dependencies import SessionDep
 router = APIRouter()
 
 
-@router.get("/", response_model=list[schemas.Metric])
+@router.get("/", response_model=list[schemas.MetricResponse])
 async def read_metrics(
     session: SessionDep,
     skip: int = 0,

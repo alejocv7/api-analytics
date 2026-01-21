@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from sqlalchemy import text
 
 from app.api.v1.router import router as v1_router
 from app.core import db
@@ -12,13 +11,7 @@ from app.middleware import APIMetricMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        with db.get_db() as db_session:
-            db_session.execute(text("SELECT 1"))
-        print(f"Successfully connected to database: {settings.SQLALCHEMY_DATABASE_URI}")
-    except Exception as e:
-        print(f"Error connecting to database: {e}")
-
+    db.wakeup_db()
     yield
 
 

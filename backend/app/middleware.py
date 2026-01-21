@@ -1,4 +1,3 @@
-import hashlib
 import re
 import time
 
@@ -19,8 +18,8 @@ def log_api_metric(
     Background task to log API metrics to the database.
     """
     try:
-        with db.get_db() as db_session:
-            create_metric(db_session, api_metric_in=api_metric_in)
+        with db.Session() as session:
+            create_metric(session, api_metric_in=api_metric_in)
     except Exception as e:
         print(f"Error logging metric in background: {e}")
 
@@ -30,15 +29,13 @@ class APIMetricMiddleware(BaseHTTPMiddleware):
         if not re.match(r"/api/v\d+/(?!track)", request.url.path):
             return await call_next(request)
 
-        print("----------- ALEJANDRO ----------- 2")
         start_time = time.perf_counter()
         response = await call_next(request)
-        print("----------- ALEJANDRO ----------- 3")
         process_time = (time.perf_counter() - start_time) * 1000  # Convert to ms
 
         ip_hash = None
         if request.client and request.client.host:
-            ip_hash = hashlib.sha256(request.client.host.encode()).hexdigest()[:16]
+            ip_hash = request.client.host
 
         api_metric_in = APIMetricCreate(
             project_id=settings.PROJECT_NAME,
@@ -46,7 +43,7 @@ class APIMetricMiddleware(BaseHTTPMiddleware):
             method=request.method,
             response_status_code=response.status_code,
             response_time_ms=process_time,
-            user_agent=request.headers.get("user-agent"),
+            user_agent=request.headers.get("user-agent", "unknown"),
             ip_hash=ip_hash,
         )
 

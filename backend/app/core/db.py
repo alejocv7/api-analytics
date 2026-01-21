@@ -1,6 +1,4 @@
-from contextlib import contextmanager
-
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -14,15 +12,14 @@ if settings.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
 engine = create_engine(
     settings.SQLALCHEMY_DATABASE_URI, pool_pre_ping=True, connect_args=connect_args
 )
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
 
-@contextmanager
-def get_db():
-    """Context manager for getting a database session."""
-    db = SessionLocal()
+def wakeup_db():
     try:
-        yield db
-    finally:
-        db.close()
+        with Session() as session:
+            session.execute(select(1))
+        print(f"Successfully connected to database: {settings.SQLALCHEMY_DATABASE_URI}")
+    except Exception as e:
+        print(f"Error connecting to database: {e}")

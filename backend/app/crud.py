@@ -4,15 +4,18 @@ from app import models, schemas
 
 
 def create_metric(
-    db: Session, *, api_metric_in: schemas.APIMetricCreate
+    session: Session, *, api_metric_in: schemas.APIMetricCreate
 ) -> models.APIMetric:
     """Create a new metric entry."""
-    db_metric = models.APIMetric(**api_metric_in.model_dump())
-    db.add(db_metric)
-    db.commit()
-    db.refresh(db_metric)
-    return db_metric
+
+    metric = models.APIMetric(**api_metric_in.model_dump())
+    session.add(metric)
+    session.commit()
+    session.refresh(metric)
+    return metric
 
 
-def get_metrics(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.APIMetric).offset(skip).limit(limit).all()
+def get_metrics(
+    session: Session, skip: int = 0, limit: int = 100
+) -> list[models.APIMetric]:
+    return session.query(models.APIMetric).offset(skip).limit(limit).all()

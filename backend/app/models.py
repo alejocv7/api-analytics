@@ -1,4 +1,7 @@
+import hashlib
+
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.sql import func
 
 from app.core.db import Base
@@ -21,7 +24,7 @@ class APIMetric(Base):
         DateTime(timezone=True), index=True, server_default=func.now(), nullable=False
     )
     user_agent = Column(String, nullable=True)
-    ip_hash = Column(String, nullable=True)  # Store hashed IP for privacy
+    _ip_hash = Column("ip_hash", String, nullable=True)  # Store hashed IP for privacy
 
     __table_args__ = (
         Index("idx_project_timestamp", "project_id", "timestamp"),
@@ -33,3 +36,14 @@ class APIMetric(Base):
         return (
             f"<APIMetric {self.method} {self.url_path} - {self.response_status_code}>"
         )
+
+    @hybrid_property
+    def ip_hash(self):
+        return self._ip_hash
+
+    @ip_hash.setter  # type: ignore[no-redef]
+    def ip_hash(self, host: str):
+        if host is not None:
+            self._ip_hash = hashlib.sha256(host.encode()).hexdigest()[:16]
+        else:
+            self._ip_hash = None

@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
 import app.crud as crud
-from app.core.db import get_db
+from app.dependencies import SessionDep
 from app.schemas import APIMetric
 
 router = APIRouter()
@@ -10,11 +9,11 @@ router = APIRouter()
 
 @router.get("/", response_model=list[APIMetric])
 async def read_metrics(
+    session: SessionDep,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
 ):
     """
     Retrieve API metrics.
     """
-    return crud.get_metrics(db, skip=skip, limit=limit)
+    return crud.get_metrics(session, skip=skip, limit=limit)

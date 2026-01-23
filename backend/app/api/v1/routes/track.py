@@ -9,10 +9,10 @@ router = APIRouter()
 
 @router.post("/", response_model=schemas.MetricResponse)
 async def track_metric(
-    metric_in: schemas.MetricCreate,
+    metric: schemas.MetricCreate,
     session: SessionDep,
 ):
     """
     Track an API metric.
     """
-    return crud.add_metric(session=session, metric_in=metric_in)
+    return crud.add_metric(session, metric)

@@ -22,5 +22,8 @@ class Settings(BaseSettings):
     # Database
     SQLALCHEMY_DATABASE_URI: str
 
+    # Security
+    HASH_SALT: str = "change_me_in_production"
+
 
 settings = Settings()  # type: ignore

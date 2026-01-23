@@ -37,14 +37,16 @@ class MetricBase(BaseModel):
         ..., ge=0, le=120_000, description="Response time in milliseconds"
     )
     user_agent: str | None = Field(None, description="User agent string")
-    ip_hash: str | None = Field(None, description="Hashed IP address")
 
 
 class MetricCreate(MetricBase):
-    pass
+    ip: str | None = Field(
+        None, description="Raw IP address (will be hashed by server)"
+    )
 
 
 class MetricResponse(MetricBase):
     id: int
     timestamp: AwareDatetime
+    ip_hash: str | None = Field(None, description="Hashed IP address")
     model_config = ConfigDict(from_attributes=True)

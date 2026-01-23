@@ -1,9 +1,7 @@
-import hashlib
 from datetime import timezone
 from http import HTTPMethod, HTTPStatus
 
 from sqlalchemy import DateTime, Float, Index, Integer, String, TypeDecorator, func
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -51,7 +49,7 @@ class Metric(Base):
     )
     user_agent: Mapped[str | None] = mapped_column(String, nullable=True)
     # Store hashed IP for privacy
-    _ip_hash: Mapped[str | None] = mapped_column("ip_hash", String, nullable=True)
+    ip_hash: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __table_args__ = (
         Index("idx_project_timestamp", "project_id", "timestamp"),
@@ -61,14 +59,3 @@ class Metric(Base):
 
     def __repr__(self):
         return f"<Metric {self.method} {self.url_path} - {self.response_status_code}>"
-
-    @hybrid_property
-    def ip_hash(self):
-        return self._ip_hash
-
-    @ip_hash.setter  # type: ignore[no-redef]
-    def ip_hash(self, host: str):
-        if host is not None:
-            self._ip_hash = hashlib.sha256(host.encode()).hexdigest()[:16]
-        else:
-            self._ip_hash = None

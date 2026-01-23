@@ -13,14 +13,14 @@ from app.crud import add_metric
 
 
 def log_metric(
-    metric_in: schemas.MetricCreate,
+    metric: schemas.MetricCreate,
 ):
     """
     Background task to log API metrics to the database.
     """
     try:
         with db.Session() as session:
-            add_metric(session, metric_in=metric_in)
+            add_metric(session, metric)
     except Exception as e:
         print(f"Error logging metric in background: {e}")
 
@@ -34,26 +34,24 @@ class MetricMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         process_time = (time.perf_counter() - start_time) * 1000  # Convert to ms
 
-        ip_hash = None
-        if request.client and request.client.host:
-            ip_hash = request.client.host
+        ip = request.client.host if request.client else None
 
-        metric_in = schemas.MetricCreate(
+        metric = schemas.MetricCreate(
             project_id=settings.PROJECT_NAME.lower().replace(" ", "-"),
             url_path=request.url.path,
             method=HTTPMethod(request.method),
             response_status_code=response.status_code,
             response_time_ms=process_time,
             user_agent=request.headers.get("user-agent", "unknown"),
-            ip_hash=ip_hash,
+            ip=ip,
         )
 
         # Use BackgroundTasks to record the metric without blocking the response
         if response.background:
-            response.background.add_task(log_metric, metric_in)
+            response.background.add_task(log_metric, metric)
         else:
             background_tasks = BackgroundTasks()
-            background_tasks.add_task(log_metric, metric_in)
+            background_tasks.add_task(log_metric, metric)
             response.background = background_tasks
 
         return response

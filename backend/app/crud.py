@@ -1,15 +1,28 @@
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import models, schemas
+from app.core.config import settings
+from app.core.security import hash_ip
 
 
-def add_metric(session: Session, *, metric_in: schemas.MetricCreate) -> models.Metric:
+def add_metric(session: Session, metric_in: schemas.MetricCreate) -> models.Metric:
     """Create a new metric entry."""
 
-    metric = models.Metric(**metric_in.model_dump())
+    data = metric_in.model_dump()
+    if ip := data.pop("ip", None):
+        data["ip_hash"] = hash_ip(ip, settings.HASH_SALT)
+
+    metric = models.Metric(**data)
+
     session.add(metric)
-    session.commit()
+    try:
+        session.commit()
+    except SQLAlchemyError:
+        session.rollback()
+        raise
     session.refresh(metric)
+
     return metric
 
 

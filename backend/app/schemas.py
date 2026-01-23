@@ -1,5 +1,6 @@
+from datetime import datetime, timedelta, timezone
 from http import HTTPMethod, HTTPStatus
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import (
     AfterValidator,
@@ -8,6 +9,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    model_validator,
 )
 
 
@@ -15,6 +17,16 @@ def normalize_url_path(url_path: str) -> str:
     if not url_path.startswith("/"):
         raise ValueError("url_path must start with '/'")
     return url_path.rstrip("/") or "/"
+
+
+def get_default_start_date() -> datetime:
+    return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def get_default_end_date() -> datetime:
+    return datetime.now(timezone.utc).replace(
+        hour=23, minute=59, second=59, microsecond=999999
+    )
 
 
 class MetricBase(BaseModel):
@@ -50,3 +62,46 @@ class MetricResponse(MetricBase):
     timestamp: AwareDatetime
     ip_hash: str | None = Field(None, description="Hashed IP address")
     model_config = ConfigDict(from_attributes=True)
+
+
+class MetricSummaryResponse(BaseModel):
+    """Schema for summary statistics."""
+
+    request_count: int = Field(..., description="Number of requests")
+    avg_response_time_ms: float = Field(
+        ..., description="Average response time in milliseconds"
+    )
+    requests_per_minute: float = Field(..., description="Requests per minute")
+    error_count: int = Field(..., description="Number of errors")
+    error_rate: float = Field(
+        ..., description="Percentage of requests with status >= 400"
+    )
+    slowest_request_ms: float = Field(
+        ..., description="Slowest request in milliseconds"
+    )
+    fastest_request_ms: float = Field(
+        ..., description="Fastest request in milliseconds"
+    )
+
+
+class MetricSummaryParams(BaseModel):
+    project_id: str = Field(..., description="Project ID")
+    start_date: AwareDatetime = Field(
+        default_factory=get_default_start_date,
+        description="Start date (defaults to beginning of today)",
+    )
+    end_date: AwareDatetime = Field(
+        default_factory=get_default_end_date,
+        description="End date (defaults to end of today)",
+    )
+
+    @model_validator(mode="after")
+    def validate_dates(self) -> Self:
+        if self.end_date < self.start_date:
+            raise ValueError("end_date cannot be before start_date")
+
+        if self.end_date - self.start_date > timedelta(days=60):
+            raise ValueError("Date range must be 60 days or less")
+
+        return self
+

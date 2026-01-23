@@ -1,10 +1,31 @@
 import hashlib
+from datetime import timezone
+from http import HTTPMethod, HTTPStatus
 
-from sqlalchemy import Column, DateTime, Float, Index, Integer, String
+from sqlalchemy import DateTime, Float, Index, Integer, String, TypeDecorator, func
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.sql import func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
+
+
+class UTCDateTime(TypeDecorator):
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        if value.tzinfo is None:
+            raise ValueError("Naive datetime not allowed")
+        return value.astimezone(timezone.utc)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
 
 class Metric(Base):
@@ -14,17 +35,23 @@ class Metric(Base):
 
     __tablename__ = "api_metrics"
 
-    id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(String, index=True, nullable=False)
-    url_path = Column(String, index=True, nullable=False)
-    method = Column(String, nullable=False)  # GET, POST, PUT, DELETE, etc.
-    response_status_code = Column(Integer, index=True, nullable=False)
-    response_time_ms = Column(Float, nullable=False)
-    timestamp = Column(
-        DateTime(timezone=True), index=True, server_default=func.now(), nullable=False
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    project_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    url_path: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    method: Mapped[HTTPMethod] = mapped_column(String, nullable=False)
+    response_status_code: Mapped[HTTPStatus] = mapped_column(
+        Integer, index=True, nullable=False
     )
-    user_agent = Column(String, nullable=True)
-    _ip_hash = Column("ip_hash", String, nullable=True)  # Store hashed IP for privacy
+    response_time_ms: Mapped[float] = mapped_column(Float, nullable=False)
+    timestamp: Mapped[UTCDateTime] = mapped_column(
+        UTCDateTime,
+        index=True,
+        server_default=func.now(),
+        nullable=False,
+    )
+    user_agent: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Store hashed IP for privacy
+    _ip_hash: Mapped[str | None] = mapped_column("ip_hash", String, nullable=True)
 
     __table_args__ = (
         Index("idx_project_timestamp", "project_id", "timestamp"),

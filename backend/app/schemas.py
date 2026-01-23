@@ -1,17 +1,40 @@
-from datetime import datetime
+from http import HTTPMethod, HTTPStatus
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+)
+
+
+def normalize_url_path(url_path: str) -> str:
+    if not url_path.startswith("/"):
+        raise ValueError("url_path must start with '/'")
+    return url_path.rstrip("/") or "/"
 
 
 class MetricBase(BaseModel):
-    project_id: str = Field(..., description="Unique identifier for the project/app")
-    url_path: str = Field(..., description="API endpoint path")
-    method: str = Field(..., description="HTTP method")
-    response_status_code: int = Field(
-        ..., ge=100, le=599, description="HTTP status code"
+    project_id: Annotated[
+        str,
+        StringConstraints(
+            min_length=3,
+            max_length=50,
+            pattern=r"^[a-zA-Z0-9_-]+$",
+        ),
+    ] = Field(..., description="Unique identifier for the project/app")
+
+    url_path: Annotated[str, AfterValidator(normalize_url_path)] = Field(
+        ..., description="API endpoint path"
     )
+
+    method: HTTPMethod = Field(..., description="HTTP method")
+    response_status_code: HTTPStatus = Field(..., description="HTTP status code")
     response_time_ms: float = Field(
-        ..., ge=0, description="Response time in milliseconds"
+        ..., ge=0, le=120_000, description="Response time in milliseconds"
     )
     user_agent: str | None = Field(None, description="User agent string")
     ip_hash: str | None = Field(None, description="Hashed IP address")
@@ -23,5 +46,5 @@ class MetricCreate(MetricBase):
 
 class MetricResponse(MetricBase):
     id: int
-    timestamp: datetime
+    timestamp: AwareDatetime
     model_config = ConfigDict(from_attributes=True)

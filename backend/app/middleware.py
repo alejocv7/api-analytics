@@ -1,5 +1,6 @@
 import re
 import time
+from http import HTTPMethod
 
 from fastapi import Request
 from starlette.background import BackgroundTasks
@@ -38,9 +39,9 @@ class MetricMiddleware(BaseHTTPMiddleware):
             ip_hash = request.client.host
 
         metric_in = schemas.MetricCreate(
-            project_id=settings.PROJECT_NAME,
+            project_id=settings.PROJECT_NAME.lower().replace(" ", "-"),
             url_path=request.url.path,
-            method=request.method,
+            method=HTTPMethod(request.method),
             response_status_code=response.status_code,
             response_time_ms=process_time,
             user_agent=request.headers.get("user-agent", "unknown"),

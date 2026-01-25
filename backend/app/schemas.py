@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from http import HTTPMethod, HTTPStatus
 from typing import Annotated, Self
 
+from fastapi import Query
 from pydantic import (
     AfterValidator,
     AwareDatetime,
@@ -84,7 +85,35 @@ class MetricSummaryResponse(BaseModel):
     )
 
 
-class MetricSummaryParams(BaseModel):
+class MetricTimeSeriesPointResponse(BaseModel):
+    timestamp: AwareDatetime = Field(..., description="Timestamp")
+    request_count: int = Field(..., description="Number of requests")
+    avg_response_time_ms: float = Field(
+        ..., description="Average response time in milliseconds"
+    )
+    error_count: int = Field(..., description="Number of errors")
+
+
+class MetricEndpointStatsResponse(BaseModel):
+    url_path: str = Field(..., description="API endpoint path")
+    method: HTTPMethod = Field(..., description="HTTP method")
+    request_count: int = Field(..., description="Number of requests")
+    avg_response_time_ms: float = Field(
+        ..., description="Average response time in milliseconds"
+    )
+    error_count: int = Field(..., description="Number of errors")
+    error_rate: float = Field(
+        ..., description="Percentage of requests with status >= 400"
+    )
+    slowest_request_ms: float = Field(
+        ..., description="Slowest request in milliseconds"
+    )
+    fastest_request_ms: float = Field(
+        ..., description="Fastest request in milliseconds"
+    )
+
+
+class MetricParams(BaseModel):
     project_id: str = Field(..., description="Project ID")
     start_date: AwareDatetime = Field(
         default_factory=get_default_start_date,
@@ -105,3 +134,5 @@ class MetricSummaryParams(BaseModel):
 
         return self
 
+
+MetricQuery = Annotated[MetricParams, Query()]

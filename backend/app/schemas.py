@@ -9,7 +9,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    StringConstraints,
     model_validator,
 )
 
@@ -31,15 +30,6 @@ def get_default_end_date() -> AwareDatetime:
 
 
 class MetricBase(BaseModel):
-    project_id: Annotated[
-        str,
-        StringConstraints(
-            min_length=3,
-            max_length=50,
-            pattern=r"^[a-zA-Z0-9_-]+$",
-        ),
-    ] = Field(..., description="Unique identifier for the project/app")
-
     url_path: Annotated[str, AfterValidator(normalize_url_path)] = Field(
         ..., description="API endpoint path"
     )
@@ -114,7 +104,6 @@ class MetricEndpointStatsResponse(BaseModel):
 
 
 class MetricParams(BaseModel):
-    project_id: str = Field(..., description="Project ID")
     start_date: AwareDatetime = Field(
         default_factory=get_default_start_date,
         description="Start date (defaults to beginning of today)",

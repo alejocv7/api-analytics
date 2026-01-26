@@ -9,7 +9,7 @@ from sqlalchemy import engine_from_config, pool
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.core.db import Base  # noqa
-from app.models import APIMetric  # noqa
+from app.models import Project, Metric, ApiKey  # noqa
 from app.core.config import settings  # noqa
 
 # this is the Alembic Config object, which provides

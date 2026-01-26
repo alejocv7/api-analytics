@@ -1,18 +1,21 @@
 from datetime import datetime, timezone
 
+from app import models, schemas
+from app.core.config import settings
+from app.core.security import hash_ip
 from sqlalchemy import case, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app import models, schemas
-from app.core.config import settings
-from app.core.security import hash_ip
 
-
-def add_metric(session: Session, metric_in: schemas.MetricCreate) -> models.Metric:
+def add_metric(
+    session: Session, project_id: int, metric_in: schemas.MetricCreate
+) -> models.Metric:
     """Create a new metric entry."""
 
     data = metric_in.model_dump()
+    data["project_id"] = project_id
+
     if ip := data.pop("ip", None):
         data["ip_hash"] = hash_ip(ip, settings.HASH_SALT)
 
@@ -30,13 +33,19 @@ def add_metric(session: Session, metric_in: schemas.MetricCreate) -> models.Metr
 
 
 def get_metrics(
-    session: Session, skip: int = 0, limit: int = 100
+    session: Session, project_id: int, skip: int = 0, limit: int = 100
 ) -> list[models.Metric]:
-    return session.query(models.Metric).offset(skip).limit(limit).all()
+    return (
+        session.query(models.Metric)
+        .filter(models.Metric.project_id == project_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def get_metrics_summary(
-    session: Session, params: schemas.MetricQuery
+    session: Session, project_id: int, params: schemas.MetricQuery
 ) -> schemas.MetricSummaryResponse:
     result = (
         session.query(
@@ -49,7 +58,7 @@ def get_metrics_summary(
             func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
         )
         .filter(
-            models.Metric.project_id == params.project_id,
+            models.Metric.project_id == project_id,
             models.Metric.timestamp >= params.start_date,
             models.Metric.timestamp <= params.end_date,
         )
@@ -87,7 +96,7 @@ def get_metrics_summary(
 
 
 def get_metrics_time_series(
-    session: Session, params: schemas.MetricQuery
+    session: Session, project_id: int, params: schemas.MetricQuery
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
     # Group by minute. Handling different dialects.
     dialect = session.get_bind().dialect.name
@@ -108,7 +117,7 @@ def get_metrics_time_series(
             ).label("error_count"),
         )
         .filter(
-            models.Metric.project_id == params.project_id,
+            models.Metric.project_id == project_id,
             models.Metric.timestamp >= params.start_date,
             models.Metric.timestamp <= params.end_date,
         )
@@ -138,7 +147,7 @@ def get_metrics_time_series(
 
 
 def get_metrics_endpoints_stats(
-    session: Session, params: schemas.MetricQuery
+    session: Session, project_id: int, params: schemas.MetricQuery
 ) -> list[schemas.MetricEndpointStatsResponse]:
     results = (
         session.query(
@@ -153,7 +162,7 @@ def get_metrics_endpoints_stats(
             func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
         )
         .filter(
-            models.Metric.project_id == params.project_id,
+            models.Metric.project_id == project_id,
             models.Metric.timestamp >= params.start_date,
             models.Metric.timestamp <= params.end_date,
         )

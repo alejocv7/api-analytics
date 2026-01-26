@@ -9,10 +9,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app import schemas
 from app.core import db
 from app.core.config import settings
-from app.crud import add_metric
+from app.crud.metrics import add_metric
 
 
 def log_metric(
+    project_id: int,
     metric: schemas.MetricCreate,
 ):
     """
@@ -20,7 +21,7 @@ def log_metric(
     """
     try:
         with db.Session() as session:
-            add_metric(session, metric)
+            add_metric(session, project_id, metric)
     except Exception as e:
         print(f"Error logging metric in background: {e}")
 
@@ -37,7 +38,6 @@ class MetricMiddleware(BaseHTTPMiddleware):
         ip = request.client.host if request.client else None
 
         metric = schemas.MetricCreate(
-            project_id=settings.PROJECT_NAME.lower().replace(" ", "-"),
             url_path=request.url.path,
             method=HTTPMethod(request.method),
             response_status_code=response.status_code,
@@ -47,11 +47,12 @@ class MetricMiddleware(BaseHTTPMiddleware):
         )
 
         # Use BackgroundTasks to record the metric without blocking the response
+        project_id = settings.PROJECT_ID
         if response.background:
-            response.background.add_task(log_metric, metric)
+            response.background.add_task(log_metric, project_id, metric)
         else:
             background_tasks = BackgroundTasks()
-            background_tasks.add_task(log_metric, metric)
+            background_tasks.add_task(log_metric, project_id, metric)
             response.background = background_tasks
 
         return response

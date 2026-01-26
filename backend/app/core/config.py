@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     )
 
     # Project
+    PROJECT_ID: int = 0
     PROJECT_NAME: str
     PROJECT_DESCRIPTION: str
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
@@ -21,9 +22,10 @@ class Settings(BaseSettings):
 
     # Database
     SQLALCHEMY_DATABASE_URI: str
+    REDIS_URL: str
 
     # Security
-    HASH_SALT: str = "change_me_in_production"
+    HASH_SALT: str
 
 
 settings = Settings()  # type: ignore

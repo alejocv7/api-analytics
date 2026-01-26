@@ -8,4 +8,6 @@ dependencies = [
     "alembic>=1.18.1",
     "fastapi[standard]>=0.128.0",
     "sqlalchemy>=2.0.45",
+    "slowapi>=0.1.9",
+    "redis>=5.0.0",
 ]

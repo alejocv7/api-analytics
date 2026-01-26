@@ -20,11 +20,11 @@ def normalize_url_path(url_path: str) -> str:
     return url_path.rstrip("/") or "/"
 
 
-def get_default_start_date() -> datetime:
+def get_default_start_date() -> AwareDatetime:
     return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
-def get_default_end_date() -> datetime:
+def get_default_end_date() -> AwareDatetime:
     return datetime.now(timezone.utc).replace(
         hour=23, minute=59, second=59, microsecond=999999
     )
@@ -126,11 +126,21 @@ class MetricParams(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> Self:
+        self.start_date = self.start_date.astimezone(timezone.utc)
+        self.end_date = self.end_date.astimezone(timezone.utc)
+
         if self.end_date < self.start_date:
             raise ValueError("end_date cannot be before start_date")
 
         if self.end_date - self.start_date > timedelta(days=60):
             raise ValueError("Date range must be 60 days or less")
+
+        if self.end_date - self.start_date < timedelta(minutes=1):
+            raise ValueError("Date range must be at least 1 minute")
+
+        # Truncate to the minute
+        self.start_date = self.start_date.replace(second=0, microsecond=0)
+        self.end_date = self.end_date.replace(second=59, microsecond=999999)
 
         return self
 

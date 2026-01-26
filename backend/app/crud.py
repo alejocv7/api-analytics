@@ -1,58 +1,12 @@
-from collections import defaultdict
-from dataclasses import dataclass
-from http import HTTPMethod
+from datetime import datetime, timezone
 
-from pydantic import AwareDatetime
+from sqlalchemy import case, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.core.config import settings
 from app.core.security import hash_ip
-
-
-@dataclass
-class MetricAggregator:
-    request_count: int = 0
-    total_response_time_ms: float = 0.0
-    error_count: int = 0
-    _slowest_request_ms: float = float("-inf")
-    _fastest_request_ms: float = float("inf")
-
-    def add(self, metric: models.Metric) -> None:
-        self.request_count += 1
-        self.total_response_time_ms += metric.response_time_ms
-        self.error_count += metric.response_status_code >= 400
-        self._slowest_request_ms = max(
-            self._slowest_request_ms, metric.response_time_ms
-        )
-        self._fastest_request_ms = min(
-            self._fastest_request_ms, metric.response_time_ms
-        )
-
-    @property
-    def avg_response_time_ms(self) -> float:
-        if self.request_count == 0:
-            return 0.0
-        return round(self.total_response_time_ms / self.request_count, 2)
-
-    @property
-    def error_rate(self) -> float:
-        if self.request_count == 0:
-            return 0.0
-        return round(self.error_count / self.request_count * 100, 2)
-
-    @property
-    def slowest_request_ms(self) -> float:
-        if self._slowest_request_ms == float("-inf"):
-            return 0.0
-        return round(self._slowest_request_ms, 2)
-
-    @property
-    def fastest_request_ms(self) -> float:
-        if self._fastest_request_ms == float("inf"):
-            return 0.0
-        return round(self._fastest_request_ms, 2)
 
 
 def add_metric(session: Session, metric_in: schemas.MetricCreate) -> models.Metric:
@@ -84,17 +38,25 @@ def get_metrics(
 def get_metrics_summary(
     session: Session, params: schemas.MetricQuery
 ) -> schemas.MetricSummaryResponse:
-    metrics = (
-        session.query(models.Metric)
+    result = (
+        session.query(
+            func.count(models.Metric.id).label("request_count"),
+            func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
+            func.sum(
+                case((models.Metric.response_status_code >= 400, 1), else_=0)
+            ).label("error_count"),
+            func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
+            func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
+        )
         .filter(
             models.Metric.project_id == params.project_id,
             models.Metric.timestamp >= params.start_date,
             models.Metric.timestamp <= params.end_date,
         )
-        .all()
+        .first()
     )
 
-    if not metrics:
+    if not result or result.request_count == 0:
         return schemas.MetricSummaryResponse(
             request_count=0,
             error_count=0,
@@ -105,57 +67,72 @@ def get_metrics_summary(
             fastest_request_ms=0,
         )
 
-    aggregator = MetricAggregator()
-    for metric in metrics:
-        aggregator.add(metric)
-
     duration_in_minutes = (params.end_date - params.start_date).total_seconds() / 60
+    error_count = int(result.error_count or 0)
 
     return schemas.MetricSummaryResponse(
-        request_count=aggregator.request_count,
-        avg_response_time_ms=aggregator.avg_response_time_ms,
+        request_count=result.request_count,
+        avg_response_time_ms=round(result.avg_response_time_ms or 0, 2),
         requests_per_minute=round(
-            aggregator.request_count / duration_in_minutes
+            result.request_count / duration_in_minutes
             if duration_in_minutes > 0
             else 0,
             2,
         ),
-        error_count=aggregator.error_count,
-        error_rate=aggregator.error_rate,
-        slowest_request_ms=aggregator.slowest_request_ms,
-        fastest_request_ms=aggregator.fastest_request_ms,
+        error_count=error_count,
+        error_rate=round(error_count / result.request_count * 100, 2),
+        slowest_request_ms=round(result.slowest_request_ms or 0, 2),
+        fastest_request_ms=round(result.fastest_request_ms or 0, 2),
     )
 
 
 def get_metrics_time_series(
     session: Session, params: schemas.MetricQuery
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
-    metrics = (
-        session.query(models.Metric)
+    # Group by minute. Handling different dialects.
+    dialect = session.get_bind().dialect.name
+    if dialect == "sqlite":
+        # SQLite: use strftime to group by minute
+        timestamp = func.strftime("%Y-%m-%dT%H:%M:00", models.Metric.timestamp)
+    else:
+        # Default/PostgreSQL: use date_trunc
+        timestamp = func.date_trunc("minute", models.Metric.timestamp)
+
+    results = (
+        session.query(
+            timestamp.label("timestamp"),
+            func.count(models.Metric.id).label("request_count"),
+            func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
+            func.sum(
+                case((models.Metric.response_status_code >= 400, 1), else_=0)
+            ).label("error_count"),
+        )
         .filter(
             models.Metric.project_id == params.project_id,
             models.Metric.timestamp >= params.start_date,
             models.Metric.timestamp <= params.end_date,
         )
-        .order_by(models.Metric.timestamp.asc())
+        .group_by(timestamp)
+        .order_by(timestamp)
         .all()
     )
 
-    # Group metrics by timestamp and calculate metrics_time_series
-    buckets: dict[AwareDatetime, MetricAggregator] = defaultdict(MetricAggregator)
-    for metric in metrics:
-        timestamp = metric.timestamp.replace(second=0, microsecond=0)
-        buckets[timestamp].add(metric)
+    metrics_time_series = []
+    for row in results:
+        ts = row.timestamp
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
 
-    metrics_time_series = [
-        schemas.MetricTimeSeriesPointResponse(
-            timestamp=timestamp,
-            request_count=bucket.request_count,
-            avg_response_time_ms=bucket.avg_response_time_ms,
-            error_count=bucket.error_count,
+        metrics_time_series.append(
+            schemas.MetricTimeSeriesPointResponse(
+                timestamp=ts,
+                request_count=row.request_count,
+                avg_response_time_ms=round(row.avg_response_time_ms or 0, 2),
+                error_count=int(row.error_count or 0),
+            )
         )
-        for timestamp, bucket in sorted(buckets.items())
-    ]
 
     return metrics_time_series
 
@@ -163,37 +140,43 @@ def get_metrics_time_series(
 def get_metrics_endpoints_stats(
     session: Session, params: schemas.MetricQuery
 ) -> list[schemas.MetricEndpointStatsResponse]:
-    metrics = (
-        session.query(models.Metric)
+    results = (
+        session.query(
+            models.Metric.url_path,
+            models.Metric.method,
+            func.count(models.Metric.id).label("request_count"),
+            func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
+            func.sum(
+                case((models.Metric.response_status_code >= 400, 1), else_=0)
+            ).label("error_count"),
+            func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
+            func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
+        )
         .filter(
             models.Metric.project_id == params.project_id,
             models.Metric.timestamp >= params.start_date,
             models.Metric.timestamp <= params.end_date,
         )
+        .group_by(models.Metric.url_path, models.Metric.method)
         .all()
     )
 
-    # Group metrics by endpoint and calculate metrics_endpoint_stats
-    buckets: dict[tuple[HTTPMethod, str], MetricAggregator] = defaultdict(
-        MetricAggregator
-    )
-
-    for metric in metrics:
-        endpoint = (metric.method, metric.url_path)
-        buckets[endpoint].add(metric)
-
-    metrics_endpoint_stats = [
-        schemas.MetricEndpointStatsResponse(
-            url_path=url_path,
-            method=method,
-            request_count=bucket.request_count,
-            avg_response_time_ms=bucket.avg_response_time_ms,
-            error_count=bucket.error_count,
-            error_rate=bucket.error_rate,
-            slowest_request_ms=bucket.slowest_request_ms,
-            fastest_request_ms=bucket.fastest_request_ms,
+    metrics_endpoint_stats = []
+    for row in results:
+        error_count = int(row.error_count or 0)
+        metrics_endpoint_stats.append(
+            schemas.MetricEndpointStatsResponse(
+                url_path=row.url_path,
+                method=row.method,
+                request_count=row.request_count,
+                avg_response_time_ms=round(row.avg_response_time_ms or 0, 2),
+                error_count=error_count,
+                error_rate=round(error_count / row.request_count * 100, 2)
+                if row.request_count > 0
+                else 0,
+                slowest_request_ms=round(row.slowest_request_ms or 0, 2),
+                fastest_request_ms=round(row.fastest_request_ms or 0, 2),
+            )
         )
-        for (method, url_path), bucket in sorted(buckets.items())
-    ]
 
     return metrics_endpoint_stats

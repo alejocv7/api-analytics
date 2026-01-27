@@ -19,13 +19,16 @@ class Settings(BaseSettings):
 
     # API
     API_V1_STR: str = "/api/v1"
+    API_PREFIX: str = API_V1_STR
 
     # Database
     SQLALCHEMY_DATABASE_URI: str
     REDIS_URL: str
 
     # Security
-    HASH_SALT: str
+    SECURITY_KEY: str
+    SECURITY_ALGORITHM: str = "HS256"
+    SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
 
 settings = Settings()  # type: ignore

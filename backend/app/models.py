@@ -37,6 +37,9 @@ class Project(Base):
     slug: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str | None]
 
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    owner: Mapped["User"] = relationship(back_populates="projects")
+
     api_keys: Mapped[list["ApiKey"]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
@@ -56,12 +59,60 @@ class Project(Base):
     is_active: Mapped[bool] = mapped_column(default=True)
 
 
+class User(Base):
+    """User accounts - people who sign up for the analytics service."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    email: Mapped[str] = mapped_column(unique=True, index=True)
+
+    hashed_password: Mapped[str]
+
+    full_name: Mapped[str | None]
+
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        UTCDateTime(), server_default=func.now()
+    )
+
+    projects: Mapped[list["Project"]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
+
+
+class ApiKey(Base):
+    """
+    API keys for authentication. One key can access multiple projects.
+    """
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    key_hash: Mapped[str] = mapped_column(unique=True, index=True)
+    name: Mapped[str]
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    project: Mapped["Project"] = relationship(back_populates="api_keys")
+
+    created_at: Mapped[datetime] = mapped_column(
+        UTCDateTime(), server_default=func.now()
+    )
+
+    last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+
 class Metric(Base):
     """
     Database model for storing API request metrics.
     """
 
-    __tablename__ = "api_metrics"
+    __tablename__ = "metrics"
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -92,27 +143,3 @@ class Metric(Base):
 
     def __repr__(self):
         return f"<Metric {self.method} {self.url_path} - {self.response_status_code}>"
-
-
-class ApiKey(Base):
-    """
-    API keys for authentication. One key can access multiple projects.
-    """
-
-    __tablename__ = "api_keys"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    key_hash: Mapped[str] = mapped_column(unique=True, index=True)
-    name: Mapped[str]
-
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
-    project: Mapped["Project"] = relationship(back_populates="api_keys")
-
-    created_at: Mapped[datetime] = mapped_column(
-        UTCDateTime(), server_default=func.now()
-    )
-
-    last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
-
-    is_active: Mapped[bool] = mapped_column(default=True)

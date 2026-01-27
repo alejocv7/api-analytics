@@ -3,6 +3,7 @@ from http import HTTPMethod, HTTPStatus
 from typing import Annotated, Self
 
 from fastapi import Query
+from fastapi.openapi.models import EmailStr
 from pydantic import (
     AfterValidator,
     AwareDatetime,
@@ -135,3 +136,44 @@ class MetricParams(BaseModel):
 
 
 MetricQuery = Annotated[MetricParams, Query()]
+
+
+# ==================== User Schemas ====================
+class UserCreate(BaseModel):
+    """Schema for user registration."""
+
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: str | None = None
+
+
+class UserLogin(BaseModel):
+    """Schema for user login."""
+
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    """Schema for user data in responses."""
+
+    email: str
+    full_name: str | None
+    is_active: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Token(BaseModel):
+    """JWT token."""
+
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenData(BaseModel):
+    """Data stored in JWT token."""
+
+    user_id: int
+    email: str

@@ -17,7 +17,7 @@ def add_metric(
     data["project_id"] = project_id
 
     if ip := data.pop("ip", None):
-        data["ip_hash"] = hash_ip(ip, settings.HASH_SALT)
+        data["ip_hash"] = hash_ip(ip, settings.SECURITY_KEY)
 
     metric = models.Metric(**data)
 

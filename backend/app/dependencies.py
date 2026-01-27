@@ -20,6 +20,6 @@ def get_db() -> Generator[Session, None, None]:
 
 
 SessionDep = Annotated[Session, Depends(get_db)]
-ProjectIdDep = Annotated[int, Depends(api_keys.get_project_id_from_api_key)]
+ProjectIdDep = Annotated[int, Depends(api_keys.get_project_id)]
 CurrentUserDep = Annotated[models.User, Depends(users.get_current_user)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]

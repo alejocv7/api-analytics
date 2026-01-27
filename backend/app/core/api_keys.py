@@ -9,7 +9,7 @@ from app.dependencies import SessionDep
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-async def get_project_id_from_api_key(
+async def get_project_id(
     session: SessionDep,
     api_key: str = Security(api_key_header),
 ) -> int:

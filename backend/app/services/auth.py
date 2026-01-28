@@ -24,7 +24,7 @@ def register(user: schemas.UserCreate, session: Session) -> models.User:
     return new_user
 
 
-def login(user_login: schemas.UserLogin, session: Session) -> schemas.Token:
+def login(user_login: schemas.UserLogin, session: Session) -> schemas.TokenResponse:
     user = authenticate_user(user_login.email, user_login.password, session)
     if not user or not user.is_active:
         raise HTTPException(
@@ -33,7 +33,7 @@ def login(user_login: schemas.UserLogin, session: Session) -> schemas.Token:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return schemas.Token(
+    return schemas.TokenResponse(
         access_token=security.create_access_token(
             schemas.TokenData(user_id=user.id, email=user.email)
         )

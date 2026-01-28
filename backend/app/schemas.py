@@ -30,6 +30,11 @@ def get_default_end_date() -> AwareDatetime:
     )
 
 
+def sanitize_project_name(name: str) -> str:
+    return name.strip().lower().replace(" ", "-")
+
+
+# ==================== Metric Schemas ====================
 class MetricBase(BaseModel):
     url_path: Annotated[str, AfterValidator(normalize_url_path)] = Field(
         ..., description="API endpoint path"
@@ -46,6 +51,20 @@ class MetricBase(BaseModel):
 class MetricCreate(MetricBase):
     ip: str | None = Field(
         None, description="Raw IP address (will be hashed by server)"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "url_path": "/v1/users",
+                    "method": "GET",
+                    "status_code": 200,
+                    "response_time_ms": 45.3,
+                    "user_agent": "Mozilla/5.0...",
+                }
+            ]
+        }
     )
 
 
@@ -177,3 +196,173 @@ class TokenData(BaseModel):
 
     user_id: int
     email: str
+
+
+# ==================== Project Schemas ====================
+class ProjectBase(BaseModel):
+    """Base project schema."""
+
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class ProjectCreate(ProjectBase):
+    """Schema for creating a project."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "name": "Production API",
+                    "description": "Main production API for e-commerce platform",
+                }
+            ]
+        }
+    )
+
+
+class ProjectUpdate(BaseModel):
+    """Schema for updating a project."""
+
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    is_active: bool | None = None
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "name": "Updated Project Name",
+                    "description": "Updated description",
+                    "is_active": True,
+                }
+            ]
+        },
+    )
+
+
+class ProjectResponse(ProjectBase):
+    """Schema for project in responses."""
+
+    id: int
+    slug: str
+    user_id: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectDetailResponse(ProjectResponse):
+    """Detailed project response with statistics."""
+
+    total_api_keys: int = 0
+    active_api_keys: int = 0
+    total_metrics: int = 0
+    metrics_last_24h: int = 0
+    avg_response_time_ms: float = 0.0
+    error_rate_percent: float = 0.0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectListResponse(BaseModel):
+    """Response for list of projects."""
+
+    items: list[ProjectResponse]
+    total: int
+    page: int
+    page_size: int
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 20}]
+        }
+    )
+
+
+# ==================== API Key Schemas ====================
+class APIKeyBase(BaseModel):
+    """Base API key schema."""
+
+    name: str | None = Field(None, max_length=255)
+
+
+class APIKeyCreate(APIKeyBase):
+    """Schema for creating an API key."""
+
+    expires_at: datetime | None = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"name": "Production Key", "expires_at": None},
+                {"name": "Temporary Testing Key", "expires_at": "2026-12-31T23:59:59Z"},
+            ]
+        }
+    )
+
+
+class APIKeyUpdate(BaseModel):
+    """Schema for updating an API key."""
+
+    name: str | None = Field(None, max_length=255)
+    is_active: bool | None = None
+
+
+class APIKeyResponse(APIKeyBase):
+    """Schema for API key in responses (without the actual key)."""
+
+    id: int
+    project_id: int
+    is_active: bool
+    created_at: datetime
+    last_used_at: datetime | None
+    expires_at: datetime | None
+    total_requests: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class APIKeyCreateResponse(APIKeyResponse):
+    """
+    Response when creating a new API key.
+    IMPORTANT: This is the ONLY time the full key is shown!
+    """
+
+    key: str  # Full API key - shown only once!
+    warning: str = "Save this key securely! You won't be able to see it again."
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 1,
+                    "key": "sk_live_abc123",
+                    "name": "Production Key",
+                    "project_id": 1,
+                    "is_active": True,
+                    "created_at": "2026-01-27T10:00:00Z",
+                    "last_used_at": None,
+                    "expires_at": None,
+                    "total_requests": 0,
+                    "warning": "Save this key securely! You won't be able to see it again.",
+                }
+            ]
+        }
+    )
+
+
+class APIKeyListResponse(BaseModel):
+    """Response for list of API keys."""
+
+    items: list[APIKeyResponse]
+    total: int
+
+    model_config = ConfigDict(
+        json_schema_extra={"examples": [{"items": [], "total": 0}]}
+    )

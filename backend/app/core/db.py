@@ -21,3 +21,12 @@ def wakeup_db():
         print(f"Successfully connected to database: {settings.SQLALCHEMY_DATABASE_URI}")
     except Exception as e:
         print(f"Error connecting to database: {e}")
+
+
+def is_db_connected() -> bool:
+    try:
+        with Session() as session:
+            session.execute(select(1))
+        return True
+    except Exception:
+        return False

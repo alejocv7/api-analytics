@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from http import HTTPMethod, HTTPStatus
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, TypeDecorator, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, TypeDecorator, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -37,11 +37,11 @@ class Project(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    name: Mapped[str]
-    slug: Mapped[str] = mapped_column(unique=True, index=True)
-    description: Mapped[str | None]
+    name: Mapped[str] = mapped_column(String(255))
+    slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    description: Mapped[str | None] = mapped_column(String(1000))
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     owner: Mapped["User"] = relationship(back_populates="projects")
 
     api_keys: Mapped[list["ApiKey"]] = relationship(
@@ -61,6 +61,11 @@ class Project(Base):
     )
 
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    __table_args__ = (
+        Index("idx_project_slug", "slug"),
+        Index("idx_project_user_active", "user_id", "is_active"),
+    )
 
 
 class User(Base):
@@ -97,18 +102,26 @@ class ApiKey(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     key_hash: Mapped[str] = mapped_column(unique=True, index=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(String(255))
 
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
     project: Mapped["Project"] = relationship(back_populates="api_keys")
 
     created_at: Mapped[datetime] = mapped_column(
         UTCDateTime(), server_default=func.now()
     )
+    expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    total_requests: Mapped[int] = mapped_column(default=0)
+
+    __table_args__ = (
+        Index("idx_apikey_project_active", "project_id", "is_active"),
+        Index("idx_apikey_hash", "key_hash"),
+    )
 
 
 class Metric(Base):
@@ -125,7 +138,7 @@ class Metric(Base):
 
     url_path: Mapped[str] = mapped_column(index=True)
     method: Mapped[HTTPMethod] = mapped_column(
-        Enum(HTTPMethod, name="http_method_enum")
+        Enum(HTTPMethod, name="http_method_enum"), index=True
     )
     response_status_code: Mapped[HTTPStatus] = mapped_column(
         Enum(HTTPStatus, name="http_status_enum"), index=True
@@ -142,6 +155,8 @@ class Metric(Base):
     __table_args__ = (
         Index("idx_project_timestamp", "project_id", "timestamp"),
         Index("idx_project_url_path", "project_id", "url_path"),
+        Index("idx_project_method", "project_id", "method"),
+        Index("idx_project_status_code", "project_id", "response_status_code"),
         Index("idx_status_timestamp", "response_status_code", "timestamp"),
     )
 

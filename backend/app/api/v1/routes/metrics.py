@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-import app.crud.metrics as crud
 from app import schemas
 from app.dependencies import ProjectIdDep, SessionDep
 from app.schemas import MetricQuery
+from app.services import metrics
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ async def read_metrics(
     """
     Retrieve API metrics.
     """
-    return crud.get_metrics(session, project_id, skip=skip, limit=limit)
+    return metrics.get_metrics(session, project_id, skip=skip, limit=limit)
 
 
 @router.get("/summary", response_model=schemas.MetricSummaryResponse)
@@ -28,7 +28,7 @@ async def read_metrics_summary(
     """
     Retrieve API metrics summary.
     """
-    return crud.get_metrics_summary(session, project_id, params)
+    return metrics.get_metrics_summary(session, project_id, params)
 
 
 @router.get("/time-series", response_model=list[schemas.MetricTimeSeriesPointResponse])
@@ -38,7 +38,7 @@ async def read_metrics_time_series(
     """
     Retrieve API metrics time series.
     """
-    return crud.get_metrics_time_series(session, project_id, params)
+    return metrics.get_metrics_time_series(session, project_id, params)
 
 
 @router.get("/endpoints", response_model=list[schemas.MetricEndpointStatsResponse])
@@ -48,4 +48,4 @@ async def read_metrics_endpoints_stats(
     """
     Retrieve API metrics endpoints.
     """
-    return crud.get_metrics_endpoints_stats(session, project_id, params)
+    return metrics.get_metrics_endpoints_stats(session, project_id, params)

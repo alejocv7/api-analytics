@@ -1,7 +1,7 @@
 from app import models, schemas
 from app.core import security
-from app.crud.users import get_user_by_email
 from app.dependencies import SessionDep
+from app.services.users import get_user_by_email
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 

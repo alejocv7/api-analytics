@@ -1,8 +1,8 @@
 from fastapi import APIRouter, status
 
 from app import schemas
-from app.crud import auth
 from app.dependencies import SessionDep
+from app.services import auth
 
 router = APIRouter()
 

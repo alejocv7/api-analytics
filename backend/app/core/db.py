@@ -1,5 +1,4 @@
 from sqlalchemy import create_engine, select
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
@@ -13,7 +12,6 @@ engine = create_engine(
     settings.SQLALCHEMY_DATABASE_URI, pool_pre_ping=True, connect_args=connect_args
 )
 Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-Base = declarative_base()
 
 
 def wakeup_db():

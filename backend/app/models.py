@@ -2,9 +2,7 @@ from datetime import datetime, timezone
 from http import HTTPMethod, HTTPStatus
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, TypeDecorator, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.core.db import Base
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class UTCDateTime(TypeDecorator):
@@ -24,6 +22,12 @@ class UTCDateTime(TypeDecorator):
         if value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
+
+
+class Base(DeclarativeBase):
+    """Base class for all database models."""
+
+    pass
 
 
 class Project(Base):

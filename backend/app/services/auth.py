@@ -24,20 +24,12 @@ def register(user: schemas.UserCreate, session: Session) -> models.User:
     return new_user
 
 
-def login(user_login: schemas.UserLogin, session: Session) -> schemas.TokenResponse:
+def create_user_token(
+    user_login: schemas.UserLogin, session: Session
+) -> schemas.TokenResponse:
     user = authenticate_user(user_login.email, user_login.password, session)
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return schemas.TokenResponse(
-        access_token=security.create_access_token(
-            schemas.TokenData(user_id=user.id, email=user.email)
-        )
-    )
+    token_data = schemas.TokenData(user_id=user.id, email=user.email)
+    return schemas.TokenResponse(access_token=security.create_access_token(token_data))
 
 
 # Dummy hash to use for timing attack prevention when user is not found
@@ -49,11 +41,15 @@ def authenticate_user(
     email: str, password: str, session: SessionDep
 ) -> models.User | None:
     user = get_user_by_email(email, session)
-    if not user:
+    if not user or not user.is_active:
         # Prevent timing attacks by running password verification even when user doesn't exist
         # This ensures the response time is similar whether or not the email exists
         security.verify_password(password, DUMMY_HASH)
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     success, updated_hash = security.verify_password(password, user.hashed_password)
     if not success:

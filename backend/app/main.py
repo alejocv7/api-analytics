@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from app.api.v1.router import router as v1_router
+from app.api.v1.routes import router as v1_router
 from app.core import db
 from app.core.config import settings
 from app.core.rate_limiter import limiter

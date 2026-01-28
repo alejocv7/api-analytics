@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core import security
 from app.models import Base, Project, UTCDateTime
 
 
@@ -36,3 +37,34 @@ class ApiKey(Base):
         Index("idx_apikey_project_active", "project_id", "is_active"),
         Index("idx_apikey_hash", "key_hash"),
     )
+
+    def __repr__(self):
+        return f"ApiKey(id={self.id}, name={self.name}, project_id={self.project_id})"
+
+    @property
+    def is_expired(self) -> bool:
+        if not self.expires_at:
+            return False
+        return self.expires_at < datetime.now(tz=timezone.utc)
+
+    @property
+    def is_valid(self) -> bool:
+        return self.is_active and not self.is_expired
+
+    def record_usage(self):
+        self.total_requests += 1
+        self.last_used_at = datetime.now(tz=timezone.utc)
+
+    @staticmethod
+    def verify_key(plain_key: str, hashed_key: str) -> bool:
+        """
+        Verify a plain API key against a hashed key.
+
+        Args:
+            plain_key: The plain text API key
+            hashed_key: The hashed key from database
+
+        Returns:
+            True if keys match
+        """
+        return security.hash_api_key(plain_key) == hashed_key

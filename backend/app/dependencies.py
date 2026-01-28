@@ -24,7 +24,7 @@ def get_db() -> Generator[Session, None, None]:
 SessionDep = Annotated[Session, Depends(get_db)]
 
 
-def get_project_id(
+def get_project_id_by_api_key(
     session: SessionDep,
     api_key: str = Security(api_key_header),
 ) -> int:
@@ -35,10 +35,7 @@ def get_project_id(
         )
 
     api_key_obj = session.execute(
-        select(models.ApiKey).where(
-            models.ApiKey.key_hash == hash_api_key(api_key),
-            models.ApiKey.is_active.is_(True),
-        )
+        select(models.ApiKey).where(models.ApiKey.key_hash == hash_api_key(api_key))
     ).scalar_one_or_none()
 
     if not api_key_obj:
@@ -46,10 +43,22 @@ def get_project_id(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
         )
 
-    return api_key_obj.project_id
+    if api_key_obj.is_active is False:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive API key"
+        )
+
+    project = api_key_obj.project
+    if project.is_active is False:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Project associated with API key is inactive",
+        )
+
+    return project.id
 
 
-ProjectIdDep = Annotated[int, Depends(get_project_id)]
+ProjectIdDep = Annotated[int, Depends(get_project_id_by_api_key)]
 
 
 def get_current_user(session: SessionDep, token: TokenDep) -> models.User:

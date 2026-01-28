@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -14,6 +15,7 @@ from app.core.config import settings
 password_hash = PasswordHash.recommended()
 
 
+# --------------- IP ----------------
 def hash_ip(ip: str | None, salt: str) -> str | None:
     """
     Hashes an IP address using HMAC-SHA256.
@@ -26,6 +28,16 @@ def hash_ip(ip: str | None, salt: str) -> str | None:
     return hash_obj.hexdigest()[:16]
 
 
+# --------------- API Key ----------------
+def generate_api_key() -> tuple[str, str]:
+    """
+    Generates a random API key.
+    """
+    full_key = f"{settings.API_KEY_PREFIX}-{secrets.token_urlsafe(settings.API_KEY_LENGTH)[: settings.API_KEY_LENGTH]}"
+
+    return full_key, hash_api_key(full_key)
+
+
 def hash_api_key(api_key: str) -> str:
     """
     Hashes an API key using SHA256.
@@ -35,6 +47,7 @@ def hash_api_key(api_key: str) -> str:
     ).hexdigest()
 
 
+# --------------- Password ----------------
 def hash_password(password: str) -> str:
     """Hash a password for storage."""
     return password_hash.hash(password)
@@ -47,6 +60,7 @@ def verify_password(
     return password_hash.verify_and_update(plain_password, hashed_password)
 
 
+# --------------- JWT Token ----------------
 def create_access_token(token_data: schemas.TokenData) -> str:
     """Create a JWT access token."""
     now = datetime.now(timezone.utc)

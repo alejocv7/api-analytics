@@ -30,5 +30,10 @@ class Settings(BaseSettings):
     SECURITY_ALGORITHM: str = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # API Keys
+    API_KEY_LENGTH: int = 32
+    API_KEY_PREFIX: str = "sk_live"
+    API_KEY_MAX_PER_PROJECT: int = 10
+
 
 settings = Settings()  # type: ignore

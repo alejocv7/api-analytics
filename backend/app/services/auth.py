@@ -12,7 +12,7 @@ def register(user: schemas.UserCreate, session: Session) -> models.User:
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
 
-    hashed_password = security.hash_password(user.password)
+    hashed_password = security.hash_password(user.password.get_secret_value())
     new_user = models.User(
         email=user.email, hashed_password=hashed_password, full_name=user.full_name
     )
@@ -27,9 +27,7 @@ def register(user: schemas.UserCreate, session: Session) -> models.User:
 def create_user_token(
     user_login: schemas.LoginRequest, session: Session
 ) -> schemas.TokenResponse:
-    user = authenticate_user(
-        user_login.email, user_login.password.get_secret_value(), session
-    )
+    user = authenticate_user(user_login.email, user_login.password, session)
     token_data = schemas.TokenData(user_id=user.id, email=user.email)
     return schemas.TokenResponse(access_token=security.create_access_token(token_data))
 

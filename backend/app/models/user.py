@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models import Base, UTCDateTime
+from app.models import Base
 from app.models.project import Project
 
 
@@ -22,9 +22,7 @@ class User(Base):
 
     is_active: Mapped[bool] = mapped_column(default=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        UTCDateTime(), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     projects: Mapped[list["Project"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"

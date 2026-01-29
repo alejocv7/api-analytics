@@ -4,7 +4,7 @@ from http import HTTPMethod, HTTPStatus
 from sqlalchemy import Enum, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models import Base, Project, UTCDateTime
+from app.models import Base, Project
 
 
 class Metric(Base):
@@ -28,9 +28,7 @@ class Metric(Base):
     )
 
     response_time_ms: Mapped[float]
-    timestamp: Mapped[datetime] = mapped_column(
-        UTCDateTime(), server_default=func.now(), index=True
-    )
+    timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
 
     user_agent: Mapped[str | None]
     ip_hash: Mapped[str | None]

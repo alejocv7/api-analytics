@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models import ApiKey, Base, Metric, User, UTCDateTime
+from app.models import ApiKey, Base, Metric, User
 
 
 class Project(Base):
@@ -28,13 +28,8 @@ class Project(Base):
         back_populates="project", cascade="all, delete-orphan"
     )
 
-    created_at: Mapped[datetime] = mapped_column(
-        UTCDateTime(), server_default=func.now()
-    )
-
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime(), server_onupdate=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_onupdate=func.now())
 
     is_active: Mapped[bool] = mapped_column(default=True)
 

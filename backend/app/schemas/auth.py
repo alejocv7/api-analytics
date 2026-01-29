@@ -25,7 +25,7 @@ class TokenData(BaseModel):
 
     user_id: int
     email: str
-    exp: int
+    exp: int | None = None
 
     model_config = ConfigDict(
         json_schema_extra={

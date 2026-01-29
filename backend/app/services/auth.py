@@ -25,9 +25,11 @@ def register(user: schemas.UserCreate, session: Session) -> models.User:
 
 
 def create_user_token(
-    user_login: schemas.UserLogin, session: Session
+    user_login: schemas.LoginRequest, session: Session
 ) -> schemas.TokenResponse:
-    user = authenticate_user(user_login.email, user_login.password, session)
+    user = authenticate_user(
+        user_login.email, user_login.password.get_secret_value(), session
+    )
     token_data = schemas.TokenData(user_id=user.id, email=user.email)
     return schemas.TokenResponse(access_token=security.create_access_token(token_data))
 
@@ -37,9 +39,7 @@ def create_user_token(
 DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
 
 
-def authenticate_user(
-    email: str, password: str, session: SessionDep
-) -> models.User | None:
+def authenticate_user(email: str, password: str, session: SessionDep) -> models.User:
     user = get_user_by_email(email, session)
     if not user or not user.is_active:
         # Prevent timing attacks by running password verification even when user doesn't exist
@@ -53,7 +53,11 @@ def authenticate_user(
 
     success, updated_hash = security.verify_password(password, user.hashed_password)
     if not success:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if updated_hash:
         user.hashed_password = updated_hash
         session.add(user)

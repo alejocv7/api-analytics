@@ -4,7 +4,6 @@ from typing import Annotated, Self
 
 from fastapi import Query
 from pydantic import (
-    AfterValidator,
     AwareDatetime,
     BaseModel,
     ConfigDict,
@@ -12,13 +11,11 @@ from pydantic import (
     model_validator,
 )
 
-from app.schemas import get_default_end_date, get_default_start_date, normalize_url_path
+from app.schemas import NormalizedUrlPath, get_default_end_date, get_default_start_date
 
 
 class MetricBase(BaseModel):
-    url_path: Annotated[str, AfterValidator(normalize_url_path)] = Field(
-        ..., description="API endpoint path"
-    )
+    url_path: NormalizedUrlPath = Field(..., description="API endpoint path")
 
     method: HTTPMethod = Field(..., description="HTTP method")
     response_status_code: HTTPStatus = Field(..., description="HTTP status code")

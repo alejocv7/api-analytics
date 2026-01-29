@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
+from typing import Annotated
 
-from pydantic import AwareDatetime
+from pydantic import AfterValidator, AwareDatetime, BeforeValidator, SecretStr
+
+from app.core import security
 
 from .api_key import APIKeyCreate, APIKeyListResponse, APIKeyResponse
-from .auth import LoginRequest, TokenResponse
+from .auth import LoginRequest, TokenData, TokenResponse
 from .metric import (
     MetricEndpointStatsResponse,
     MetricParams,
@@ -19,6 +22,7 @@ __all__ = [
     # Auth
     "LoginRequest",
     "TokenResponse",
+    "TokenData",
     # Project
     "ProjectCreate",
     "ProjectResponse",
@@ -39,12 +43,6 @@ __all__ = [
 ]
 
 
-def normalize_url_path(url_path: str) -> str:
-    if not url_path.startswith("/"):
-        raise ValueError("url_path must start with '/'")
-    return url_path.rstrip("/") or "/"
-
-
 def get_default_start_date() -> AwareDatetime:
     return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -55,5 +53,11 @@ def get_default_end_date() -> AwareDatetime:
     )
 
 
-def sanitize_project_name(name: str) -> str:
-    return name.strip().lower().replace(" ", "-")
+def normalize_url_path(url_path: str) -> str:
+    if not url_path.startswith("/"):
+        raise ValueError("url_path must start with '/'")
+    return url_path.rstrip("/") or "/"
+
+
+NormalizedUrlPath = Annotated[str, BeforeValidator(normalize_url_path)]
+SecurePassword = Annotated[SecretStr, AfterValidator(security.validate_password)]

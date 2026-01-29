@@ -12,4 +12,6 @@ dependencies = [
     "redis>=5.0.0",
     "pwdlib[argon2]>=0.3.0",
     "pyjwt>=2.10.1",
+    "zxcvbn>=4.5.0",
+    "types-zxcvbn>=4.5.0.20250809",
 ]

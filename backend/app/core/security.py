@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from jwt import InvalidTokenError
 from pwdlib import PasswordHash
 from pydantic import ValidationError
+from zxcvbn import zxcvbn
 
 from app import schemas
 from app.core.config import settings
@@ -58,6 +59,16 @@ def verify_password(
 ) -> tuple[bool, str | None]:
     """Verify a password against a hash."""
     return password_hash.verify_and_update(plain_password, hashed_password)
+
+
+def validate_password(password: str) -> str:
+    """Validate password meets security requirements."""
+    result = zxcvbn(password)
+    if result["score"] < 3:
+        feedback = ", ".join(result["feedback"]["suggestions"])
+        raise ValueError(f"Password is too weak. Suggestions: {feedback}")
+
+    return password
 
 
 # --------------- JWT Token ----------------

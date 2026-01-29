@@ -1,19 +1,29 @@
 from datetime import datetime
 
 from fastapi.openapi.models import EmailStr
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-)
+from pydantic import BaseModel, ConfigDict
+
+from app.schemas import SecurePassword
 
 
 class UserCreate(BaseModel):
     """Schema for user registration."""
 
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: SecurePassword
     full_name: str | None = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "email": "[EMAIL_ADDRESS]",
+                    "password": "[PASSWORD]",
+                    "full_name": "John Doe",
+                }
+            ]
+        }
+    )
 
 
 class UserResponse(BaseModel):

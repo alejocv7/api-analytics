@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKey, Index, String, func
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import security
-from app.models import Base, Project
+from app.models.base import Base, TimestampMixin
+from app.models.project import Project
 
 
-class ApiKey(Base):
+class ApiKey(Base, TimestampMixin):
     """
     API keys for authentication. One key can access multiple projects.
     """
@@ -22,7 +23,6 @@ class ApiKey(Base):
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
     project: Mapped["Project"] = relationship(back_populates="api_keys")
 
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     expires_at: Mapped[datetime | None]
 
     last_used_at: Mapped[datetime | None]

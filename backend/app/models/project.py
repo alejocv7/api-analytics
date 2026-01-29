@@ -1,12 +1,13 @@
-from datetime import datetime
-
-from sqlalchemy import ForeignKey, Index, String, func
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models import ApiKey, Base, Metric, User
+from app.models.api_key import ApiKey
+from app.models.base import Base, TimestampMixin
+from app.models.metric import Metric
+from app.models.user import User
 
 
-class Project(Base):
+class Project(Base, TimestampMixin):
     """Projects belong to users. Each project represents an app being tracked."""
 
     __tablename__ = "projects"
@@ -27,9 +28,6 @@ class Project(Base):
     metrics: Mapped[list["Metric"]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
-
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(server_onupdate=func.now())
 
     is_active: Mapped[bool] = mapped_column(default=True)
 

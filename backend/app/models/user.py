@@ -1,13 +1,10 @@
-from datetime import datetime
-
-from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models import Base
+from app.models.base import Base, TimestampMixin
 from app.models.project import Project
 
 
-class User(Base):
+class User(Base, TimestampMixin):
     """User accounts - people who sign up for the analytics service."""
 
     __tablename__ = "users"
@@ -21,8 +18,6 @@ class User(Base):
     full_name: Mapped[str | None]
 
     is_active: Mapped[bool] = mapped_column(default=True)
-
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     projects: Mapped[list["Project"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"

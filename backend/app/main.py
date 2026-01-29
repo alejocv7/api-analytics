@@ -14,8 +14,12 @@ from app.middleware import MetricMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    db.wakeup_db()
+    db.init_db()
+    if not db.is_db_connected():
+        raise Exception("Database connection failed")
+    print("Application started successfully!")
     yield
+    print("Application shutting down!")
 
 
 app = FastAPI(

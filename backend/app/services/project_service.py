@@ -5,6 +5,7 @@ from app import models, schemas
 from app.core.config import settings
 from fastapi import HTTPException, status
 from sqlalchemy import select, true
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 
@@ -14,12 +15,6 @@ def create_user_project(
     session: Session,
 ):
     project_key = _generate_project_key(project_in.name)
-    if get_user_project_by_key(user_id, project_key, session):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Project already exists",
-        )
-
     project = models.Project(
         name=project_in.name,
         description=project_in.description,
@@ -28,7 +23,14 @@ def create_user_project(
     )
 
     session.add(project)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Project already exists",
+        )
     session.refresh(project)
 
     return project
@@ -92,7 +94,6 @@ def update_user_project(
     for key, value in update_dict.items():
         setattr(project, key, value)
 
-    session.add(project)
     session.commit()
     session.refresh(project)
 

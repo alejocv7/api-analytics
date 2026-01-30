@@ -1,7 +1,6 @@
 from app import models, schemas
 from app.core import security
 from app.core.config import settings
-from app.dependencies import SessionDep
 from app.services.users import get_user_by_email
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -25,15 +24,12 @@ def register(user: schemas.UserCreate, session: Session) -> models.User:
     return new_user
 
 
-def create_user_token(
-    user_login: schemas.LoginRequest, session: Session
-) -> schemas.TokenResponse:
-    user = authenticate_user(user_login.email, user_login.password, session)
+def create_user_token(user: models.User) -> schemas.TokenResponse:
     token_data = schemas.TokenData(user_id=user.id, email=user.email)
     return schemas.TokenResponse(access_token=security.create_access_token(token_data))
 
 
-def authenticate_user(email: str, password: str, session: SessionDep) -> models.User:
+def authenticate_user(email: str, password: str, session: Session) -> models.User:
     user = get_user_by_email(email, session)
     if not user or not user.is_active:
         # Prevent timing attacks by running password verification even when user doesn't exist

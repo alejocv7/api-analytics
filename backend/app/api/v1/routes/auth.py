@@ -19,4 +19,4 @@ async def register(user: schemas.UserCreate, session: SessionDep):
 @router.post("/login", response_model=schemas.TokenResponse)
 async def login(user_login: schemas.LoginRequest, session: SessionDep):
     user = auth.authenticate_user(user_login.email, user_login.password, session)
-    return auth.create_user_token(user, session)
+    return auth.create_user_token(user)

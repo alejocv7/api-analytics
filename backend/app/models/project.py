@@ -1,6 +1,7 @@
-from sqlalchemy import ForeignKey, Index, String
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.config import settings
 from app.models.api_key import ApiKey
 from app.models.base import Base, TimestampMixin
 from app.models.metric import Metric
@@ -14,8 +15,10 @@ class Project(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    name: Mapped[str] = mapped_column(String(255))
-    slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    project_key: Mapped[str] = mapped_column(
+        String(100 + settings.PROJECT_SUFFIX_LENGTH), unique=True, index=True
+    )
     description: Mapped[str | None] = mapped_column(String(1000))
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -32,6 +35,7 @@ class Project(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(default=True)
 
     __table_args__ = (
-        Index("idx_project_slug", "slug"),
+        UniqueConstraint("user_id", "name", name="uq_user_project_name"),
+        Index("idx_project_project_key", "project_key"),
         Index("idx_project_user_active", "user_id", "is_active"),
     )

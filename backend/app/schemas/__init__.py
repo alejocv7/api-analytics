@@ -4,10 +4,10 @@ from typing import Annotated
 from pydantic import AfterValidator, AwareDatetime, BeforeValidator, SecretStr
 
 from app.core import security
-
-from .api_key import APIKeyCreate, APIKeyListResponse, APIKeyResponse
-from .auth import LoginRequest, TokenData, TokenResponse
-from .metric import (
+from app.schemas.api_key import APIKeyCreate, APIKeyListResponse, APIKeyResponse
+from app.schemas.auth import LoginRequest, TokenData, TokenResponse
+from app.schemas.metric import (
+    MetricCreate,
     MetricEndpointStatsResponse,
     MetricParams,
     MetricQuery,
@@ -15,8 +15,8 @@ from .metric import (
     MetricSummaryResponse,
     MetricTimeSeriesPointResponse,
 )
-from .project import ProjectCreate, ProjectResponse
-from .user import UserCreate, UserResponse
+from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.schemas.user import UserCreate, UserResponse
 
 __all__ = [
     # Auth
@@ -26,6 +26,7 @@ __all__ = [
     # Project
     "ProjectCreate",
     "ProjectResponse",
+    "ProjectUpdate",
     # User
     "UserCreate",
     "UserResponse",
@@ -40,6 +41,7 @@ __all__ = [
     "MetricEndpointStatsResponse",
     "MetricParams",
     "MetricQuery",
+    "MetricCreate",
 ]
 
 

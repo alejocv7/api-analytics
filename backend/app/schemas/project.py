@@ -6,11 +6,15 @@ from pydantic import (
     Field,
 )
 
+from app.core.config import settings
+
 
 class ProjectBase(BaseModel):
     """Base project schema."""
 
-    name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(
+        ..., min_length=1, max_length=100, pattern=settings.PROJECT_NAME_PATTERN
+    )
     description: str | None = Field(None, max_length=1000)
 
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
@@ -34,8 +38,9 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(BaseModel):
     """Schema for updating a project."""
 
-    name: str | None = Field(None, min_length=1, max_length=100)
-    description: str | None = Field(None, max_length=1000)
+    name: str | None = Field(
+        None, min_length=1, max_length=100, pattern=settings.PROJECT_NAME_PATTERN
+    )
     is_active: bool | None = None
 
     model_config = ConfigDict(
@@ -56,7 +61,7 @@ class ProjectResponse(ProjectBase):
     """Schema for project in responses."""
 
     id: int
-    slug: str
+    project_key: str
     user_id: int
     is_active: bool
     created_at: datetime

@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     PROJECT_ID: int = 0
     PROJECT_NAME: str
     PROJECT_DESCRIPTION: str
+    PROJECT_SUFFIX_LENGTH: int = 4
+    PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
     # API

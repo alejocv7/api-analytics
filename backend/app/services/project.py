@@ -67,7 +67,7 @@ def update_user_project(
     project_key: str,
     update_data: schemas.ProjectUpdate,
     session: Session,
-):
+) -> models.Project:
     project = get_user_project_by_key(project_key, user_id, session)
     if not project:
         raise HTTPException(

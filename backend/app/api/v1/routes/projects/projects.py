@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from app import schemas
 from app.dependencies import CurrentUserDep, SessionDep
@@ -34,6 +34,6 @@ def update_project(
     return project.update_user_project(user.id, project_key, update_data, session)
 
 
-@router.delete("/{project_key}")
+@router.delete("/{project_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_project(project_key: str, user: CurrentUserDep, session: SessionDep):
-    return project.delete_user_project(user.id, project_key, session)
+    project.delete_user_project(user.id, project_key, session)

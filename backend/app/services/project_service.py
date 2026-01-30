@@ -14,7 +14,7 @@ def create_user_project(
     session: Session,
 ):
     project_key = _generate_project_key(project_in.name)
-    if get_user_project_by_key(project_key, user_id, session):
+    if get_user_project_by_key(user_id, project_key, session):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Project already exists",
@@ -34,7 +34,7 @@ def create_user_project(
     return project
 
 
-def get_user_project_by_key(project_key: str, user_id: int, session: Session):
+def get_user_project_by_key(user_id: int, project_key: str, session: Session):
     statement = select(models.Project).where(
         models.Project.user_id == user_id,
         models.Project.project_key == project_key,
@@ -68,7 +68,7 @@ def update_user_project(
     update_data: schemas.ProjectUpdate,
     session: Session,
 ) -> models.Project:
-    project = get_user_project_by_key(project_key, user_id, session)
+    project = get_user_project_by_key(user_id, project_key, session)
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -104,7 +104,7 @@ def delete_user_project(
     project_key: str,
     session: Session,
 ):
-    project = get_user_project_by_key(project_key, user_id, session)
+    project = get_user_project_by_key(user_id, project_key, session)
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -1,51 +1,65 @@
 from fastapi import APIRouter
 
 from app import schemas
-from app.dependencies import ProjectIdDep, SessionDep
+from app.dependencies import CurrentUserDep, SessionDep
 from app.schemas import MetricQuery
-from app.services import metric
+from app.services import metric_service, project_service
 
 router = APIRouter()
 
 
 @router.get("/", response_model=list[schemas.MetricResponse])
 async def read_metrics(
+    project_key: str,
+    user: CurrentUserDep,
     session: SessionDep,
-    project_id: ProjectIdDep,
     skip: int = 0,
     limit: int = 100,
 ):
     """
     Retrieve API metrics.
     """
-    return metric.get_metrics(session, project_id, skip=skip, limit=limit)
+    project = project_service.get_user_project_by_key(user.id, project_key, session)
+    return metric_service.get_metrics(session, project.id, skip=skip, limit=limit)
 
 
 @router.get("/summary", response_model=schemas.MetricSummaryResponse)
 async def read_metrics_summary(
-    params: MetricQuery, session: SessionDep, project_id: ProjectIdDep
+    project_key: str,
+    user: CurrentUserDep,
+    session: SessionDep,
+    params: MetricQuery,
 ):
     """
     Retrieve API metrics summary.
     """
-    return metric.get_metrics_summary(session, project_id, params)
+    project = project_service.get_user_project_by_key(user.id, project_key, session)
+    return metric_service.get_metrics_summary(session, project.id, params)
 
 
 @router.get("/time-series", response_model=list[schemas.MetricTimeSeriesPointResponse])
 async def read_metrics_time_series(
-    params: MetricQuery, session: SessionDep, project_id: ProjectIdDep
+    project_key: str,
+    user: CurrentUserDep,
+    session: SessionDep,
+    params: MetricQuery,
 ):
     """
     Retrieve API metrics time series.
     """
-    return metric.get_metrics_time_series(session, project_id, params)
+    project = project_service.get_user_project_by_key(user.id, project_key, session)
+    return metric_service.get_metrics_time_series(session, project.id, params)
 
 
 @router.get("/endpoints", response_model=list[schemas.MetricEndpointStatsResponse])
 async def read_metrics_endpoints_stats(
-    params: MetricQuery, session: SessionDep, project_id: ProjectIdDep
+    project_key: str,
+    user: CurrentUserDep,
+    session: SessionDep,
+    params: MetricQuery,
 ):
     """
     Retrieve API metrics endpoints.
     """
-    return metric.get_metrics_endpoints_stats(session, project_id, params)
+    project = project_service.get_user_project_by_key(user.id, project_key, session)
+    return metric_service.get_metrics_endpoints_stats(session, project.id, params)

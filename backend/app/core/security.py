@@ -30,13 +30,17 @@ def hash_ip(ip: str | None, salt: str) -> str | None:
 
 
 # --------------- API Key ----------------
-def generate_api_key() -> tuple[str, str]:
+def generate_api_key() -> tuple[str, str, str]:
     """
     Generates a random API key.
     """
-    full_key = f"{settings.API_KEY_PREFIX}-{secrets.token_urlsafe(settings.API_KEY_LENGTH)[: settings.API_KEY_LENGTH]}"
+    random_part = secrets.token_urlsafe(settings.API_KEY_LENGTH)[
+        : settings.API_KEY_LENGTH
+    ]
+    full_key = f"{settings.API_KEY_PREFIX}{random_part}"
+    key_prefix = full_key[: settings.API_KEY_LOOKUP_PREFIX_LENGTH]
 
-    return full_key, hash_api_key(full_key)
+    return full_key, key_prefix, hash_api_key(full_key)
 
 
 def hash_api_key(api_key: str) -> str:

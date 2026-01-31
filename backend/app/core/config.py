@@ -37,7 +37,8 @@ class Settings(BaseSettings):
 
     # API Keys
     API_KEY_LENGTH: int = 32
-    API_KEY_PREFIX: str = "sk_live"
+    API_KEY_PREFIX: str = "sk_live_"
+    API_KEY_LOOKUP_PREFIX_LENGTH: int = 20
     API_KEY_PROJECT_LIMIT: int = 10
     API_KEY_DEFAULT_EXPIRY_DAYS: int = 60
 

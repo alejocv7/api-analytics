@@ -21,7 +21,10 @@ class APIKey(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    key_hash: Mapped[str] = mapped_column(unique=True, index=True)
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    key_prefix: Mapped[str] = mapped_column(
+        String(settings.API_KEY_LOOKUP_PREFIX_LENGTH), index=True, nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255))
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
@@ -62,9 +65,13 @@ class APIKey(Base, TimestampMixin):
             Tuple of (API key, full key)
         """
 
-        plain_key, key_hash = security.generate_api_key()
+        plain_key, key_prefix, key_hash = security.generate_api_key()
         api_key = cls(
-            key_hash=key_hash, name=name, project_id=project_id, expires_at=expires_at
+            key_hash=key_hash,
+            key_prefix=key_prefix,
+            name=name,
+            project_id=project_id,
+            expires_at=expires_at,
         )
 
         return api_key, plain_key
@@ -82,17 +89,3 @@ class APIKey(Base, TimestampMixin):
     def record_usage(self):
         self.total_requests += 1
         self.last_used_at = datetime.now(tz=timezone.utc)
-
-    @staticmethod
-    def verify_key(plain_key: str, hashed_key: str) -> bool:
-        """
-        Verify a plain API key against a hashed key.
-
-        Args:
-            plain_key: The plain text API key
-            hashed_key: The hashed key from database
-
-        Returns:
-            True if keys match
-        """
-        return security.compare_api_key(plain_key, hashed_key)

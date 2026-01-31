@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.core import config, db, security
-from app.core.security import hash_api_key
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -34,33 +33,26 @@ def get_project_id_by_api_key(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="API key required"
         )
 
-    api_key_obj = session.execute(
-        select(models.APIKey).where(models.APIKey.key_hash == hash_api_key(api_key))
-    ).scalar_one_or_none()
+    key_prefix = api_key[: config.settings.API_KEY_LOOKUP_PREFIX_LENGTH]
+    api_key_obj = session.scalars(
+        select(models.APIKey)
+        .join(models.Project)
+        .where(
+            models.APIKey.key_prefix == key_prefix,
+            models.APIKey.is_active.is_(True),
+            models.Project.is_active.is_(True),
+        )
+    ).one_or_none()
 
-    if not api_key_obj:
+    if (
+        not api_key_obj
+        or not api_key_obj.is_valid
+        or not security.compare_api_key(api_key, api_key_obj.key_hash)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
         )
-
-    if api_key_obj.is_active is False:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive API key"
-        )
-
-    if api_key_obj.is_expired:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Expired API key"
-        )
-
-    project = api_key_obj.project
-    if project.is_active is False:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Project associated with API key is inactive",
-        )
-
-    return project.id
+    return api_key_obj.project_id
 
 
 ProjectIdDep = Annotated[int, Depends(get_project_id_by_api_key)]

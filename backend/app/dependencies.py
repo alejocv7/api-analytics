@@ -77,3 +77,23 @@ def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
 
 
 CurrentUserDep = Annotated[models.User, Depends(get_current_user)]
+
+
+def get_user_project(
+    project_key: str,
+    user: CurrentUserDep,
+    session: SessionDep,
+) -> models.Project:
+    # Avoid circular import
+    from app.services import project_service
+
+    project = project_service.get_user_project_by_key(user.id, project_key, session)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+    return project
+
+
+ProjectDep = Annotated[models.Project, Depends(get_user_project)]

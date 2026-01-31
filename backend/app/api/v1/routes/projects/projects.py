@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 
 from app import schemas
-from app.dependencies import CurrentUserDep, SessionDep
+from app.dependencies import CurrentUserDep, ProjectDep, SessionDep
 from app.services import project_service
 
 router = APIRouter()
@@ -20,22 +20,19 @@ async def create_project(
 
 
 @router.get("/{project_key}", response_model=schemas.ProjectResponse)
-async def get_project(project_key: str, user: CurrentUserDep, session: SessionDep):
-    return project_service.get_user_project_by_key(user.id, project_key, session)
+async def get_project(project: ProjectDep):
+    return project
 
 
 @router.patch("/{project_key}", response_model=schemas.ProjectResponse)
 async def update_project(
-    project_key: str,
+    project: ProjectDep,
     update_data: schemas.ProjectUpdate,
-    user: CurrentUserDep,
     session: SessionDep,
 ):
-    return project_service.update_user_project(
-        user.id, project_key, update_data, session
-    )
+    return project_service.update_user_project(project, update_data, session)
 
 
 @router.delete("/{project_key}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_key: str, user: CurrentUserDep, session: SessionDep):
-    project_service.delete_user_project(user.id, project_key, session)
+async def delete_project(project: ProjectDep, session: SessionDep):
+    project_service.delete_user_project(project, session)

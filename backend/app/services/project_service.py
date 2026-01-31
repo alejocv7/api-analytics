@@ -64,22 +64,14 @@ def get_user_projects(
 
 
 def update_user_project(
-    user_id: int,
-    project_key: str,
+    project: models.Project,
     update_data: schemas.ProjectUpdate,
     session: Session,
 ) -> models.Project:
-    project = get_user_project_by_key(user_id, project_key, session)
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
-
     # Check if the new name is already in use
     if update_data.name != project.name:
         stmt = select(models.Project).where(
-            models.Project.user_id == user_id,
+            models.Project.user_id == project.user_id,
             models.Project.name == update_data.name,
             models.Project.id != project.id,
         )
@@ -100,17 +92,9 @@ def update_user_project(
 
 
 def delete_user_project(
-    user_id: int,
-    project_key: str,
+    project: models.Project,
     session: Session,
 ):
-    project = get_user_project_by_key(user_id, project_key, session)
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
-
     session.delete(project)
     session.commit()
 

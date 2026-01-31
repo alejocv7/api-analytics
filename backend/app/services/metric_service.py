@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 
-from app import models, schemas
-from app.core.config import settings
-from app.core.security import hash_ip
 from sqlalchemy import case, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+from app import models, schemas
+from app.core.config import settings
+from app.core.security import hash_ip
 
 
 @retry(
@@ -51,23 +52,14 @@ def get_metrics(
 def get_metrics_summary(
     session: Session, project_id: int, params: schemas.MetricQuery
 ) -> schemas.MetricSummaryResponse:
-    result = (
-        session.query(
-            func.count(models.Metric.id).label("request_count"),
-            func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
-            func.sum(
-                case((models.Metric.response_status_code >= 400, 1), else_=0)
-            ).label("error_count"),
-            func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
-            func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
-        )
-        .filter(
-            models.Metric.project_id == project_id,
-            models.Metric.timestamp >= params.start_date,
-            models.Metric.timestamp <= params.end_date,
-        )
-        .first()
+    query = session.query(
+        func.count(models.Metric.id).label("request_count"),
+        func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
+        _error_count_expr().label("error_count"),
+        func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
+        func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
+    result = _apply_time_range_filter(query, project_id, params).first()
 
     if not result or result.request_count == 0:
         return schemas.MetricSummaryResponse(
@@ -112,20 +104,14 @@ def get_metrics_time_series(
         # Default/PostgreSQL: use date_trunc
         timestamp = func.date_trunc("minute", models.Metric.timestamp)
 
+    query = session.query(
+        timestamp.label("timestamp"),
+        func.count(models.Metric.id).label("request_count"),
+        func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
+        _error_count_expr().label("error_count"),
+    )
     results = (
-        session.query(
-            timestamp.label("timestamp"),
-            func.count(models.Metric.id).label("request_count"),
-            func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
-            func.sum(
-                case((models.Metric.response_status_code >= 400, 1), else_=0)
-            ).label("error_count"),
-        )
-        .filter(
-            models.Metric.project_id == project_id,
-            models.Metric.timestamp >= params.start_date,
-            models.Metric.timestamp <= params.end_date,
-        )
+        _apply_time_range_filter(query, project_id, params)
         .group_by(timestamp)
         .order_by(timestamp)
         .all()
@@ -154,23 +140,17 @@ def get_metrics_time_series(
 def get_metrics_endpoints_stats(
     session: Session, project_id: int, params: schemas.MetricQuery
 ) -> list[schemas.MetricEndpointStatsResponse]:
+    query = session.query(
+        models.Metric.url_path,
+        models.Metric.method,
+        func.count(models.Metric.id).label("request_count"),
+        func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
+        _error_count_expr().label("error_count"),
+        func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
+        func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
+    )
     results = (
-        session.query(
-            models.Metric.url_path,
-            models.Metric.method,
-            func.count(models.Metric.id).label("request_count"),
-            func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
-            func.sum(
-                case((models.Metric.response_status_code >= 400, 1), else_=0)
-            ).label("error_count"),
-            func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
-            func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
-        )
-        .filter(
-            models.Metric.project_id == project_id,
-            models.Metric.timestamp >= params.start_date,
-            models.Metric.timestamp <= params.end_date,
-        )
+        _apply_time_range_filter(query, project_id, params)
         .group_by(models.Metric.url_path, models.Metric.method)
         .all()
     )
@@ -194,3 +174,17 @@ def get_metrics_endpoints_stats(
         )
 
     return metrics_endpoint_stats
+
+
+def _apply_time_range_filter(query, project_id: int, params: schemas.MetricQuery):
+    """Apply common project_id and time range filters."""
+    return query.filter(
+        models.Metric.project_id == project_id,
+        models.Metric.timestamp >= params.start_date,
+        models.Metric.timestamp <= params.end_date,
+    )
+
+
+def _error_count_expr():
+    """Common expression for counting errors (status >= 400)."""
+    return func.sum(case((models.Metric.response_status_code >= 400, 1), else_=0))

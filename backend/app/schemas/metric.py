@@ -52,26 +52,6 @@ class MetricResponse(MetricBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class MetricSummaryResponse(BaseModel):
-    """Schema for summary statistics."""
-
-    request_count: int = Field(..., description="Number of requests")
-    avg_response_time_ms: float = Field(
-        ..., description="Average response time in milliseconds"
-    )
-    requests_per_minute: float = Field(..., description="Requests per minute")
-    error_count: int = Field(..., description="Number of errors")
-    error_rate: float = Field(
-        ..., description="Percentage of requests with status >= 400"
-    )
-    slowest_request_ms: float = Field(
-        ..., description="Slowest request in milliseconds"
-    )
-    fastest_request_ms: float = Field(
-        ..., description="Fastest request in milliseconds"
-    )
-
-
 class MetricTimeSeriesPointResponse(BaseModel):
     timestamp: AwareDatetime = Field(..., description="Timestamp")
     request_count: int = Field(..., description="Number of requests")
@@ -81,9 +61,9 @@ class MetricTimeSeriesPointResponse(BaseModel):
     error_count: int = Field(..., description="Number of errors")
 
 
-class MetricEndpointStatsResponse(BaseModel):
-    url_path: str = Field(..., description="API endpoint path")
-    method: HTTPMethod = Field(..., description="HTTP method")
+class PerformanceStatsMixin(BaseModel):
+    """Common performance statistics fields."""
+
     request_count: int = Field(..., description="Number of requests")
     avg_response_time_ms: float = Field(
         ..., description="Average response time in milliseconds"
@@ -98,6 +78,17 @@ class MetricEndpointStatsResponse(BaseModel):
     fastest_request_ms: float = Field(
         ..., description="Fastest request in milliseconds"
     )
+
+
+class MetricSummaryResponse(PerformanceStatsMixin):
+    """Schema for summary statistics."""
+
+    requests_per_minute: float = Field(..., description="Requests per minute")
+
+
+class MetricEndpointStatsResponse(PerformanceStatsMixin):
+    url_path: str = Field(..., description="API endpoint path")
+    method: HTTPMethod = Field(..., description="HTTP method")
 
 
 class MetricParams(BaseModel):

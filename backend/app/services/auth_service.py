@@ -1,14 +1,15 @@
+from fastapi import status
+from sqlalchemy.orm import Session
+
 from app import models, schemas
 from app.core import security
 from app.core.config import settings
 from app.core.exceptions import APIError
-from app.services.users import get_user_by_email
-from fastapi import status
-from sqlalchemy.orm import Session
+from app.services import user_service
 
 
 def register(user: schemas.UserCreate, session: Session) -> models.User:
-    if get_user_by_email(user.email, session):
+    if user_service.get_user_by_email(user.email, session):
         raise APIError(
             status_code=status.HTTP_400_BAD_REQUEST, message="Email already registered"
         )
@@ -31,7 +32,7 @@ def create_user_token(user: models.User) -> schemas.TokenResponse:
 
 
 def authenticate_user(email: str, password: str, session: Session) -> models.User:
-    user = get_user_by_email(email, session)
+    user = user_service.get_user_by_email(email, session)
     if not user or not user.is_active:
         # Prevent timing attacks by running password verification even when user doesn't exist
         # This ensures the response time is similar whether or not the email exists

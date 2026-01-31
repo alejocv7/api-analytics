@@ -2,7 +2,7 @@ from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import settings
-from app.models.api_key import ApiKey
+from app.models.api_key import APIKey
 from app.models.base import Base, TimestampMixin
 from app.models.metric import Metric
 from app.models.user import User
@@ -24,7 +24,7 @@ class Project(Base, TimestampMixin):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     owner: Mapped["User"] = relationship(back_populates="projects")
 
-    api_keys: Mapped[list["ApiKey"]] = relationship(
+    api_keys: Mapped[list["APIKey"]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
 

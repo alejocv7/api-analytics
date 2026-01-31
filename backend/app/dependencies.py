@@ -35,7 +35,7 @@ def get_project_id_by_api_key(
         )
 
     api_key_obj = session.execute(
-        select(models.ApiKey).where(models.ApiKey.key_hash == hash_api_key(api_key))
+        select(models.APIKey).where(models.APIKey.key_hash == hash_api_key(api_key))
     ).scalar_one_or_none()
 
     if not api_key_obj:
@@ -46,6 +46,11 @@ def get_project_id_by_api_key(
     if api_key_obj.is_active is False:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive API key"
+        )
+
+    if api_key_obj.is_expired:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Expired API key"
         )
 
     project = api_key_obj.project

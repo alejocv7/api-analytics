@@ -22,11 +22,10 @@ def create_user_project(
         user_id=user_id,
     )
 
-    session.add(project)
     try:
-        session.commit()
+        with session.begin():
+            session.add(project)
     except IntegrityError:
-        session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Project already exists",

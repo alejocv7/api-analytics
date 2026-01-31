@@ -48,6 +48,13 @@ def hash_api_key(api_key: str) -> str:
     ).hexdigest()
 
 
+def compare_api_key(plain_api_key: str, hashed_api_key: str) -> bool:
+    """
+    Compares an API key with its hash.
+    """
+    return hmac.compare_digest(hash_api_key(plain_api_key), hashed_api_key)
+
+
 # --------------- Password ----------------
 def hash_password(password: str) -> str:
     """Hash a password for storage."""

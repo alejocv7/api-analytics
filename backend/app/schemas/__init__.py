@@ -4,7 +4,13 @@ from typing import Annotated
 from pydantic import AfterValidator, AwareDatetime, BeforeValidator, SecretStr
 
 from app.core import security
-from app.schemas.api_key import APIKeyCreate, APIKeyListResponse, APIKeyResponse
+from app.schemas.api_key import (
+    APIKeyCreate,
+    APIKeyCreateResponse,
+    APIKeyListResponse,
+    APIKeyResponse,
+    APIKeyUpdate,
+)
 from app.schemas.auth import LoginRequest, TokenData, TokenResponse
 from app.schemas.metric import (
     MetricCreate,
@@ -34,6 +40,8 @@ __all__ = [
     "APIKeyCreate",
     "APIKeyResponse",
     "APIKeyListResponse",
+    "APIKeyCreateResponse",
+    "APIKeyUpdate",
     # Metrics
     "MetricResponse",
     "MetricSummaryResponse",

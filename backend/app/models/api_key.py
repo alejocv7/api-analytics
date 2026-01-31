@@ -1,16 +1,20 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import security
+from app.core.config import settings
 from app.models.base import Base, TimestampMixin
 from app.models.project import Project
 
 
-class ApiKey(Base, TimestampMixin):
+class APIKey(Base, TimestampMixin):
     """
-    API keys for authentication. One key can access multiple projects.
+    API Key model.
+
+    API keys are used to authenticate applications sending metrics.
+    Each project can have multiple API keys (e.g., production, staging).
     """
 
     __tablename__ = "api_keys"
@@ -23,7 +27,10 @@ class ApiKey(Base, TimestampMixin):
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
     project: Mapped["Project"] = relationship(back_populates="api_keys")
 
-    expires_at: Mapped[datetime | None]
+    expires_at: Mapped[datetime] = mapped_column(
+        default=lambda: datetime.now(timezone.utc)
+        + timedelta(days=settings.API_KEY_DEFAULT_EXPIRY_DAYS)
+    )
 
     last_used_at: Mapped[datetime | None]
 
@@ -38,6 +45,29 @@ class ApiKey(Base, TimestampMixin):
 
     def __repr__(self):
         return f"ApiKey(id={self.id}, name={self.name}, project_id={self.project_id})"
+
+    @classmethod
+    def new_key(
+        cls, name: str, project_id: int, expires_at: datetime | None = None
+    ) -> tuple["APIKey", str]:
+        """
+        Create a new API key.
+
+        Args:
+            name: Name of the API key
+            project_id: ID of the project
+            expires_at: Expiration date of the API key
+
+        Returns:
+            Tuple of (API key, full key)
+        """
+
+        plain_key, key_hash = security.generate_api_key()
+        api_key = cls(
+            key_hash=key_hash, name=name, project_id=project_id, expires_at=expires_at
+        )
+
+        return api_key, plain_key
 
     @property
     def is_expired(self) -> bool:
@@ -65,4 +95,4 @@ class ApiKey(Base, TimestampMixin):
         Returns:
             True if keys match
         """
-        return security.hash_api_key(plain_key) == hashed_key
+        return security.compare_api_key(plain_key, hashed_key)

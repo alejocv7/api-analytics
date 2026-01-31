@@ -10,7 +10,7 @@ from pydantic import (
 class APIKeyBase(BaseModel):
     """Base API key schema."""
 
-    name: str | None = Field(None, max_length=255)
+    name: str = Field(max_length=255)
 
 
 class APIKeyCreate(APIKeyBase):

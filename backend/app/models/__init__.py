@@ -3,20 +3,16 @@ Database models package.
 Exports all models for easy importing.
 """
 
-from datetime import timezone
-
-from sqlalchemy import DateTime, TypeDecorator
-
-from .api_key import ApiKey
-from .base import Base
-from .metric import Metric
-from .project import Project
-from .user import User
+from app.models.api_key import APIKey
+from app.models.base import Base
+from app.models.metric import Metric
+from app.models.project import Project
+from app.models.user import User
 
 __all__ = [
     "Base",
     "Metric",
     "Project",
     "User",
-    "ApiKey",
+    "APIKey",
 ]

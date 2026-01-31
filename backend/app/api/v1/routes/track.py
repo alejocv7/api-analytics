@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 from app import schemas
 from app.core.rate_limiter import limiter
 from app.dependencies import ProjectIdDep, SessionDep
-from app.services import metrics
+from app.services import metric_service
 
 router = APIRouter()
 
@@ -19,4 +19,4 @@ async def track_metric(
     """
     Track an API metric.
     """
-    return metrics.add_metric(session, project_id, metric)
+    return metric_service.add_metric(session, project_id, metric)

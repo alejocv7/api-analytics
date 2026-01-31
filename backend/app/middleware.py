@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app import schemas
 from app.core import db
 from app.core.config import settings
-from app.services.metric import add_metric
+from app.services.metric_service import add_metric
 
 
 def log_metric(

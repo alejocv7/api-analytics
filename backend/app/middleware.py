@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 from http import HTTPMethod
@@ -11,6 +12,8 @@ from app.core import db
 from app.core.config import settings
 from app.services.metric_service import add_metric
 
+logger = logging.getLogger(__name__)
+
 
 def log_metric(
     project_id: int,
@@ -22,8 +25,8 @@ def log_metric(
     try:
         with db.Session() as session:
             add_metric(session, project_id, metric)
-    except Exception as e:
-        print(f"Error logging metric in background: {e}")
+    except Exception:
+        logger.exception("Failed to log metric in background")
 
 
 class MetricMiddleware(BaseHTTPMiddleware):

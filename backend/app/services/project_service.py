@@ -3,7 +3,8 @@ from typing import Sequence
 
 from app import models, schemas
 from app.core.config import settings
-from fastapi import HTTPException, status
+from app.core.exceptions import APIError
+from fastapi import status
 from sqlalchemy import select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -26,9 +27,9 @@ def create_user_project(
         with session.begin():
             session.add(project)
     except IntegrityError:
-        raise HTTPException(
+        raise APIError(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Project already exists",
+            message="Project already exists",
         )
     session.refresh(project)
 
@@ -76,9 +77,9 @@ def update_user_project(
             models.Project.id != project.id,
         )
         if session.scalars(stmt).one_or_none():
-            raise HTTPException(
+            raise APIError(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Project name already in use",
+                message="Project name already in use",
             )
 
     update_dict = update_data.model_dump(exclude_unset=True)

@@ -1,13 +1,14 @@
 from collections.abc import Generator
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, Security, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import models
 from app.core import config, db, security
+from app.core.exceptions import APIError
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -29,8 +30,8 @@ def get_project_id_by_api_key(
 ) -> int:
     """Validates API key and returns the Project id."""
     if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="API key required"
+        raise APIError(
+            status_code=status.HTTP_401_UNAUTHORIZED, message="API key required"
         )
 
     key_prefix = api_key[: config.settings.API_KEY_LOOKUP_PREFIX_LENGTH]
@@ -49,8 +50,8 @@ def get_project_id_by_api_key(
         or not api_key_obj.is_valid
         or not security.compare_api_key(api_key, api_key_obj.key_hash)
     ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
+        raise APIError(
+            status_code=status.HTTP_401_UNAUTHORIZED, message="Invalid API key"
         )
     return api_key_obj.project_id
 
@@ -62,16 +63,16 @@ def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
     token_data = security.decode_token(token)
     user = session.get(models.User, token_data.user_id)
     if user is None:
-        raise HTTPException(
+        raise APIError(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
+            message="User not found",
+            details={"headers": {"WWW-Authenticate": "Bearer"}},
         )
     if not user.is_active:
-        raise HTTPException(
+        raise APIError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user",
-            headers={"WWW-Authenticate": "Bearer"},
+            message="Inactive user",
+            details={"headers": {"WWW-Authenticate": "Bearer"}},
         )
     return user
 
@@ -89,9 +90,9 @@ def get_user_project(
 
     project = project_service.get_user_project_by_key(user.id, project_key, session)
     if not project:
-        raise HTTPException(
+        raise APIError(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
+            message="Project not found",
         )
     return project
 

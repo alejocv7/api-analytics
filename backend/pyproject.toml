@@ -14,4 +14,5 @@ dependencies = [
     "pyjwt>=2.10.1",
     "zxcvbn>=4.5.0",
     "types-zxcvbn>=4.5.0.20250809",
+    "tenacity>=8.2.3",
 ]

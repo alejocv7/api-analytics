@@ -2,7 +2,8 @@ from typing import Sequence
 
 from app import models, schemas
 from app.core.config import settings
-from fastapi import HTTPException, status
+from app.core.exceptions import APIError
+from fastapi import status
 from sqlalchemy import select, true
 from sqlalchemy.orm import Session
 
@@ -72,9 +73,9 @@ def rotate_api_key(
 ) -> tuple[models.APIKey, str]:
     old_key = get_api_key(api_key_id, project_id, session)
     if not old_key.is_active or old_key.is_expired:
-        raise HTTPException(
+        raise APIError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot rotate an inactive or expired API key.",
+            message="Cannot rotate an inactive or expired API key.",
         )
 
     new_api_key, new_plain_key = models.APIKey.new_key(
@@ -99,9 +100,9 @@ def delete_api_key(api_key_id: int, project_id: int, session: Session) -> None:
         1 for key in api_key.project.api_keys if key.is_active and key.id != api_key_id
     )
     if active_keys_count == 0 and api_key.is_active:
-        raise HTTPException(
+        raise APIError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete the last active API key.",
+            message="Cannot delete the last active API key.",
         )
 
     session.delete(api_key)

@@ -6,8 +6,12 @@ from app.core.security import hash_ip
 from sqlalchemy import case, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 
+@retry(
+    stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.1, min=0.1, max=2)
+)
 def add_metric(
     session: Session, project_id: int, metric_in: schemas.MetricCreate
 ) -> models.Metric:
@@ -77,6 +81,7 @@ def get_metrics_summary(
         )
 
     duration_in_minutes = (params.end_date - params.start_date).total_seconds() / 60
+    duration_in_minutes = max(duration_in_minutes, 1)  # Ensure at least 1 minute
     error_count = int(result.error_count or 0)
 
     return schemas.MetricSummaryResponse(

@@ -1,15 +1,25 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.routes import router as v1_router
 from app.core import db
 from app.core.config import settings
+from app.core.exceptions import (
+    APIError,
+    api_exception_handler,
+    generic_exception_handler,
+    validation_exception_handler,
+)
 from app.core.rate_limiter import limiter
 from app.health import router as health_router
 from app.middleware import MetricMiddleware
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -30,6 +40,9 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(APIError, api_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 
 @app.get("/", tags=["root"])

@@ -1,4 +1,5 @@
 from datetime import timedelta, timezone
+from enum import StrEnum
 from http import HTTPMethod, HTTPStatus
 from typing import Annotated, Self
 
@@ -125,3 +126,9 @@ class MetricParams(BaseModel):
 
 
 MetricQuery = Annotated[MetricParams, Query()]
+
+
+class TimeGranularity(StrEnum):
+    MINUTE = "minute"
+    HOUR = "hour"
+    DAY = "day"

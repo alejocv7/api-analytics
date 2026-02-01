@@ -30,12 +30,17 @@ async def read_metrics_summary(
 
 @router.get("/time-series", response_model=list[schemas.MetricTimeSeriesPointResponse])
 async def read_metrics_time_series(
-    project: ProjectDep, session: SessionDep, params: MetricQuery
+    project: ProjectDep,
+    session: SessionDep,
+    params: MetricQuery,
+    granularity: schemas.TimeGranularity = schemas.TimeGranularity.MINUTE,
 ):
     """
     Retrieve API metrics time series.
     """
-    return metric_service.get_metrics_time_series(session, project.id, params)
+    return metric_service.get_metrics_time_series(
+        session, project.id, params, granularity
+    )
 
 
 @router.get("/endpoints", response_model=list[schemas.MetricEndpointStatsResponse])

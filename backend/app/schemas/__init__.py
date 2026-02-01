@@ -20,6 +20,7 @@ from app.schemas.metric import (
     MetricResponse,
     MetricSummaryResponse,
     MetricTimeSeriesPointResponse,
+    TimeGranularity,
 )
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from app.schemas.user import UserCreate, UserResponse
@@ -50,6 +51,7 @@ __all__ = [
     "MetricParams",
     "MetricQuery",
     "MetricCreate",
+    "TimeGranularity",
 ]
 
 

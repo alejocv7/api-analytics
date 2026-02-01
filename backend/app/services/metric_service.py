@@ -111,11 +111,9 @@ def get_metrics_time_series(
         _error_count_expr().label("error_count"),
     )
     results = (
-        _apply_time_range_filter(query, project_id, params)
-        .group_by(timestamp)
-        .order_by(timestamp)
-        .all()
-    )
+            _apply_pagination(
+                _apply_time_range_filter(query, project_id, params), params
+            )
 
     metrics_time_series = []
     for row in results:
@@ -150,10 +148,9 @@ def get_metrics_endpoints_stats(
         func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
     results = (
-        _apply_time_range_filter(query, project_id, params)
-        .group_by(models.Metric.url_path, models.Metric.method)
-        .all()
-    )
+            _apply_pagination(
+                _apply_time_range_filter(query, project_id, params), params
+            ).group_by(models.Metric.url_path, models.Metric.method)
 
     metrics_endpoint_stats = []
     for row in results:

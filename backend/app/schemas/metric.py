@@ -100,6 +100,8 @@ class MetricParams(BaseModel):
         default_factory=get_default_end_date,
         description="End date (defaults to end of today)",
     )
+    page: int = Field(default=1, ge=1, description="Page number")
+    page_size: int = Field(default=1000, ge=1, le=10000, description="Items per page")
 
     @model_validator(mode="after")
     def validate_dates(self) -> Self:

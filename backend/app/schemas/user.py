@@ -1,7 +1,5 @@
-from datetime import datetime
-
 from fastapi.openapi.models import EmailStr
-from pydantic import BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 from app.schemas import SecurePassword
 
@@ -32,7 +30,7 @@ class UserResponse(BaseModel):
     email: str
     full_name: str | None
     is_active: bool
-    created_at: datetime
+    created_at: AwareDatetime
 
     model_config = ConfigDict(
         from_attributes=True,

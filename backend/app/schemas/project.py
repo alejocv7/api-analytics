@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from pydantic import (
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
@@ -64,8 +63,8 @@ class ProjectResponse(ProjectBase):
     project_key: str
     user_id: int
     is_active: bool
-    created_at: datetime
-    updated_at: datetime | None
+    created_at: AwareDatetime
+    updated_at: AwareDatetime | None
 
     model_config = ConfigDict(
         from_attributes=True,

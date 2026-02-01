@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from pydantic import (
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
@@ -16,7 +15,7 @@ class APIKeyBase(BaseModel):
 class APIKeyCreate(APIKeyBase):
     """Schema for creating an API key."""
 
-    expires_at: datetime | None = None
+    expires_at: AwareDatetime | None = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -41,9 +40,9 @@ class APIKeyResponse(APIKeyBase):
     id: int
     project_id: int
     is_active: bool
-    created_at: datetime
-    last_used_at: datetime | None
-    expires_at: datetime | None
+    created_at: AwareDatetime
+    last_used_at: AwareDatetime | None
+    expires_at: AwareDatetime | None
     total_requests: int
 
     model_config = ConfigDict(

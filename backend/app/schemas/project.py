@@ -67,7 +67,23 @@ class ProjectResponse(ProjectBase):
     created_at: datetime
     updated_at: datetime | None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 1,
+                    "name": "Production API",
+                    "description": "Main production API",
+                    "project_key": "production-api-a1b2",
+                    "user_id": 1,
+                    "is_active": True,
+                    "created_at": "2026-01-01T12:00:00Z",
+                    "updated_at": "2026-01-01T12:00:00Z",
+                }
+            ]
+        },
+    )
 
 
 class ProjectDetailResponse(ProjectResponse):
@@ -80,7 +96,29 @@ class ProjectDetailResponse(ProjectResponse):
     avg_response_time_ms: float = 0.0
     error_rate_percent: float = 0.0
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 1,
+                    "name": "Production API",
+                    "description": "Main production API",
+                    "project_key": "production-api-a1b2",
+                    "user_id": 1,
+                    "is_active": True,
+                    "created_at": "2026-01-01T12:00:00Z",
+                    "updated_at": "2026-01-01T12:00:00Z",
+                    "total_api_keys": 5,
+                    "active_api_keys": 3,
+                    "total_metrics": 154020,
+                    "metrics_last_24h": 12500,
+                    "avg_response_time_ms": 145.5,
+                    "error_rate_percent": 0.45,
+                }
+            ]
+        },
+    )
 
 
 class ProjectListResponse(BaseModel):

@@ -34,4 +34,16 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "email": "user@example.com",
+                    "full_name": "John Doe",
+                    "is_active": True,
+                    "created_at": "2026-01-20T15:30:00Z",
+                }
+            ]
+        },
+    )

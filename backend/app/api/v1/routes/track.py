@@ -8,7 +8,19 @@ from app.services import metric_service
 router = APIRouter()
 
 
-@router.post("/", response_model=schemas.MetricResponse)
+@router.post(
+    "/",
+    response_model=schemas.MetricResponse,
+    summary="Track an API metric",
+    description="""
+    Records a new API metric for the project associated with the provided API key.
+    
+    This endpoint is used by client libraries (SDKs) or direct API calls to log details
+    about an incoming request in the application being monitored.
+    
+    The API key must be sent in the `X-API-Key` header.
+    """,
+)
 @limiter.limit("100/minute")
 async def track_metric(
     request: Request,

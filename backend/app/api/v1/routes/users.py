@@ -6,6 +6,13 @@ from app.dependencies import CurrentUserDep
 router = APIRouter()
 
 
-@router.get("/me", response_model=schemas.UserResponse)
+@router.get(
+    "/me",
+    response_model=schemas.UserResponse,
+    summary="Get current user",
+    description="""
+    Retrieves the information of the currently authenticated user.
+    """,
+)
 async def read_user_me(user: CurrentUserDep):
     return user

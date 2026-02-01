@@ -50,7 +50,23 @@ class MetricResponse(MetricBase):
     id: int
     timestamp: AwareDatetime
     ip_hash: str | None = Field(None, description="Hashed IP address")
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "url_path": "/v1/users",
+                    "method": "GET",
+                    "response_status_code": 200,
+                    "response_time_ms": 45.3,
+                    "user_agent": "Mozilla/5.0...",
+                    "id": 123,
+                    "timestamp": "2026-01-31T10:00:00Z",
+                    "ip_hash": "a1b2c3d4e5f6...",
+                }
+            ]
+        },
+    )
 
 
 class MetricTimeSeriesPointResponse(BaseModel):
@@ -60,6 +76,19 @@ class MetricTimeSeriesPointResponse(BaseModel):
         ..., description="Average response time in milliseconds"
     )
     error_count: int = Field(..., description="Number of errors")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "timestamp": "2026-01-31T10:00:00Z",
+                    "request_count": 150,
+                    "avg_response_time_ms": 124.5,
+                    "error_count": 2,
+                }
+            ]
+        }
+    )
 
 
 class PerformanceStatsMixin(BaseModel):
@@ -86,10 +115,43 @@ class MetricSummaryResponse(PerformanceStatsMixin):
 
     requests_per_minute: float = Field(..., description="Requests per minute")
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "request_count": 10542,
+                    "avg_response_time_ms": 145.32,
+                    "requests_per_minute": 7.3,
+                    "error_count": 42,
+                    "error_rate": 0.4,
+                    "slowest_request_ms": 2341.5,
+                    "fastest_request_ms": 12.1,
+                }
+            ]
+        }
+    )
+
 
 class MetricEndpointStatsResponse(PerformanceStatsMixin):
     url_path: str = Field(..., description="API endpoint path")
     method: HTTPMethod = Field(..., description="HTTP method")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "url_path": "/api/v1/users",
+                    "method": "GET",
+                    "request_count": 520,
+                    "avg_response_time_ms": 112.4,
+                    "error_count": 5,
+                    "error_rate": 0.96,
+                    "slowest_request_ms": 890.0,
+                    "fastest_request_ms": 45.2,
+                }
+            ]
+        }
+    )
 
 
 class MetricParams(BaseModel):

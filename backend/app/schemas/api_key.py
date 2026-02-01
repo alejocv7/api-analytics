@@ -46,7 +46,23 @@ class APIKeyResponse(APIKeyBase):
     expires_at: datetime | None
     total_requests: int
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 1,
+                    "name": "Production Key",
+                    "project_id": 1,
+                    "is_active": True,
+                    "created_at": "2026-01-27T10:00:00Z",
+                    "last_used_at": "2026-01-31T20:30:45Z",
+                    "expires_at": None,
+                    "total_requests": 1450,
+                }
+            ]
+        },
+    )
 
 
 class APIKeyCreateResponse(APIKeyResponse):

@@ -19,7 +19,11 @@ async_engine = create_async_engine(
     settings.ASYNC_SQLALCHEMY_DATABASE_URI, pool_pre_ping=True
 )
 AsyncSessionLocal = async_sessionmaker(
-    async_engine, class_=AsyncSession, autoflush=False, autocommit=False
+    async_engine,
+    class_=AsyncSession,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
 )
 
 

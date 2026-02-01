@@ -1,9 +1,8 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.routes import router as v1_router
@@ -13,6 +12,8 @@ from app.core.exceptions import (
     APIError,
     api_exception_handler,
     generic_exception_handler,
+    http_exception_handler,
+    rate_limit_handler,
     validation_exception_handler,
 )
 from app.core.rate_limiter import limiter
@@ -39,7 +40,8 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)  # type: ignore
+app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore
 app.add_exception_handler(APIError, api_exception_handler)  # type: ignore
 app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
 app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore

@@ -27,6 +27,18 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URI: str
     REDIS_URL: str
 
+    @property
+    def ASYNC_SQLALCHEMY_DATABASE_URI(self) -> str:
+        if self.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
+            return self.SQLALCHEMY_DATABASE_URI.replace(
+                "sqlite:///", "sqlite+aiosqlite:///"
+            )
+        if self.SQLALCHEMY_DATABASE_URI.startswith("postgresql"):
+            return self.SQLALCHEMY_DATABASE_URI.replace(
+                "postgresql://", "postgresql+asyncpg://"
+            )
+        return self.SQLALCHEMY_DATABASE_URI
+
     # Security
     SECURITY_KEY: str
     SECURITY_ALGORITHM: str = "HS256"

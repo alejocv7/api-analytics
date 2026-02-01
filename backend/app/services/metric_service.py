@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
+from typing import Sequence
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app import models, schemas
@@ -13,8 +14,8 @@ from app.core.security import hash_ip
 @retry(
     stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.1, min=0.1, max=2)
 )
-def add_metric(
-    session: Session, project_id: int, metric_in: schemas.MetricCreate
+async def add_metric(
+    session: AsyncSession, project_id: int, metric_in: schemas.MetricCreate
 ) -> models.Metric:
     """Create a new metric entry."""
 
@@ -28,38 +29,40 @@ def add_metric(
 
     session.add(metric)
     try:
-        session.commit()
+        await session.commit()
     except SQLAlchemyError:
-        session.rollback()
+        await session.rollback()
         raise
-    session.refresh(metric)
+    await session.refresh(metric)
 
     return metric
 
 
-def get_metrics(
-    session: Session, project_id: int, skip: int = 0, limit: int = 100
-) -> list[models.Metric]:
-    return (
-        session.query(models.Metric)
+async def get_metrics(
+    session: AsyncSession, project_id: int, skip: int = 0, limit: int = 100
+) -> Sequence[models.Metric]:
+    result = await session.execute(
+        select(models.Metric)
         .filter(models.Metric.project_id == project_id)
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return result.scalars().all()
 
 
-def get_metrics_summary(
-    session: Session, project_id: int, params: schemas.MetricQuery
+async def get_metrics_summary(
+    session: AsyncSession, project_id: int, params: schemas.MetricQuery
 ) -> schemas.MetricSummaryResponse:
-    query = session.query(
+    query = select(
         func.count(models.Metric.id).label("request_count"),
         func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
         _error_count_expr().label("error_count"),
         func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
         func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
-    result = _apply_time_range_filter(query, project_id, params).first()
+    result = (
+        await session.execute(_apply_time_range_filter(query, project_id, params))
+    ).first()
 
     if not result or result.request_count == 0:
         return schemas.MetricSummaryResponse(
@@ -92,8 +95,10 @@ def get_metrics_summary(
     )
 
 
-def get_metrics_time_series(
-    session: Session, project_id: int, params: schemas.MetricQuery
+async def get_metrics_time_series(
+    session: AsyncSession,
+    project_id: int,
+    params: schemas.MetricQuery
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
     # Group by minute. Handling different dialects.
     dialect = session.get_bind().dialect.name
@@ -104,16 +109,21 @@ def get_metrics_time_series(
         # Default/PostgreSQL: use date_trunc
         timestamp = func.date_trunc("minute", models.Metric.timestamp)
 
-    query = session.query(
+    query = select(
         timestamp.label("timestamp"),
         func.count(models.Metric.id).label("request_count"),
         func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
         _error_count_expr().label("error_count"),
     )
     results = (
+        await session.execute(
             _apply_pagination(
                 _apply_time_range_filter(query, project_id, params), params
             )
+            .group_by(timestamp)
+            .order_by(timestamp)
+        )
+    ).all()
 
     metrics_time_series = []
     for row in results:
@@ -135,10 +145,10 @@ def get_metrics_time_series(
     return metrics_time_series
 
 
-def get_metrics_endpoints_stats(
-    session: Session, project_id: int, params: schemas.MetricQuery
+async def get_metrics_endpoints_stats(
+    session: AsyncSession, project_id: int, params: schemas.MetricQuery
 ) -> list[schemas.MetricEndpointStatsResponse]:
-    query = session.query(
+    query = select(
         models.Metric.url_path,
         models.Metric.method,
         func.count(models.Metric.id).label("request_count"),
@@ -148,9 +158,12 @@ def get_metrics_endpoints_stats(
         func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
     results = (
+        await session.execute(
             _apply_pagination(
                 _apply_time_range_filter(query, project_id, params), params
             ).group_by(models.Metric.url_path, models.Metric.method)
+        )
+    ).all()
 
     metrics_endpoint_stats = []
     for row in results:
@@ -180,6 +193,12 @@ def _apply_time_range_filter(query, project_id: int, params: schemas.MetricQuery
         models.Metric.timestamp >= params.start_date,
         models.Metric.timestamp <= params.end_date,
     )
+
+
+def _apply_pagination(query, params: schemas.MetricParams):
+    """Apply common pagination (offset/limit) filters."""
+    offset = (params.page - 1) * params.page_size
+    return query.offset(offset).limit(params.page_size)
 
 
 def _error_count_expr():

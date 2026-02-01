@@ -15,7 +15,7 @@ from app.services.metric_service import add_metric
 logger = logging.getLogger(__name__)
 
 
-def log_metric(
+async def log_metric(
     project_id: int,
     metric: schemas.MetricCreate,
 ):
@@ -23,8 +23,8 @@ def log_metric(
     Background task to log API metrics to the database.
     """
     try:
-        with db.Session() as session:
-            add_metric(session, project_id, metric)
+        async with db.AsyncSessionLocal() as session:
+            await add_metric(session, project_id, metric)
     except Exception:
         logger.exception("Failed to log metric in background")
 

@@ -1,10 +1,9 @@
-from collections.abc import Generator
 from typing import Annotated
 
 from fastapi import Depends, Security, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
 from app.core import config, db, security
@@ -16,15 +15,15 @@ reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{config.settings.API_PREFIX}/l
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
-def get_db() -> Generator[Session, None, None]:
-    with db.Session() as session:
+async def get_db() -> AsyncSession:  # type: ignore
+    async with db.AsyncSessionLocal() as session:
         yield session
 
 
-SessionDep = Annotated[Session, Depends(get_db)]
+SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
-def get_project_id_by_api_key(
+async def get_project_id_by_api_key(
     session: SessionDep,
     api_key: str = Security(api_key_header),
 ) -> int:
@@ -35,7 +34,7 @@ def get_project_id_by_api_key(
         )
 
     key_prefix = api_key[: config.settings.API_KEY_LOOKUP_PREFIX_LENGTH]
-    api_key_obj = session.scalars(
+    api_key_obj_raw = await session.execute(
         select(models.APIKey)
         .join(models.Project)
         .where(
@@ -43,7 +42,8 @@ def get_project_id_by_api_key(
             models.APIKey.is_active.is_(True),
             models.Project.is_active.is_(True),
         )
-    ).one_or_none()
+    )
+    api_key_obj = api_key_obj_raw.scalar_one_or_none()
 
     if (
         not api_key_obj
@@ -59,9 +59,9 @@ def get_project_id_by_api_key(
 ProjectIdDep = Annotated[int, Depends(get_project_id_by_api_key)]
 
 
-def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
+async def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
     token_data = security.decode_token(token)
-    user = session.get(models.User, token_data.user_id)
+    user = await session.get(models.User, token_data.user_id)
     if user is None:
         raise APIError(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -80,7 +80,7 @@ def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
 CurrentUserDep = Annotated[models.User, Depends(get_current_user)]
 
 
-def get_user_project(
+async def get_user_project(
     project_key: str,
     user: CurrentUserDep,
     session: SessionDep,
@@ -88,7 +88,9 @@ def get_user_project(
     # Avoid circular import
     from app.services import project_service
 
-    project = project_service.get_user_project_by_key(user.id, project_key, session)
+    project = await project_service.get_user_project_by_key(
+        user.id, project_key, session
+    )
     if not project:
         raise APIError(
             status_code=status.HTTP_404_NOT_FOUND,

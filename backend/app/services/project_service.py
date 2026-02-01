@@ -1,19 +1,20 @@
 import secrets
 from typing import Sequence
 
-from app import models, schemas
-from app.core.config import settings
-from app.core.exceptions import APIError
 from fastapi import status
 from sqlalchemy import select, true
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import models, schemas
+from app.core.config import settings
+from app.core.exceptions import APIError
 
 
-def create_user_project(
+async def create_user_project(
     user_id: int,
     project_in: schemas.ProjectCreate,
-    session: Session,
+    session: AsyncSession,
 ):
     project_key = _generate_project_key(project_in.name)
     project = models.Project(
@@ -24,29 +25,33 @@ def create_user_project(
     )
 
     try:
-        with session.begin():
-            session.add(project)
+        session.add(project)
+        await session.commit()
     except IntegrityError:
+        await session.rollback()
         raise APIError(
             status_code=status.HTTP_409_CONFLICT,
             message="Project already exists",
         )
-    session.refresh(project)
+    await session.refresh(project)
 
     return project
 
 
-def get_user_project_by_key(user_id: int, project_key: str, session: Session):
+async def get_user_project_by_key(
+    user_id: int, project_key: str, session: AsyncSession
+):
     statement = select(models.Project).where(
         models.Project.user_id == user_id,
         models.Project.project_key == project_key,
     )
-    return session.scalars(statement).one_or_none()
+    result = await session.execute(statement)
+    return result.scalar_one_or_none()
 
 
-def get_user_projects(
+async def get_user_projects(
     user_id: int,
-    session: Session,
+    session: AsyncSession,
     active_only: bool = False,
     offset: int = 0,
     limit: int = 20,
@@ -61,13 +66,14 @@ def get_user_projects(
         .limit(limit)
     )
 
-    return session.scalars(statement).all()
+    result = await session.execute(statement)
+    return result.scalars().all()
 
 
-def update_user_project(
+async def update_user_project(
     project: models.Project,
     update_data: schemas.ProjectUpdate,
-    session: Session,
+    session: AsyncSession,
 ) -> models.Project:
     # Check if the new name is already in use
     if update_data.name != project.name:
@@ -76,7 +82,8 @@ def update_user_project(
             models.Project.name == update_data.name,
             models.Project.id != project.id,
         )
-        if session.scalars(stmt).one_or_none():
+        result = await session.execute(stmt)
+        if result.scalar_one_or_none():
             raise APIError(
                 status_code=status.HTTP_409_CONFLICT,
                 message="Project name already in use",
@@ -86,18 +93,18 @@ def update_user_project(
     for key, value in update_dict.items():
         setattr(project, key, value)
 
-    session.commit()
-    session.refresh(project)
+    await session.commit()
+    await session.refresh(project)
 
     return project
 
 
-def delete_user_project(
+async def delete_user_project(
     project: models.Project,
-    session: Session,
+    session: AsyncSession,
 ):
-    session.delete(project)
-    session.commit()
+    await session.delete(project)
+    await session.commit()
 
 
 def _generate_project_key(name: str) -> str:

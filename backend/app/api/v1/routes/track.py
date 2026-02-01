@@ -19,4 +19,4 @@ async def track_metric(
     """
     Track an API metric.
     """
-    return metric_service.add_metric(session, project_id, metric)
+    return await metric_service.add_metric(session, project_id, metric)

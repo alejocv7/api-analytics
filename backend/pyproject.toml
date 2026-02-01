@@ -15,4 +15,6 @@ dependencies = [
     "zxcvbn>=4.5.0",
     "types-zxcvbn>=4.5.0.20250809",
     "tenacity>=8.2.3",
+    "aiosqlite>=0.22.1",
+    "asyncpg>=0.31.0",
 ]

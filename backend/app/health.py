@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("/health")
 async def health():
-    db_connected = is_db_connected()
+    db_connected = await is_db_connected()
     return {
         "status": "online" if db_connected else "offline",
         "database_status": "healthy" if db_connected else "unhealthy",

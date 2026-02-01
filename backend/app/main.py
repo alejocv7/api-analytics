@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
-    if not db.is_db_connected():
+    if not await db.is_db_connected():
         raise Exception("Database connection failed")
     print("Application started successfully!")
     yield

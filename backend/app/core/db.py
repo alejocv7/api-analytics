@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
@@ -14,11 +15,18 @@ engine = create_engine(
 )
 Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
+async_engine = create_async_engine(
+    settings.ASYNC_SQLALCHEMY_DATABASE_URI, pool_pre_ping=True
+)
+AsyncSessionLocal = async_sessionmaker(
+    async_engine, class_=AsyncSession, autoflush=False, autocommit=False
+)
 
-def is_db_connected() -> bool:
+
+async def is_db_connected() -> bool:
     try:
-        with Session() as session:
-            session.execute(select(1))
+        async with AsyncSessionLocal() as session:
+            await session.execute(select(1))
         return True
     except Exception:
         return False

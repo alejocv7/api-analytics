@@ -1,5 +1,5 @@
 from fastapi import status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core import security
@@ -8,8 +8,8 @@ from app.core.exceptions import APIError
 from app.services import user_service
 
 
-def register(user: schemas.UserCreate, session: Session) -> models.User:
-    if user_service.get_user_by_email(user.email, session):
+async def register(user: schemas.UserCreate, session: AsyncSession) -> models.User:
+    if await user_service.get_user_by_email(user.email, session):
         raise APIError(
             status_code=status.HTTP_400_BAD_REQUEST, message="Email already registered"
         )
@@ -20,8 +20,8 @@ def register(user: schemas.UserCreate, session: Session) -> models.User:
     )
 
     session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
+    await session.commit()
+    await session.refresh(new_user)
 
     return new_user
 
@@ -31,8 +31,10 @@ def create_user_token(user: models.User) -> schemas.TokenResponse:
     return schemas.TokenResponse(access_token=security.create_access_token(token_data))
 
 
-def authenticate_user(email: str, password: str, session: Session) -> models.User:
-    user = user_service.get_user_by_email(email, session)
+async def authenticate_user(
+    email: str, password: str, session: AsyncSession
+) -> models.User:
+    user = await user_service.get_user_by_email(email, session)
     if not user or not user.is_active:
         # Prevent timing attacks by running password verification even when user doesn't exist
         # This ensures the response time is similar whether or not the email exists
@@ -54,6 +56,6 @@ def authenticate_user(email: str, password: str, session: Session) -> models.Use
     if updated_hash:
         user.hashed_password = updated_hash
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        await session.commit()
+        await session.refresh(user)
     return user

@@ -1,7 +1,7 @@
 from fastapi.openapi.models import EmailStr
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
-from app.schemas import SecurePassword
+from app.core.types import SecurePassword
 
 
 class UserCreate(BaseModel):

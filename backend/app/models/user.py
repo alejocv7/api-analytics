@@ -1,7 +1,11 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
-from app.models.project import Project
+
+if TYPE_CHECKING:
+    from app.models.project import Project
 
 
 class User(Base, TimestampMixin):

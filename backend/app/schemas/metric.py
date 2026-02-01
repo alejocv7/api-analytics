@@ -12,7 +12,11 @@ from pydantic import (
     model_validator,
 )
 
-from app.schemas import NormalizedUrlPath, get_default_end_date, get_default_start_date
+from app.core.types import (
+    NormalizedUrlPath,
+    get_default_end_date,
+    get_default_start_date,
+)
 
 
 class MetricBase(BaseModel):

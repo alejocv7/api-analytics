@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -6,7 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core import security
 from app.core.config import settings
 from app.models.base import Base, TimestampMixin
-from app.models.project import Project
+
+if TYPE_CHECKING:
+    from app.models.project import Project
 
 
 class APIKey(Base, TimestampMixin):

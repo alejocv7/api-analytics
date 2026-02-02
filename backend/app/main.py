@@ -18,7 +18,7 @@ from app.core.exceptions import (
 )
 from app.core.rate_limiter import limiter
 from app.health import router as health_router
-from app.middleware import MetricMiddleware
+from app.middleware import MetricMiddleware, RequestIDMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -61,4 +61,5 @@ app.include_router(health_router, tags=["health"])
 app.include_router(v1_router, prefix=settings.API_V1_STR)
 
 # Middleware
+app.add_middleware(RequestIDMiddleware)
 app.add_middleware(MetricMiddleware)

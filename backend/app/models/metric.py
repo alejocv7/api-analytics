@@ -42,6 +42,7 @@ class Metric(Base):
         Index("idx_project_method", "project_id", "method"),
         Index("idx_project_status_code", "project_id", "response_status_code"),
         Index("idx_status_timestamp", "response_status_code", "timestamp"),
+        Index("idx_project_url_method", "project_id", "url_path", "method"),
     )
 
     def __repr__(self):

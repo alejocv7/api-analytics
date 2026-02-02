@@ -96,3 +96,38 @@ async def test_get_metrics_time_series(
     assert len(data) >= 1
     assert "timestamp" in data[0]
     assert "request_count" in data[0]
+
+
+@pytest.mark.asyncio
+async def test_cleanup_metrics(db_session, project_with_data):
+    from app.services.metric_service import cleanup_old_metrics
+    from sqlalchemy import select
+
+    # Add a very old metric
+    old_time = datetime.now(timezone.utc) - timedelta(days=100)
+    old_metric = models.Metric(
+        project_id=project_with_data.id,
+        url_path="/old",
+        method="GET",
+        response_status_code=200,
+        response_time_ms=10.0,
+        timestamp=old_time,
+    )
+    db_session.add(old_metric)
+    await db_session.commit()
+
+    # Run cleanup (90 days retention)
+    deleted_count = await cleanup_old_metrics(db_session, retention_days=90)
+    assert deleted_count == 1
+
+    # Verify it's gone
+    result = await db_session.execute(
+        select(models.Metric).where(models.Metric.url_path == "/old")
+    )
+    assert result.scalar_one_or_none() is None
+
+    # Verify recent metrics are still there
+    result = await db_session.execute(
+        select(models.Metric).where(models.Metric.project_id == project_with_data.id)
+    )
+    assert len(result.scalars().all()) == 3

@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Sequence
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -190,6 +190,15 @@ async def get_metrics_endpoints_stats(
         )
 
     return metrics_endpoint_stats
+
+
+async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -> int:
+    """Delete metrics older than a certain number of days."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    stmt = delete(models.Metric).where(models.Metric.timestamp < cutoff)
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount  # type: ignore
 
 
 def _apply_time_range_filter(query, project_id: int, params: schemas.MetricQuery):

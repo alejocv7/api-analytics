@@ -3,8 +3,6 @@ from typing import Annotated
 
 from pydantic import AfterValidator, AwareDatetime, BeforeValidator, SecretStr
 
-from app.core import security
-
 
 def get_default_start_date() -> AwareDatetime:
     return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -22,5 +20,11 @@ def normalize_url_path(url_path: str) -> str:
     return url_path.rstrip("/") or "/"
 
 
+def validate_secure_password(password: SecretStr) -> SecretStr:
+    from app.core import security
+
+    return security.validate_password(password)
+
+
 NormalizedUrlPath = Annotated[str, BeforeValidator(normalize_url_path)]
-SecurePassword = Annotated[SecretStr, AfterValidator(security.validate_password)]
+SecurePassword = Annotated[SecretStr, AfterValidator(validate_secure_password)]

@@ -13,6 +13,7 @@ from zxcvbn import zxcvbn
 from app import schemas
 from app.core.config import settings
 from app.core.exceptions import APIError
+from app.core.types import SecurePassword
 
 password_hash = PasswordHash.recommended()
 
@@ -73,9 +74,9 @@ def verify_password(
     return password_hash.verify_and_update(plain_password, hashed_password)
 
 
-def validate_password(password: str) -> str:
+def validate_password(password: SecurePassword) -> SecurePassword:
     """Validate password meets security requirements."""
-    result = zxcvbn(password)
+    result = zxcvbn(password.get_secret_value())
     if result["score"] < 3:
         feedback = ", ".join(result["feedback"]["suggestions"])
         raise ValueError(f"Password is too weak. Suggestions: {feedback}")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 from app import schemas
 from app.dependencies import ProjectDep, SessionDep
@@ -30,7 +30,7 @@ async def read_metrics(
     """,
 )
 async def read_metrics_summary(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricParams = Depends()
+    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
 ):
     return await metric_service.get_metrics_summary(session, project.id, params)
 
@@ -46,7 +46,7 @@ async def read_metrics_summary(
 async def read_metrics_time_series(
     project: ProjectDep,
     session: SessionDep,
-    params: schemas.MetricParams = Depends(),
+    params: schemas.MetricQuery,
     granularity: schemas.TimeGranularity = schemas.TimeGranularity.MINUTE,
 ):
     return await metric_service.get_metrics_time_series(
@@ -63,6 +63,6 @@ async def read_metrics_time_series(
     """,
 )
 async def read_metrics_endpoints_stats(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricParams = Depends()
+    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
 ):
     return await metric_service.get_metrics_endpoints_stats(session, project.id, params)

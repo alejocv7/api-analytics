@@ -16,9 +16,9 @@ router = APIRouter()
     """,
 )
 async def read_metrics(
-    project: ProjectDep, session: SessionDep, skip: int = 0, limit: int = 100
+    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
 ):
-    return await metric_service.get_metrics(session, project.id, skip=skip, limit=limit)
+    return await metric_service.get_metrics(session, project.id, params)
 
 
 @router.get(

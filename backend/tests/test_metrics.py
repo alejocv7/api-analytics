@@ -131,3 +131,27 @@ async def test_cleanup_metrics(db_session, project_with_data):
         select(models.Metric).where(models.Metric.project_id == project_with_data.id)
     )
     assert len(result.scalars().all()) == 3
+
+
+@pytest.mark.asyncio
+async def test_metrics_pagination(client: AsyncClient, auth_headers, project_with_data):
+    # project_with_data has 3 metrics
+    # Request page 1 with page_size 2
+    response = await client.get(
+        f"/api/v1/projects/{project_with_data.project_key}/metrics/",
+        headers=auth_headers,
+        params={"page": 1, "page_size": 2},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+
+    # Request page 2 with page_size 2
+    response = await client.get(
+        f"/api/v1/projects/{project_with_data.project_key}/metrics/",
+        headers=auth_headers,
+        params={"page": 2, "page_size": 2},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1

@@ -39,14 +39,12 @@ async def add_metric(
 
 
 async def get_metrics(
-    session: AsyncSession, project_id: int, skip: int = 0, limit: int = 100
+    session: AsyncSession, project_id: int, params: schemas.MetricParams
 ) -> Sequence[models.Metric]:
-    result = await session.execute(
-        select(models.Metric)
-        .filter(models.Metric.project_id == project_id)
-        .offset(skip)
-        .limit(limit)
-    )
+    query = select(models.Metric).order_by(models.Metric.timestamp.desc())
+    query = _apply_time_range_filter(query, project_id, params)
+    query = _apply_pagination(query, params)
+    result = await session.execute(query)
     return result.scalars().all()
 
 
@@ -121,15 +119,11 @@ async def get_metrics_time_series(
         func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
         _error_count_expr().label("error_count"),
     )
-    results = (
-        await session.execute(
-            _apply_pagination(
-                _apply_time_range_filter(query, project_id, params), params
-            )
-            .group_by(timestamp)
-            .order_by(timestamp)
-        )
-    ).all()
+    query = _apply_time_range_filter(query, project_id, params)
+    query = query.group_by(timestamp).order_by(timestamp)
+    query = _apply_pagination(query, params)
+
+    results = (await session.execute(query)).all()
 
     metrics_time_series = []
     for row in results:
@@ -163,13 +157,11 @@ async def get_metrics_endpoints_stats(
         func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
         func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
-    results = (
-        await session.execute(
-            _apply_pagination(
-                _apply_time_range_filter(query, project_id, params), params
-            ).group_by(models.Metric.url_path, models.Metric.method)
-        )
-    ).all()
+    query = _apply_time_range_filter(query, project_id, params)
+    query = query.group_by(models.Metric.url_path, models.Metric.method)
+    query = _apply_pagination(query, params)
+
+    results = (await session.execute(query)).all()
 
     metrics_endpoint_stats = []
     for row in results:

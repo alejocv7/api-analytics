@@ -29,6 +29,16 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Production safety check
+    if settings.ENVIRONMENT == "production":
+        if (
+            not settings.SECURITY_KEY
+            or settings.SECURITY_KEY == "change_me_in_production"
+        ):
+            raise RuntimeError(
+                "SECURITY_KEY must be configured securely in production!"
+            )
+
     db.init_db()
     if not await db.is_db_connected():
         raise Exception("Database connection failed")

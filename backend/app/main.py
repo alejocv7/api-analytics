@@ -16,9 +16,13 @@ from app.core.exceptions import (
     rate_limit_handler,
     validation_exception_handler,
 )
+from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
 from app.health import router as health_router
 from app.middleware import MetricMiddleware, RequestIDMiddleware
+
+# Set up structured logging first
+setup_logging()
 
 logger = logging.getLogger(__name__)
 

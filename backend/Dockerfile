@@ -1,8 +1,13 @@
-# Use a Python image with uv pre-installed
 FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim
 
+LABEL org.opencontainers.image.source="https://github.com/alejo/api-analytics"
+LABEL org.opencontainers.image.description="API Analytics Service"
+
 # Setup a non-root user
-RUN groupadd --system --gid 999 nonroot \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 999 nonroot \
     && useradd --system --gid 999 --uid 999 --create-home nonroot
 
 WORKDIR /app

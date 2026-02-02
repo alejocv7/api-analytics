@@ -1,5 +1,5 @@
 from datetime import datetime
-from http import HTTPMethod, HTTPStatus
+from http import HTTPMethod
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, ForeignKey, Index, func
@@ -27,9 +27,8 @@ class Metric(Base):
     method: Mapped[HTTPMethod] = mapped_column(
         Enum(HTTPMethod, name="http_method_enum"), index=True
     )
-    response_status_code: Mapped[HTTPStatus] = mapped_column(
-        Enum(HTTPStatus, name="http_status_enum"), index=True
-    )
+
+    response_status_code: Mapped[int] = mapped_column(index=True)
 
     response_time_ms: Mapped[float]
     timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)

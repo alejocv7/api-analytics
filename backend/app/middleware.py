@@ -31,7 +31,9 @@ async def log_metric(
 
 class MetricMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not re.match(r"/api/v\d+/(?!track)", request.url.path):
+        if settings.ENVIRONMENT == "testing" or not re.match(
+            r"/api/v\d+/(?!track)", request.url.path
+        ):
             return await call_next(request)
 
         start_time = time.perf_counter()

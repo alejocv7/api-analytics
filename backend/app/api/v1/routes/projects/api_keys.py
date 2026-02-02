@@ -26,8 +26,8 @@ async def create_api_key(
 ):
     api_key, plain_key = await api_key_service.create_api_key(key_in, project, session)
 
-    res = schemas.APIKeyCreateResponse.model_validate(api_key)
-    res.key = plain_key
+    res_data = schemas.APIKeyResponse.model_validate(api_key).model_dump()
+    res = schemas.APIKeyCreateResponse(**res_data, key=plain_key)
     return res
 
 
@@ -93,8 +93,8 @@ async def rotate_api_key(api_key_id: int, project: ProjectDep, session: SessionD
         api_key_id, project.id, session
     )
 
-    res = schemas.APIKeyCreateResponse.model_validate(api_key)
-    res.key = plain_key
+    res_data = schemas.APIKeyResponse.model_validate(api_key).model_dump()
+    res = schemas.APIKeyCreateResponse(**res_data, key=plain_key)
     return res
 
 

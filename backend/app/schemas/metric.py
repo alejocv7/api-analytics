@@ -159,12 +159,12 @@ class MetricEndpointStatsResponse(PerformanceStatsMixin):
 
 
 class MetricParams(BaseModel):
-    start_date: AwareDatetime = Field(
-        default_factory=get_default_start_date,
+    start_date: AwareDatetime | None = Field(
+        default=None,
         description="Start date (defaults to beginning of today)",
     )
-    end_date: AwareDatetime = Field(
-        default_factory=get_default_end_date,
+    end_date: AwareDatetime | None = Field(
+        default=None,
         description="End date (defaults to end of today)",
     )
     page: int = Field(default=1, ge=1, description="Page number")
@@ -172,6 +172,11 @@ class MetricParams(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> Self:
+        if self.start_date is None:
+            self.start_date = get_default_start_date()
+        if self.end_date is None:
+            self.end_date = get_default_end_date()
+
         self.start_date = self.start_date.astimezone(timezone.utc)
         self.end_date = self.end_date.astimezone(timezone.utc)
 

@@ -13,8 +13,8 @@ class Settings(BaseSettings):
 
     # Project
     PROJECT_ID: int = 0
-    PROJECT_NAME: str
-    PROJECT_DESCRIPTION: str
+    PROJECT_NAME: str = "API Analytics Service"
+    PROJECT_DESCRIPTION: str = "Track and analyze API performance metrics"
     PROJECT_SUFFIX_LENGTH: int = 4
     PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
 

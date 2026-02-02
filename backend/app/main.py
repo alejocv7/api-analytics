@@ -32,9 +32,9 @@ async def lifespan(app: FastAPI):
     db.init_db()
     if not await db.is_db_connected():
         raise Exception("Database connection failed")
-    print("Application started successfully!")
+    logger.info("Application started successfully!")
     yield
-    print("Application shutting down!")
+    logger.info("Application shutting down!")
 
 
 app = FastAPI(

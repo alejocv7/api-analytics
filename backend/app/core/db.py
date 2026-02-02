@@ -1,9 +1,13 @@
+import logging
+
 from sqlalchemy import create_engine, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.models import Base
+
+logger = logging.getLogger(__name__)
 
 # SQLite requires special handling for check_same_thread
 connect_args = {}
@@ -39,7 +43,7 @@ async def is_db_connected() -> bool:
 def init_db():
     try:
         Base.metadata.create_all(engine)
-        print("Successfully initialized database")
+        logger.info("Successfully initialized database")
     except Exception as e:
-        print(f"Error initializing database: {e}")
+        logger.error(f"Error initializing database: {e}")
         raise

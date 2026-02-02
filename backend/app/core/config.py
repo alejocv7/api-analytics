@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     PROJECT_DESCRIPTION: str
     PROJECT_SUFFIX_LENGTH: int = 4
     PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
+
+    # Environment
     ENVIRONMENT: Literal["local", "staging", "testing", "production"] = "local"
+    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     # API
     API_V1_STR: str = "/api/v1"

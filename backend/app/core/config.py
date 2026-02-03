@@ -1,6 +1,12 @@
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, AnyUrl, BeforeValidator, computed_field
+from pydantic import (
+    AfterValidator,
+    AnyUrl,
+    BeforeValidator,
+    PostgresDsn,
+    computed_field,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,21 +46,24 @@ class Settings(BaseSettings):
     API_PREFIX: str = API_V1_STR
 
     # Database
-    SQLALCHEMY_DATABASE_URI: str
+    POSTGRES_SERVER: str
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DB: str = ""
     REDIS_URL: str
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def ASYNC_SQLALCHEMY_DATABASE_URI(self) -> str:
-        if self.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
-            return self.SQLALCHEMY_DATABASE_URI.replace(
-                "sqlite:///", "sqlite+aiosqlite:///"
-            )
-        if self.SQLALCHEMY_DATABASE_URI.startswith("postgresql"):
-            return self.SQLALCHEMY_DATABASE_URI.replace(
-                "postgresql://", "postgresql+asyncpg://"
-            )
-        return self.SQLALCHEMY_DATABASE_URI
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+asyncpg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
 
     # Security
     SECURITY_KEY: str

@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
                 "SECURITY_KEY must be configured securely in production!"
             )
 
-    db.init_db()
+    await db.init_db()
     if not await db.is_db_connected():
         raise Exception("Database connection failed")
     logger.info("Application started successfully!")

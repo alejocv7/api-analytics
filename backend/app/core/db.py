@@ -1,26 +1,15 @@
 import logging
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.models import Base
 
 logger = logging.getLogger(__name__)
 
-# SQLite requires special handling for check_same_thread
-connect_args = {}
-if settings.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
-
-engine = create_engine(
-    settings.SQLALCHEMY_DATABASE_URI, pool_pre_ping=True, connect_args=connect_args
-)
-Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
 async_engine = create_async_engine(
-    settings.ASYNC_SQLALCHEMY_DATABASE_URI, pool_pre_ping=True
+    str(settings.SQLALCHEMY_DATABASE_URI), pool_pre_ping=True
 )
 AsyncSessionLocal = async_sessionmaker(
     async_engine,
@@ -40,10 +29,11 @@ async def is_db_connected() -> bool:
         return False
 
 
-def init_db():
+async def init_db() -> None:
     try:
-        Base.metadata.create_all(engine)
+        async with async_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
         logger.info("Successfully initialized database")
-    except Exception as e:
-        logger.error(f"Error initializing database: {e}")
+    except Exception:
+        logger.exception("Error initializing database")
         raise

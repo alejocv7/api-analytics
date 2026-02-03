@@ -1,0 +1,25 @@
+services:
+  db:
+    restart: "no"
+    ports:
+      - "5432:5432"
+
+  backend:
+    restart: "no"
+    ports:
+      - "8000:8000"
+    command:
+      - fastapi
+      - run
+      - --reload
+      - "app/main.py"
+    develop:
+      watch:
+        - path: ./backend
+          action: sync
+          target: /app/backend
+          ignore:
+            - ./backend/.venv
+            - .venv
+        - path: ./backend/pyproject.toml
+          action: rebuild

@@ -65,9 +65,7 @@ class Settings(BaseSettings):
     SECURITY_DUMMY_HASH: str = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
 
     # CORS & Trusted Hosts
-    TRUSTED_HOSTS: Annotated[
-        list[AnyUrl] | str, BeforeValidator(parse_list), AfterValidator(normalize_urls)
-    ] = []
+    TRUSTED_HOSTS: Annotated[list[str] | str, BeforeValidator(parse_list)] = []
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_list), AfterValidator(normalize_urls)
     ] = []

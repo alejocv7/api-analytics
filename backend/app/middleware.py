@@ -82,3 +82,54 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
             return response
         finally:
             request_id_ctx.reset(token)
+
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to log every request and response.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.perf_counter()
+        method = request.method
+        path = request.url.path
+
+        # Log request start
+        logger.info(
+            f"Request started: {method} {path}",
+            extra={
+                "http_method": method,
+                "http_path": path,
+                "client_ip": request.client.host if request.client else "unknown",
+            },
+        )
+
+        try:
+            response = await call_next(request)
+            process_time = (time.perf_counter() - start_time) * 1000
+            status_code = response.status_code
+
+            # Log response
+            logger.info(
+                f"Request finished: {method} {path} - {status_code} ({process_time:.2f}ms)",
+                extra={
+                    "http_method": method,
+                    "http_path": path,
+                    "status_code": status_code,
+                    "process_time_ms": round(process_time, 2),
+                },
+            )
+            return response
+        except Exception as e:
+            process_time = (time.perf_counter() - start_time) * 1000
+            logger.error(
+                f"Request failed: {method} {path} - {str(e)}",
+                extra={
+                    "http_method": method,
+                    "http_path": path,
+                    "error": str(e),
+                    "process_time_ms": round(process_time, 2),
+                },
+                exc_info=True,
+            )
+            raise

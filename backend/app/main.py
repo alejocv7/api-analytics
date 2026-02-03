@@ -21,7 +21,7 @@ from app.core.exceptions import (
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
 from app.health import router as health_router
-from app.middleware import MetricMiddleware, RequestIDMiddleware
+from app.middleware import LoggingMiddleware, MetricMiddleware, RequestIDMiddleware
 
 # Set up structured logging first
 setup_logging()
@@ -68,9 +68,10 @@ app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore
 app.include_router(health_router, tags=["health"])
 app.include_router(v1_router, prefix=settings.API_V1_STR)
 
-# Middleware
-app.add_middleware(RequestIDMiddleware)
+# Middleware (Executed in reverse order)
 app.add_middleware(MetricMiddleware)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 # Security Middlewares
 app.add_middleware(
@@ -93,9 +94,6 @@ async def add_security_headers(request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; frame-ancestors 'none'"
-    )
 
     if settings.IS_PRODUCTION:
         response.headers["Strict-Transport-Security"] = (

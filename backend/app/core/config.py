@@ -1,6 +1,19 @@
-from typing import Literal
+from typing import Annotated, Any, Literal
 
+from pydantic import AfterValidator, AnyUrl, BeforeValidator, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def parse_list(v: Any) -> list[str] | str:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",") if i.strip()]
+    elif isinstance(v, list | str):
+        return v
+    raise ValueError(v)
+
+
+def normalize_urls(v: list[AnyUrl] | str) -> list[str]:
+    return [str(origin).rstrip("/") for origin in v]
 
 
 class Settings(BaseSettings):
@@ -30,6 +43,7 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URI: str
     REDIS_URL: str
 
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def ASYNC_SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
@@ -50,12 +64,25 @@ class Settings(BaseSettings):
     # This is an Argon2 hash of a random password, used to ensure constant-time comparison
     SECURITY_DUMMY_HASH: str = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
 
+    # CORS & Trusted Hosts
+    TRUSTED_HOSTS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_list), AfterValidator(normalize_urls)
+    ] = []
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_list), AfterValidator(normalize_urls)
+    ] = []
+
     # API Keys
     API_KEY_LENGTH: int = 32
     API_KEY_PREFIX: str = "sk_live_"
     API_KEY_LOOKUP_PREFIX_LENGTH: int = 20
     API_KEY_PROJECT_LIMIT: int = 10
     API_KEY_DEFAULT_EXPIRY_DAYS: int = 60
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def IS_PRODUCTION(self) -> bool:
+        return self.ENVIRONMENT == "production"
 
 
 settings = Settings()  # type: ignore

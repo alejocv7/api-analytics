@@ -20,6 +20,8 @@ os.environ["PROJECT_DESCRIPTION"] = "Testing Description"
 os.environ["SQLALCHEMY_DATABASE_URI"] = "sqlite:///./test.db"
 os.environ["REDIS_URL"] = "redis://localhost:6379/0"
 os.environ["API_KEY_LOOKUP_PREFIX_LENGTH"] = "8"
+os.environ["BACKEND_CORS_ORIGINS"] = "[*]"
+os.environ["TRUSTED_HOSTS"] = "[*]"
 
 from app.core import db
 from app.dependencies import get_db

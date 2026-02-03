@@ -3,7 +3,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.routes import router as v1_router
 from app.core import db
@@ -30,7 +32,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Production safety check
-    if settings.ENVIRONMENT == "production":
+    if settings.IS_PRODUCTION:
         if (
             not settings.SECURITY_KEY
             or settings.SECURITY_KEY == "change_me_in_production"
@@ -53,21 +55,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)  # type: ignore
 app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore
 app.add_exception_handler(APIError, api_exception_handler)  # type: ignore
 app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
 app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore
-
-
-@app.get("/", tags=["root"])
-async def root():
-    return {
-        "message": settings.PROJECT_NAME,
-        "description": settings.PROJECT_DESCRIPTION,
-        "docs": "/docs",
-    }
 
 
 # Routers
@@ -77,3 +71,44 @@ app.include_router(v1_router, prefix=settings.API_V1_STR)
 # Middleware
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(MetricMiddleware)
+
+# Security Middlewares
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.TRUSTED_HOSTS,
+)
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; frame-ancestors 'none'"
+    )
+
+    if settings.IS_PRODUCTION:
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
+    return response
+
+
+@app.get("/", tags=["root"])
+async def root():
+    return {
+        "message": settings.PROJECT_NAME,
+        "description": settings.PROJECT_DESCRIPTION,
+        "docs": "/docs",
+    }

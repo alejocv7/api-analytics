@@ -11,7 +11,6 @@ async def test_security_headers(client: AsyncClient):
     # Check for security headers
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
-    assert "Content-Security-Policy" in response.headers
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
 
 

@@ -29,8 +29,9 @@ def get_env_file():
     env = os.getenv("ENVIRONMENT", "local")
     base_dir = Path(__file__).resolve().parent.parent.parent
 
-    candidate = base_dir / f".env.{env}" if env != "local" else ".env"
-    print("Candidate: ", candidate)
+    env_file_name = f".env.{env}" if env != "local" else ".env"
+    candidate = base_dir / env_file_name
+
     return candidate if candidate.exists() else base_dir / ".env"
 
 

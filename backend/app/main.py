@@ -23,23 +23,12 @@ from app.core.rate_limiter import limiter
 from app.health import router as health_router
 from app.middleware import LoggingMiddleware, MetricMiddleware, RequestIDMiddleware
 
-# Set up structured logging first
-setup_logging()
-
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Production safety check
-    if settings.IS_PRODUCTION:
-        if (
-            not settings.SECURITY_KEY
-            or settings.SECURITY_KEY == "change_me_in_production"
-        ):
-            raise RuntimeError(
-                "SECURITY_KEY must be configured securely in production!"
-            )
+    setup_logging()
 
     await db.init_db()
     if not await db.is_db_connected():

@@ -4,104 +4,85 @@ from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from alembic import command
+from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-
-# Set environment variables for tests
-os.environ["ENVIRONMENT"] = "testing"
-os.environ["HASH_SALT"] = "test_salt_do_not_use_in_production"
-os.environ["SECURITY_KEY"] = "test_secret_key_extremely_secret"
-os.environ["PROJECT_NAME"] = "Test Analytics"
-os.environ["PROJECT_DESCRIPTION"] = "Testing Description"
-os.environ["SQLALCHEMY_DATABASE_URI"] = "sqlite:///./test.db"
-os.environ["REDIS_URL"] = "redis://localhost:6379/0"
-os.environ["API_KEY_LOOKUP_PREFIX_LENGTH"] = "8"
-os.environ["BACKEND_CORS_ORIGINS"] = "[*]"
-os.environ["TRUSTED_HOSTS"] = "[*]"
-
-from app.core import db
-from app.dependencies import get_db
-from app.main import app
-from app.models.base import Base
-
-# Test database URL
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+from testcontainers.postgres import PostgresContainer
 
 
 @pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+def postgres_container():
+    with PostgresContainer("postgres:16-alpine") as pg:
+        os.environ["POSTGRES_SERVER"] = pg.get_container_host_ip()
+        os.environ["POSTGRES_PORT"] = str(pg.get_exposed_port(5432))
+        os.environ["POSTGRES_DB"] = pg.dbname
+        os.environ["POSTGRES_USER"] = pg.username
+        os.environ["POSTGRES_PASSWORD"] = pg.password
+
+        yield pg
+
+
+@pytest.fixture(scope="session")
+def async_db_url(postgres_container):
+    return (
+        make_url(postgres_container.get_connection_url())
+        .set(drivername="postgresql+asyncpg")
+        .render_as_string(hide_password=False)
+    )
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def test_engine():
-    """Create a test engine and initialize the database schema."""
-    engine = create_async_engine(
-        TEST_DATABASE_URL, connect_args={"check_same_thread": False}
-    )
+async def apply_migrations(async_db_url):
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", async_db_url)
 
-    # Override global db engine and session local
-    db.async_engine = engine
-    db.AsyncSessionLocal = async_sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
+@pytest_asyncio.fixture(scope="session")
+async def engine(async_db_url):
+    engine = create_async_engine(async_db_url)
     yield engine
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
     await engine.dispose()
-
-    # Clean up test database file
-    if os.path.exists("./test.db"):
-        os.remove("./test.db")
 
 
 @pytest_asyncio.fixture
-async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
-    """Create a new database session for a test with transaction isolation."""
-    connection = await test_engine.connect()
-    transaction = await connection.begin()
-
-    TestingSessionLocal = async_sessionmaker(
-        bind=connection,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-
-    async with TestingSessionLocal() as session:
-        yield session
-
-    await transaction.rollback()
-    await connection.close()
+async def db_session(engine):
+    async with engine.connect() as conn:
+        transaction = await conn.begin()
+        session_maker = async_sessionmaker(
+            bind=conn, class_=AsyncSession, expire_on_commit=False
+        )
+        async with session_maker() as session:
+            yield session
+            await session.rollback()
+        await transaction.rollback()
 
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create a test client that uses the test database."""
+    from app.dependencies import get_db
+    from app.main import app
 
     async def override_get_db():
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        yield ac
-
-    app.dependency_overrides.clear()
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
+            yield ac
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture

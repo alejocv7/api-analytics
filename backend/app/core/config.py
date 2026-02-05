@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -6,6 +8,7 @@ from pydantic import (
     BeforeValidator,
     PostgresDsn,
     computed_field,
+    model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,10 +25,18 @@ def normalize_urls(v: list[AnyUrl] | str) -> list[str]:
     return [str(origin).rstrip("/") for origin in v]
 
 
+def get_env_file():
+    env = os.getenv("ENVIRONMENT", "local")
+    base_dir = Path(__file__).resolve().parent.parent.parent
+
+    candidate = base_dir / f".env.{env}" if env != "local" else ".env"
+    print("Candidate: ", candidate)
+    return candidate if candidate.exists() else base_dir / ".env"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        # Use top level .env file (one level above ./backend/)
-        env_file="../.env",
+        env_file=get_env_file(),
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -38,7 +49,7 @@ class Settings(BaseSettings):
     PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
 
     # Environment
-    ENVIRONMENT: Literal["local", "staging", "testing", "production"] = "local"
+    ENVIRONMENT: Literal["local", "staging", "test", "prod"] = "local"
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     # API
@@ -89,7 +100,17 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def IS_PRODUCTION(self) -> bool:
-        return self.ENVIRONMENT == "production"
+        return self.ENVIRONMENT == "prod"
+
+    @model_validator(mode="after")
+    def validate_security_key(self):
+        key = self.SECURITY_KEY.strip()
+        if self.IS_PRODUCTION and (not key or key == "change_this"):
+            raise ValueError(
+                "SECURITY_KEY must be set to a secure value in production!"
+            )
+        self.SECURITY_KEY = key
+        return self
 
 
 settings = Settings()  # type: ignore

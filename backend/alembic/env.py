@@ -17,8 +17,9 @@ from app.core.config import settings  # noqa
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the sqlalchemy.url from our settings
-config.set_main_option("sqlalchemy.url", str(settings.SQLALCHEMY_DATABASE_URI))
+# Set sqlalchemy.url from settings only if not already provided (e.g. tests).
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", str(settings.SQLALCHEMY_DATABASE_URI))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

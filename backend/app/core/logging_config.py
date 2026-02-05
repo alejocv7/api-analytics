@@ -2,7 +2,7 @@ import logging
 import sys
 
 from colorlog import ColoredFormatter
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger import json as jsonlogger
 
 from app.core.config import settings
 

@@ -1,8 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
 async def test_security_headers(client: AsyncClient):
     """Test that security headers are present in responses."""
     response = await client.get("/")
@@ -14,7 +14,6 @@ async def test_security_headers(client: AsyncClient):
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
 
 
-@pytest.mark.asyncio
 async def test_cors_headers(client: AsyncClient):
     """Test that CORS headers are present when Origin is provided."""
     headers = {"Origin": "http://localhost:3000"}

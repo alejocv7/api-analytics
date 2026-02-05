@@ -1,39 +1,36 @@
 import pytest
 import pytest_asyncio
-from app import models
-from app.core import security
 from httpx import AsyncClient
 from sqlalchemy import select
+
+from tests.factories import create_api_key, create_project
+
+pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
 async def api_key_and_project(db_session, test_user):
-    from app import models
-
-    project = models.Project(
-        name="Track Project", project_key="track-key", user_id=test_user.id
+    project = await create_project(
+        db_session,
+        user=test_user,
+        name="Track Project",
+        project_key="track-key",
     )
-    db_session.add(project)
-    await db_session.commit()
-    await db_session.refresh(project)
-
-    plain_key = "sk_test_1234567890abcdef"
-    api_key = models.APIKey(
+    _, plain_key = await create_api_key(
+        db_session,
+        project=project,
         name="Track Key",
-        key_hash=security.hash_api_key(plain_key),
-        key_prefix=plain_key[:8],
-        project_id=project.id,
+        plain_key="sk_test_1234567890abcdef",
         is_active=True,
     )
-    db_session.add(api_key)
-    await db_session.commit()
     return plain_key, project
 
 
-@pytest.mark.asyncio
 async def test_track_metric_success(
     client: AsyncClient, db_session, api_key_and_project
 ):
+    from app import models
+
     plain_key, project = api_key_and_project
 
     response = await client.post(
@@ -63,7 +60,6 @@ async def test_track_metric_success(
     assert metric.ip_hash != "1.2.3.4"
 
 
-@pytest.mark.asyncio
 async def test_track_metric_invalid_key(client: AsyncClient):
     response = await client.post(
         "/api/v1/track/",
@@ -79,7 +75,6 @@ async def test_track_metric_invalid_key(client: AsyncClient):
     assert "Invalid API key" in response.json()["error"]
 
 
-@pytest.mark.asyncio
 async def test_track_metric_missing_key(client: AsyncClient):
     response = await client.post(
         "/api/v1/track/",

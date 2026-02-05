@@ -7,13 +7,14 @@ import pytest_asyncio
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.engine import make_url
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
+
+from tests.factories import create_project, create_user
+
+os.environ.setdefault("ENVIRONMENT", "test")
 
 
 @pytest.fixture(scope="session")
@@ -56,13 +57,19 @@ async def engine(async_db_url):
 async def db_session(engine):
     async with engine.connect() as conn:
         transaction = await conn.begin()
-        session_maker = async_sessionmaker(
-            bind=conn, class_=AsyncSession, expire_on_commit=False
-        )
-        async with session_maker() as session:
+        session = AsyncSession(bind=conn, expire_on_commit=False)
+        await session.begin_nested()
+
+        @event.listens_for(session.sync_session, "after_transaction_end")
+        def _restart_savepoint(sync_session, trans):  # pragma: no cover - SQLA hook
+            if trans.nested and not trans._parent.nested:
+                sync_session.begin_nested()
+
+        try:
             yield session
-            await session.rollback()
-        await transaction.rollback()
+        finally:
+            await session.close()
+            await transaction.rollback()
 
 
 @pytest_asyncio.fixture
@@ -88,19 +95,13 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession):
     """Create a test user."""
-    from app import models
-    from app.core import security
+    return await create_user(db_session)
 
-    user = models.User(
-        email="test@example.com",
-        full_name="Test User",
-        hashed_password=security.hash_password("Password123!"),
-        is_active=True,
-    )
-    db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
-    return user
+
+@pytest_asyncio.fixture
+async def project(db_session: AsyncSession, test_user):
+    """Create a test project."""
+    return await create_project(db_session, user=test_user)
 
 
 @pytest_asyncio.fixture

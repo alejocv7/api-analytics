@@ -1,11 +1,13 @@
 import pytest
-from app import models
 from httpx import AsyncClient
 from sqlalchemy import select
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_register_user(client: AsyncClient, db_session):
+    from app import models
+
     response = await client.post(
         "/api/v1/auth/register",
         json={
@@ -30,7 +32,6 @@ async def test_register_user(client: AsyncClient, db_session):
     assert user.full_name == "New User"
 
 
-@pytest.mark.asyncio
 async def test_register_duplicate_email(client: AsyncClient, test_user):
     response = await client.post(
         "/api/v1/auth/register",
@@ -44,7 +45,6 @@ async def test_register_duplicate_email(client: AsyncClient, test_user):
     assert "Email already registered" in response.json()["error"]
 
 
-@pytest.mark.asyncio
 async def test_login_success(client: AsyncClient, test_user):
     response = await client.post(
         "/api/v1/auth/login",
@@ -56,7 +56,6 @@ async def test_login_success(client: AsyncClient, test_user):
     assert data["token_type"] == "bearer"
 
 
-@pytest.mark.asyncio
 async def test_login_invalid_credentials(client: AsyncClient, test_user):
     response = await client.post(
         "/api/v1/auth/login",

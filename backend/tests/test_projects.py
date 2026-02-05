@@ -1,8 +1,11 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.factories import create_project
 
-@pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio
+
+
 async def test_create_project(client: AsyncClient, auth_headers):
     response = await client.post(
         "/api/v1/projects/",
@@ -15,15 +18,20 @@ async def test_create_project(client: AsyncClient, auth_headers):
     assert "project_key" in data
 
 
-@pytest.mark.asyncio
 async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_session):
-    from app import models
-
     # Create some projects
-    p1 = models.Project(name="P1", project_key="p1-key", user_id=test_user.id)
-    p2 = models.Project(name="P2", project_key="p2-key", user_id=test_user.id)
-    db_session.add_all([p1, p2])
-    await db_session.commit()
+    await create_project(
+        db_session,
+        user=test_user,
+        name="P1",
+        project_key="p1-key",
+    )
+    await create_project(
+        db_session,
+        user=test_user,
+        name="P2",
+        project_key="p2-key",
+    )
 
     response = await client.get("/api/v1/projects/", headers=auth_headers)
     assert response.status_code == 200
@@ -34,15 +42,15 @@ async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_se
     assert "P2" in names
 
 
-@pytest.mark.asyncio
 async def test_get_project_by_key(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    from app import models
-
-    p = models.Project(name="Single", project_key="single-key", user_id=test_user.id)
-    db_session.add(p)
-    await db_session.commit()
+    p = await create_project(
+        db_session,
+        user=test_user,
+        name="Single",
+        project_key="single-key",
+    )
 
     response = await client.get(
         f"/api/v1/projects/{p.project_key}", headers=auth_headers
@@ -51,13 +59,13 @@ async def test_get_project_by_key(
     assert response.json()["name"] == "Single"
 
 
-@pytest.mark.asyncio
 async def test_update_project(client: AsyncClient, auth_headers, test_user, db_session):
-    from app import models
-
-    p = models.Project(name="Old Name", project_key="old-key", user_id=test_user.id)
-    db_session.add(p)
-    await db_session.commit()
+    p = await create_project(
+        db_session,
+        user=test_user,
+        name="Old Name",
+        project_key="old-key",
+    )
 
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
@@ -68,13 +76,13 @@ async def test_update_project(client: AsyncClient, auth_headers, test_user, db_s
     assert response.json()["name"] == "New Name"
 
 
-@pytest.mark.asyncio
 async def test_delete_project(client: AsyncClient, auth_headers, test_user, db_session):
-    from app import models
-
-    p = models.Project(name="To Delete", project_key="delete-key", user_id=test_user.id)
-    db_session.add(p)
-    await db_session.commit()
+    p = await create_project(
+        db_session,
+        user=test_user,
+        name="To Delete",
+        project_key="delete-key",
+    )
 
     response = await client.delete(
         f"/api/v1/projects/{p.project_key}", headers=auth_headers

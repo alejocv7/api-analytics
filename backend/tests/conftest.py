@@ -1,5 +1,6 @@
 import asyncio
 import os
+from pathlib import Path
 from typing import AsyncGenerator
 
 import pytest
@@ -12,19 +13,22 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-from tests.factories import create_project, create_user
-
 os.environ.setdefault("ENVIRONMENT", "test")
 
 
 @pytest.fixture(scope="session")
 def postgres_container():
     with PostgresContainer("postgres:16-alpine") as pg:
-        os.environ["POSTGRES_SERVER"] = pg.get_container_host_ip()
-        os.environ["POSTGRES_PORT"] = str(pg.get_exposed_port(5432))
-        os.environ["POSTGRES_DB"] = pg.dbname
-        os.environ["POSTGRES_USER"] = pg.username
-        os.environ["POSTGRES_PASSWORD"] = pg.password
+        # Make sure this is set before the settings are initialized
+        os.environ.update(
+            {
+                "POSTGRES_SERVER": pg.get_container_host_ip(),
+                "POSTGRES_PORT": str(pg.get_exposed_port(5432)),
+                "POSTGRES_DB": pg.dbname,
+                "POSTGRES_USER": pg.username,
+                "POSTGRES_PASSWORD": pg.password,
+            }
+        )
 
         yield pg
 
@@ -39,8 +43,9 @@ def async_db_url(postgres_container):
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def apply_migrations(async_db_url):
-    alembic_cfg = Config("alembic.ini")
+async def apply_migrations(async_db_url: str):
+    project_root = Path(__file__).resolve().parent.parent
+    alembic_cfg = Config(project_root / "alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", async_db_url)
 
     await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
@@ -48,7 +53,7 @@ async def apply_migrations(async_db_url):
 
 @pytest_asyncio.fixture(scope="session")
 async def engine(async_db_url):
-    engine = create_async_engine(async_db_url)
+    engine = create_async_engine(async_db_url, pool_pre_ping=True)
     yield engine
     await engine.dispose()
 
@@ -95,12 +100,16 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession):
     """Create a test user."""
+    from tests.factories import create_user
+
     return await create_user(db_session)
 
 
 @pytest_asyncio.fixture
 async def project(db_session: AsyncSession, test_user):
     """Create a test project."""
+    from tests.factories import create_project
+
     return await create_project(db_session, user=test_user)
 
 

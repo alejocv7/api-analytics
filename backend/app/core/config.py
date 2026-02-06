@@ -27,7 +27,7 @@ def normalize_urls(v: list[AnyUrl] | str) -> list[str]:
 
 def get_env_file():
     env = os.getenv("ENVIRONMENT", "local")
-    base_dir = Path(__file__).resolve().parent.parent.parent
+    base_dir = Path(__file__).resolve().parent.parent.parent.parent
 
     env_file_name = f".env.{env}" if env != "local" else ".env"
     candidate = base_dir / env_file_name

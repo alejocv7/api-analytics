@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic_core import ValidationError
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -44,14 +45,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)  # type: ignore
 app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore
 app.add_exception_handler(APIError, api_exception_handler)  # type: ignore
 app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
+app.add_exception_handler(ValidationError, validation_exception_handler)  # type: ignore
 app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore
-
 
 # Routers
 app.include_router(health_router, tags=["health"])

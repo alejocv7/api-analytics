@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Run tests
+        run: uv run pytest --cov=app --cov-report=xml
+        working-directory: backend
+
+      - name: Store coverage files
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-html
+          path: backend/htmlcov
+          include-hidden-files: true
+
+      - name: Coverage report
+        run: uv run coverage report --fail-under=85
+        working-directory: backend

@@ -1,25 +1,26 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from importlib.metadata import version
 
 from fastapi import APIRouter
-from sqlalchemy import text
 
 from app.core.config import settings
-from app.dependencies import SessionDep
+from app.core.db import is_db_connected
 
 router = APIRouter()
 
+try:
+    API_VERSION = version("api-analytics-service")
+except Exception:
+    API_VERSION = "unknown"
+
 
 @router.get("/health")
-async def health(session: SessionDep):
-    try:
-        session.execute(text("SELECT 1"))
-        db_status = "healthy"
-    except Exception as e:
-        db_status = f"unhealthy: {e}"
-
+async def health():
+    db_connected = await is_db_connected()
     return {
-        "status": "online" if db_status == "healthy" else "offline",
-        "database_status": db_status,
+        "status": "online" if db_connected else "offline",
+        "database_status": "healthy" if db_connected else "unhealthy",
         "environment": settings.ENVIRONMENT,
-        "timestamp": datetime.now().isoformat(),
+        "version": API_VERSION,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }

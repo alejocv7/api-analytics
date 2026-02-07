@@ -1,25 +1,39 @@
-from sqlalchemy import create_engine, select
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import logging
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
+from app.models import Base
 
-# SQLite requires special handling for check_same_thread
-connect_args = {}
-if settings.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+logger = logging.getLogger(__name__)
 
-engine = create_engine(
-    settings.SQLALCHEMY_DATABASE_URI, pool_pre_ping=True, connect_args=connect_args
+async_engine = create_async_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI), pool_pre_ping=True
 )
-Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-Base = declarative_base()
+AsyncSessionLocal = async_sessionmaker(
+    async_engine,
+    class_=AsyncSession,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
+)
 
 
-def wakeup_db():
+async def is_db_connected() -> bool:
     try:
-        with Session() as session:
-            session.execute(select(1))
-        print(f"Successfully connected to database: {settings.SQLALCHEMY_DATABASE_URI}")
-    except Exception as e:
-        print(f"Error connecting to database: {e}")
+        async with AsyncSessionLocal() as session:
+            await session.execute(select(1))
+        return True
+    except Exception:
+        return False
+
+
+async def init_db() -> None:
+    try:
+        async with async_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Successfully initialized database")
+    except Exception:
+        logger.exception("Error initializing database")
+        raise

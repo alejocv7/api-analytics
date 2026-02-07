@@ -27,7 +27,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Run tests
-        run: uv run pytest --cov=app --cov-report=xml "Coverage for ${{ github.sha }}"
+        run: uv run pytest --cov=app --cov-report=xml
         working-directory: backend
 
       - name: Store coverage files

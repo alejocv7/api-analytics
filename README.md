@@ -9,7 +9,9 @@ A production-ready, high-performance API analytics backend built with Python 3.1
 - **High-Performance Tracking**: Asynchronous metric recording using FastAPIs background tasks.
 - **Advanced Analytics**: Aggregated statistics for response times, error rates, and throughput.
 - **Time-Series Data**: Granular time-series analysis (minute, hour, day).
-- **Production Observability**: Structured JSON logging with request tracing (ContextVar-based correlation IDs).
+- **Production Observability**:
+  - Structured JSON logging with request tracing (ContextVar-based correlation IDs).
+  - Performance monitoring middleware (APM-like timing).
 - **Security First**:
   - Argon2 password hashing.
   - IP hashing for privacy-preserving user tracking.
@@ -34,36 +36,28 @@ A production-ready, high-performance API analytics backend built with Python 3.1
 ### 1. Prerequisites
 
 - Docker & Docker Compose
-- _Optional_: [uv](https://github.com/astral-sh/uv) (for local development)
+- _Optional_: [uv](https://github.com/astral-sh/uv) (for running tests/linting outside Docker)
 
-### 2. Fast Setup (Docker)
+### 2. Local Development (Docker Compose)
 
-The easiest way to get started is using Docker Compose:
+We use Docker Compose as the primary way to run the application locally. This sets up Postgres, Redis, and the FastAPI application in a production-like environment.
 
 ```bash
-docker compose up -d
+docker compose up --watch
 ```
 
-Access the API documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
+- **API**: [http://localhost:8000](http://localhost:8000)
+- **Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
 
-### 3. Local Development (No Docker)
+### 3. Running Tests (Local)
 
-1.  **Clone & Navigate**:
-    ```bash
-    cd backend
-    ```
-2.  **Install Dependencies**:
-    ```bash
-    uv sync --all-extras
-    ```
-3.  **Run Migrations**:
-    ```bash
-    uv run alembic upgrade head
-    ```
-4.  **Start Server**:
-    ```bash
-    uv run fastapi dev app/main.py
-    ```
+To run the test suite, you can use `uv` in the backend directory:
+
+```bash
+cd backend
+uv run pytest
+```
 
 ### 4. Database Migration Workflow
 
@@ -156,21 +150,10 @@ await cleanup_old_metrics(session, retention_days=90)
 
 ## 🧪 Testing
 
-The project uses `pytest` with 100% async support.
-
 ```bash
 cd backend
-PYTHONPATH=. uv run pytest -v
+uv run pytest --cov=app --cov-report=term-missing
 ```
-
-Tests cover:
-
-- Authentication & JWT flows.
-- Project and API Key lifecycle.
-- Metric aggregation logic.
-- Tracking middleware under lock conditions.
-
----
 
 ## ⚖️ License
 

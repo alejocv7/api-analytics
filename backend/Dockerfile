@@ -29,19 +29,20 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Install dependencies
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=./backend/uv.lock,target=uv.lock \
-    --mount=type=bind,source=./backend/pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=backend/pyproject.toml,target=backend/pyproject.toml \
     uv sync --locked --no-install-workspace --package api-analytics-service
 
 # Copy the application into the container.
-COPY ./backend/pyproject.toml ./backend/alembic.ini /app/backend/
+COPY ./backend/pyproject.toml ./backend/alembic.ini ./backend/README.md /app/backend/
 COPY ./backend/app /app/backend/app
 
 # Sync the project
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=./backend/uv.lock,target=uv.lock \
-    --mount=type=bind,source=./backend/pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --package api-analytics-service
 
 # Reset the entrypoint, don't invoke `uv`

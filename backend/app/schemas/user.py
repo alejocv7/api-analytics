@@ -1,5 +1,4 @@
-from fastapi.openapi.models import EmailStr
-from pydantic import AwareDatetime, BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr
 
 from app.core.types import SecurePassword
 

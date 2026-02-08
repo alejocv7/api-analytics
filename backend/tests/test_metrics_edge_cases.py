@@ -1,14 +1,13 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
+
 from tests.factories import create_metric
 
 
 @pytest.mark.asyncio
-async def test_get_metrics_summary_empty(
-    client: AsyncClient, auth_headers, project, db_session
-):
+async def test_get_metrics_summary_empty(client: AsyncClient, auth_headers, project):
     """Test metrics summary when there are no metrics."""
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/metrics/summary",
@@ -26,7 +25,7 @@ async def test_get_metrics_invalid_date_range(
     client: AsyncClient, auth_headers, project
 ):
     """Test that end_date before start_date raises an error."""
-    start_date = datetime.now(timezone.utc)
+    start_date = datetime.now(UTC)
     end_date = start_date - timedelta(days=1)
 
     response = await client.get(
@@ -56,8 +55,8 @@ async def test_pagination_edge_cases(
         params={"page": 1, "page_size": 10, "granularity": "minute"},
     )
     assert response.status_code == 200
-    # Note: time-series groups by time, so we might get fewer points than raw metrics if they are in same minute.
-    # But let's check basic response structure.
+    # Note: time-series groups by time, so we might get fewer points than raw metrics if
+    # they are in same minute. But let's check basic response structure.
     data = response.json()
     assert isinstance(data, list)
 
@@ -79,7 +78,7 @@ async def test_metrics_large_volume_simulation(
     # For test speed, we'll keep it reasonable (e.g., 50)
     for i in range(50):
         # Distribute over last hour
-        ts = datetime.now(timezone.utc) - timedelta(minutes=i)
+        ts = datetime.now(UTC) - timedelta(minutes=i)
         await create_metric(
             db_session,
             project=project,

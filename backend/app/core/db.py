@@ -9,7 +9,7 @@ from app.models import Base
 logger = logging.getLogger(__name__)
 
 async_engine = create_async_engine(
-    str(settings.SQLALCHEMY_DATABASE_URI), pool_pre_ping=True
+    str(settings.ASYNC_SQLALCHEMY_DATABASE_URI), pool_pre_ping=True
 )
 AsyncSessionLocal = async_sessionmaker(
     async_engine,

@@ -26,13 +26,13 @@ class Project(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(String(1000))
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    owner: Mapped["User"] = relationship(back_populates="projects")
+    owner: Mapped[User] = relationship(back_populates="projects")
 
-    api_keys: Mapped[list["APIKey"]] = relationship(
+    api_keys: Mapped[list[APIKey]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
 
-    metrics: Mapped[list["Metric"]] = relationship(
+    metrics: Mapped[list[Metric]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
 

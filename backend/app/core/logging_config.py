@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Any, ClassVar
 
 from colorlog import ColoredFormatter
 from pythonjsonlogger import json as jsonlogger
@@ -7,20 +8,57 @@ from pythonjsonlogger import json as jsonlogger
 from app.core.config import settings
 
 
-def setup_logging():
+class CustomJsonFormatter(jsonlogger.JsonFormatter):
+    def add_fields(
+        self,
+        log_record: dict[str, Any],
+        record: logging.LogRecord,
+        message_dict: dict[str, Any],
+    ) -> None:
+        super().add_fields(log_record, record, message_dict)
+        from app.middleware import request_id_ctx
+
+        log_record["request_id"] = request_id_ctx.get()
+
+
+class CustomFormatter(ColoredFormatter):
+    LOG_COLORS: ClassVar[dict[str, str]] = {
+        "DEBUG": "white",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "red,bg_white",
+    }
+
+    RESET = "\033[0m"
+
+    def __init__(self, fmt: str | None = None, datefmt: str | None = None) -> None:
+        # Use the class-level color table when initializing the parent
+        super().__init__(fmt=fmt, log_colors=self.LOG_COLORS, datefmt=datefmt)
+
+    def format(self, record: logging.LogRecord) -> str:
+        from app.middleware import request_id_ctx
+
+        record.request_id = request_id_ctx.get()
+
+        return super().format(record)
+
+
+def setup_logging() -> None:
     """
     Configure structured JSON logging for the application.
     """
     log_level = settings.LOG_LEVEL
 
-    formatter = None
+    formatter: logging.Formatter
     if settings.ENVIRONMENT == "local":
         formatter = CustomFormatter(
-            "%(log_color)s%(asctime)s - %(levelname)s - %(name)s - %(message)s - [request_id=%(request_id)s]%(reset)s"
+            "%(log_color)s%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+            " - [request_id=%(request_id)s]%(reset)s"
         )
     else:
         formatter = CustomJsonFormatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s"
+            "%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s"
         )
 
     handler = logging.StreamHandler(sys.stdout)
@@ -48,34 +86,3 @@ def setup_logging():
             "log_level": logging.getLevelName(log_level),
         },
     )
-
-
-class CustomJsonFormatter(jsonlogger.JsonFormatter):
-    def add_fields(self, log_record, record, message_dict):
-        super().add_fields(log_record, record, message_dict)
-        from app.middleware import request_id_ctx
-
-        log_record["request_id"] = request_id_ctx.get()
-
-
-class CustomFormatter(ColoredFormatter):
-    LOG_COLORS = {
-        "DEBUG": "white",
-        "INFO": "green",
-        "WARNING": "yellow",
-        "ERROR": "red",
-        "CRITICAL": "red,bg_white",
-    }
-
-    RESET = "\033[0m"
-
-    def __init__(self, fmt=None, datefmt=None):
-        # Use the class-level color table when initializing the parent
-        super().__init__(fmt=fmt, log_colors=self.LOG_COLORS, datefmt=datefmt)
-
-    def format(self, record):
-        from app.middleware import request_id_ctx
-
-        record.request_id = request_id_ctx.get()
-
-        return super().format(record)

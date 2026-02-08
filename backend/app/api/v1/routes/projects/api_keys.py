@@ -1,8 +1,8 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import APIRouter, status
 
-from app import schemas
+from app import models, schemas
 from app.dependencies import ProjectDep, SessionDep
 from app.services import api_key_service
 
@@ -16,14 +16,14 @@ router = APIRouter()
     summary="Create an API key",
     description="""
     Creates a new API key for the project.
-    
+
     The response includes the plain-text API key. This is the **only time** the key
     will be shown, so make sure to save it safely.
     """,
 )
 async def create_api_key(
     key_in: schemas.APIKeyCreate, project: ProjectDep, session: SessionDep
-):
+) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.create_api_key(key_in, project, session)
 
     res_data = schemas.APIKeyResponse.model_validate(api_key).model_dump()
@@ -41,7 +41,7 @@ async def create_api_key(
 )
 async def list_api_keys(
     project: ProjectDep, session: SessionDep, active_only: bool = False
-):
+) -> Sequence[models.APIKey]:
     return await api_key_service.list_api_keys(project.id, session, active_only)
 
 
@@ -53,7 +53,9 @@ async def list_api_keys(
     Retrieves the metadata of a specific API key.
     """,
 )
-async def get_api_key(api_key_id: int, project: ProjectDep, session: SessionDep):
+async def get_api_key(
+    api_key_id: int, project: ProjectDep, session: SessionDep
+) -> models.APIKey:
     return await api_key_service.get_api_key(api_key_id, project.id, session)
 
 
@@ -70,7 +72,7 @@ async def update_api_key(
     project: ProjectDep,
     update_data: schemas.APIKeyUpdate,
     session: SessionDep,
-):
+) -> models.APIKey:
     return await api_key_service.update_api_key(
         api_key_id, project.id, update_data, session
     )
@@ -82,13 +84,15 @@ async def update_api_key(
     summary="Rotate an API key",
     description="""
     Deactivates the current API key and creates a new one with the same configuration.
-    
+
     This is useful for security purposes if a key has been compromised.
-    
+
     The response includes the new plain-text API key.
     """,
 )
-async def rotate_api_key(api_key_id: int, project: ProjectDep, session: SessionDep):
+async def rotate_api_key(
+    api_key_id: int, project: ProjectDep, session: SessionDep
+) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.rotate_api_key(
         api_key_id, project.id, session
     )
@@ -106,5 +110,7 @@ async def rotate_api_key(api_key_id: int, project: ProjectDep, session: SessionD
     Permanently deletes an API key.
     """,
 )
-async def delete_api_key(api_key_id: int, project: ProjectDep, session: SessionDep):
+async def delete_api_key(
+    api_key_id: int, project: ProjectDep, session: SessionDep
+) -> None:
     await api_key_service.delete_api_key(api_key_id, project.id, session)

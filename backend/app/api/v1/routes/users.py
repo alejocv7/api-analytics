@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app import schemas
+from app import models, schemas
 from app.dependencies import CurrentUserDep
 
 router = APIRouter()
@@ -14,5 +14,5 @@ router = APIRouter()
     Retrieves the information of the currently authenticated user.
     """,
 )
-async def read_user_me(user: CurrentUserDep):
+async def read_user_me(user: CurrentUserDep) -> models.User:
     return user

@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any, ClassVar
 
 from sqlalchemy import DateTime, TypeDecorator, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -8,25 +9,29 @@ class UTCDateTime(TypeDecorator):
     impl = DateTime(timezone=True)
     cache_ok = True
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(
+        self, value: datetime | None, dialect: Any
+    ) -> datetime | None:
         if value is None:
             return value
         if value.tzinfo is None:
             raise ValueError("Naive datetime not allowed")
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
-    def process_result_value(self, value, dialect):
+    def process_result_value(
+        self, value: datetime | None, dialect: Any
+    ) -> datetime | None:
         if value is None:
             return value
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
 
 class Base(DeclarativeBase):
     """Base class for all database models."""
 
-    type_annotation_map = {
+    type_annotation_map: ClassVar = {
         datetime: UTCDateTime,
     }
 

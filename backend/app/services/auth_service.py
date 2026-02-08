@@ -36,9 +36,8 @@ async def authenticate_user(
 ) -> models.User:
     user = await user_service.get_user_by_email(email, session)
     if not user or not user.is_active:
-        # Prevent timing attacks by running password verification even when user doesn't exist
-        # This ensures the response time is similar whether or not the email exists
-        # This ensures the response time is similar whether or not the email exists
+        # Prevent timing attacks by verifying password even when user doesn't exist.
+        # This ensures the response time is similar whether or not the email exists.
         security.verify_password(password, settings.SECURITY_DUMMY_HASH)
         raise APIError(
             status_code=status.HTTP_401_UNAUTHORIZED,

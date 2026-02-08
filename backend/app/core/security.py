@@ -1,7 +1,8 @@
 import hashlib
 import hmac
+import logging
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from fastapi import status
@@ -16,6 +17,7 @@ from app.core.exceptions import APIError
 from app.core.types import SecurePassword
 
 password_hash = PasswordHash.recommended()
+logger = logging.getLogger(__name__)
 
 
 # --------------- IP ----------------
@@ -87,7 +89,7 @@ def validate_password(password: SecurePassword) -> SecurePassword:
 # --------------- JWT Token ----------------
 def create_access_token(token_data: schemas.TokenData) -> str:
     """Create a JWT access token."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         **token_data.model_dump(),
         "sub": str(token_data.user_id),
@@ -108,8 +110,9 @@ def decode_token(token: str) -> schemas.TokenData:
         )
         return schemas.TokenData(**payload)
 
-    except (InvalidTokenError, ValidationError):
+    except (InvalidTokenError, ValidationError) as e:
+        logger.warning("Invalid token: %s", e)
         raise APIError(
             status_code=status.HTTP_403_FORBIDDEN,
             message="Invalid authentication credentials",
-        )
+        ) from None

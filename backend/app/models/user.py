@@ -23,6 +23,6 @@ class User(Base, TimestampMixin):
 
     is_active: Mapped[bool] = mapped_column(default=True)
 
-    projects: Mapped[list["Project"]] = relationship(
+    projects: Mapped[list[Project]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )

@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from tests.factories import create_metric, create_project
 
@@ -19,9 +20,7 @@ async def project_with_data(db_session, test_user):
     )
 
     # Add some metrics within Today's range
-    base_time = datetime.now(timezone.utc).replace(
-        hour=12, minute=0, second=0, microsecond=0
-    )
+    base_time = datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0)
 
     await create_metric(
         db_session,
@@ -102,10 +101,9 @@ async def test_get_metrics_time_series(
 async def test_cleanup_metrics(db_session, project_with_data):
     from app import models
     from app.services.metric_service import cleanup_old_metrics
-    from sqlalchemy import select
 
     # Add a very old metric
-    old_time = datetime.now(timezone.utc) - timedelta(days=100)
+    old_time = datetime.now(UTC) - timedelta(days=100)
     await create_metric(
         db_session,
         project=project_with_data,

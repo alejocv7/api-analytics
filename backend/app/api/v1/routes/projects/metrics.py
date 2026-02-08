@@ -1,6 +1,8 @@
+from collections.abc import Sequence
+
 from fastapi import APIRouter
 
-from app import schemas
+from app import models, schemas
 from app.dependencies import ProjectDep, SessionDep
 from app.services import metric_service
 
@@ -17,7 +19,7 @@ router = APIRouter()
 )
 async def read_metrics(
     project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
-):
+) -> Sequence[models.Metric]:
     return await metric_service.get_metrics(session, project.id, params)
 
 
@@ -26,12 +28,12 @@ async def read_metrics(
     response_model=schemas.MetricSummaryResponse,
     summary="Get metrics summary",
     description="""
-    Calculates overall performance statistics for the project over the specified time range.
+    Calculates overall performance statistics for the project.
     """,
 )
 async def read_metrics_summary(
     project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
-):
+) -> schemas.MetricSummaryResponse:
     return await metric_service.get_metrics_summary(session, project.id, params)
 
 
@@ -48,7 +50,7 @@ async def read_metrics_time_series(
     session: SessionDep,
     params: schemas.MetricQuery,
     granularity: schemas.TimeGranularity = schemas.TimeGranularity.MINUTE,
-):
+) -> list[schemas.MetricTimeSeriesPointResponse]:
     return await metric_service.get_metrics_time_series(
         session, project.id, params, granularity
     )
@@ -64,5 +66,5 @@ async def read_metrics_time_series(
 )
 async def read_metrics_endpoints_stats(
     project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
-):
+) -> list[schemas.MetricEndpointStatsResponse]:
     return await metric_service.get_metrics_endpoints_stats(session, project.id, params)

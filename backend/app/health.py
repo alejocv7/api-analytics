@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib.metadata import version
+from typing import Any
 
 from fastapi import APIRouter
 
@@ -15,12 +16,15 @@ except Exception:
 
 
 @router.get("/health")
-async def health():
+async def health() -> dict[str, Any]:
     db_connected = await is_db_connected()
+
     return {
         "status": "online" if db_connected else "offline",
-        "database_status": "healthy" if db_connected else "unhealthy",
+        "components": {
+            "database": "healthy" if db_connected else "unhealthy",
+        },
         "environment": settings.ENVIRONMENT,
         "version": API_VERSION,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }

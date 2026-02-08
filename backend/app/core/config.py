@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     AfterValidator,
@@ -21,11 +21,11 @@ def parse_list(v: Any) -> list[str] | str:
     raise ValueError(v)
 
 
-def normalize_urls(v: list[AnyUrl] | str) -> list[str]:
-    return [str(origin).rstrip("/") for origin in v]
+def normalize_urls(v: list[AnyUrl] | str) -> list[AnyUrl]:
+    return [AnyUrl(str(origin).rstrip("/")) for origin in v]
 
 
-def get_env_file():
+def get_env_file() -> Path:
     env = os.getenv("ENVIRONMENT", "local")
     base_dir = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -67,7 +67,7 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+    def ASYNC_SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
             username=self.POSTGRES_USER,
@@ -82,8 +82,12 @@ class Settings(BaseSettings):
     SECURITY_ALGORITHM: str = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     # Dummy hash to use for timing attack prevention when user is not found.
-    # This is an Argon2 hash of a random password, used to ensure constant-time comparison
-    SECURITY_DUMMY_HASH: str = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
+    # This is an Argon2 hash of a random password,
+    # used to ensure constant-time comparison
+    SECURITY_DUMMY_HASH: str = (
+        "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZT"
+        "I0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
+    )
 
     # CORS & Trusted Hosts
     TRUSTED_HOSTS: Annotated[list[str] | str, BeforeValidator(parse_list)] = []
@@ -104,7 +108,7 @@ class Settings(BaseSettings):
         return self.ENVIRONMENT == "prod"
 
     @model_validator(mode="after")
-    def validate_security_key(self):
+    def validate_security_key(self) -> Self:
         key = self.SECURITY_KEY.strip()
         if self.IS_PRODUCTION and (not key or key == "change_this"):
             raise ValueError(
@@ -114,4 +118,4 @@ class Settings(BaseSettings):
         return self
 
 
-settings = Settings()  # type: ignore
+settings = Settings()

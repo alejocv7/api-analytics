@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Index, String
@@ -31,11 +31,12 @@ class APIKey(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(255))
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
-    project: Mapped["Project"] = relationship(back_populates="api_keys")
+    project: Mapped[Project] = relationship(back_populates="api_keys")
 
     expires_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(timezone.utc)
-        + timedelta(days=settings.API_KEY_DEFAULT_EXPIRY_DAYS)
+        default=lambda: (
+            datetime.now(UTC) + timedelta(days=settings.API_KEY_DEFAULT_EXPIRY_DAYS)
+        )
     )
 
     last_used_at: Mapped[datetime | None]
@@ -49,13 +50,13 @@ class APIKey(Base, TimestampMixin):
         Index("idx_apikey_hash", "key_hash"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ApiKey(id={self.id}, name={self.name}, project_id={self.project_id})"
 
     @classmethod
     def new_key(
         cls, name: str, project_id: int, expires_at: datetime | None = None
-    ) -> tuple["APIKey", str]:
+    ) -> tuple[APIKey, str]:
         """
         Create a new API key.
 
@@ -83,12 +84,12 @@ class APIKey(Base, TimestampMixin):
     def is_expired(self) -> bool:
         if not self.expires_at:
             return False
-        return self.expires_at < datetime.now(tz=timezone.utc)
+        return self.expires_at < datetime.now(UTC)
 
     @property
     def is_valid(self) -> bool:
         return self.is_active and not self.is_expired
 
-    def record_usage(self):
+    def record_usage(self) -> None:
         self.total_requests += 1
-        self.last_used_at = datetime.now(tz=timezone.utc)
+        self.last_used_at = datetime.now(UTC)

@@ -1,7 +1,8 @@
 import logging
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic_core import ValidationError
@@ -28,14 +29,16 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     setup_logging()
 
     await db.init_db()
     if not await db.is_db_connected():
         raise Exception("Database connection failed")
     logger.info("Application started successfully!")
+
     yield
+
     logger.info("Application shutting down!")
 
 
@@ -46,12 +49,12 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_handler)  # type: ignore
-app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore
-app.add_exception_handler(APIError, api_exception_handler)  # type: ignore
-app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
-app.add_exception_handler(ValidationError, validation_exception_handler)  # type: ignore
-app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(APIError, api_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(ValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 # Routers
 app.include_router(health_router, tags=["health"])
@@ -78,7 +81,9 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def add_security_headers(request, call_next):
+async def add_security_headers(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -93,7 +98,7 @@ async def add_security_headers(request, call_next):
 
 
 @app.get("/", tags=["root"])
-async def root():
+async def root() -> dict[str, str]:
     return {
         "message": settings.PROJECT_NAME,
         "description": settings.PROJECT_DESCRIPTION,

@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
-    AfterValidator,
     AnyUrl,
     BeforeValidator,
     PostgresDsn,
@@ -19,10 +18,6 @@ def parse_list(v: Any) -> list[str] | str:
     elif isinstance(v, list | str):
         return v
     raise ValueError(v)
-
-
-def normalize_urls(v: list[AnyUrl] | str) -> list[AnyUrl]:
-    return [AnyUrl(str(origin).rstrip("/")) for origin in v]
 
 
 def get_env_file() -> Path:
@@ -92,8 +87,13 @@ class Settings(BaseSettings):
     # CORS & Trusted Hosts
     TRUSTED_HOSTS: Annotated[list[str] | str, BeforeValidator(parse_list)] = []
     BACKEND_CORS_ORIGINS: Annotated[
-        list[AnyUrl] | str, BeforeValidator(parse_list), AfterValidator(normalize_urls)
+        list[AnyUrl] | str, BeforeValidator(parse_list)
     ] = []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def cors_origins(self) -> list[str]:
+        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS]
 
     # API Keys
     API_KEY_LENGTH: int = 32

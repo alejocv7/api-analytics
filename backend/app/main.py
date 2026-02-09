@@ -2,24 +2,14 @@ import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic_core import ValidationError
-from slowapi.errors import RateLimitExceeded
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.routes import router as v1_router
 from app.core import db
 from app.core.config import settings
-from app.core.exceptions import (
-    APIError,
-    api_exception_handler,
-    generic_exception_handler,
-    http_exception_handler,
-    rate_limit_handler,
-    validation_exception_handler,
-)
+from app.core.exceptions import register_exceptions
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
 from app.health import router as health_router
@@ -48,13 +38,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Exception handlers
+register_exceptions(app)
+
+# State
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_exception_handler(APIError, api_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
-app.add_exception_handler(ValidationError, validation_exception_handler)
-app.add_exception_handler(Exception, generic_exception_handler)
 
 # Routers
 app.include_router(health_router, tags=["health"])
@@ -68,7 +56,7 @@ app.add_middleware(RequestIDMiddleware)
 # Security Middlewares
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

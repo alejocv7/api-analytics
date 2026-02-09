@@ -3,7 +3,7 @@ from enum import StrEnum
 from http import HTTPMethod, HTTPStatus
 from typing import Annotated, Self
 
-from fastapi import Depends, Query
+from fastapi import Query
 from pydantic import (
     AwareDatetime,
     BaseModel,

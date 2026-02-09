@@ -6,7 +6,7 @@ import uuid
 from http import HTTPMethod, HTTPStatus
 
 from fastapi import Request, Response
-from starlette.background import BackgroundTasks
+from starlette.background import BackgroundTask, BackgroundTasks
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from app import schemas
@@ -59,14 +59,17 @@ class MetricMiddleware(BaseHTTPMiddleware):
         )
 
         # Use BackgroundTasks to record the metric without blocking the response
-        project_id = settings.PROJECT_ID
-        if response.background:
-            response.background.add_task(log_metric, project_id, metric)
-        else:
-            background_tasks = BackgroundTasks()
-            background_tasks.add_task(log_metric, project_id, metric)
-            response.background = background_tasks
+        if not isinstance(response.background, BackgroundTasks):
+            new_background_tasks = BackgroundTasks()
+            if isinstance(response.background, BackgroundTask):
+                new_background_tasks.add_task(
+                    response.background.func,
+                    *response.background.args,
+                    **response.background.kwargs,
+                )
+            response.background = new_background_tasks
 
+        response.background.add_task(log_metric, settings.PROJECT_ID, metric)
         return response
 
 

@@ -1,9 +1,10 @@
 import logging
 from typing import Any
 
-from fastapi import Request, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic_core import ValidationError
 from slowapi.errors import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,16 @@ class APIError(Exception):
         self.details = details or {}
 
 
-async def generic_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+def register_exceptions(app: FastAPI) -> None:
+    app.exception_handler(RateLimitExceeded)(rate_limit_handler)
+    app.exception_handler(HTTPException)(http_exception_handler)
+    app.exception_handler(APIError)(api_exception_handler)
+    app.exception_handler(RequestValidationError)(validation_exception_handler)
+    app.exception_handler(ValidationError)(validation_exception_handler)
+    app.exception_handler(Exception)(generic_exception_handler)
+
+
+async def generic_exception_handler(_: Request, exc: Exception) -> Response:
     logger.exception("Unhandled exception", exc_info=exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

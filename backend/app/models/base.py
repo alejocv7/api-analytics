@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, TypeDecorator, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class UTCDateTime(TypeDecorator):
+class UTCDateTime(TypeDecorator[datetime]):
     impl = DateTime(timezone=True)
     cache_ok = True
 

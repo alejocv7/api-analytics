@@ -13,7 +13,9 @@ from app.schemas.metric import (
     MetricQuery,
     MetricResponse,
     MetricSummaryResponse,
+    MetricTimeSeriesParams,
     MetricTimeSeriesPointResponse,
+    MetricTimeSeriesQuery,
     TimeGranularity,
 )
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
@@ -35,7 +37,9 @@ __all__ = [
     # Metrics
     "MetricResponse",
     "MetricSummaryResponse",
+    "MetricTimeSeriesParams",
     "MetricTimeSeriesPointResponse",
+    "MetricTimeSeriesQuery",
     # Project
     "ProjectCreate",
     "ProjectResponse",

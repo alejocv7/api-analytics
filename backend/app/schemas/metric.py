@@ -3,7 +3,7 @@ from enum import StrEnum
 from http import HTTPMethod, HTTPStatus
 from typing import Annotated, Self
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from pydantic import (
     AwareDatetime,
     BaseModel,
@@ -194,10 +194,17 @@ class MetricParams(BaseModel):
         return self
 
 
-MetricQuery = Annotated[MetricParams, Depends()]
+MetricQuery = Annotated[MetricParams, Query()]
 
 
 class TimeGranularity(StrEnum):
     MINUTE = "minute"
     HOUR = "hour"
     DAY = "day"
+
+
+class MetricTimeSeriesParams(MetricParams):
+    granularity: TimeGranularity = TimeGranularity.MINUTE
+
+
+MetricTimeSeriesQuery = Annotated[MetricTimeSeriesParams, Query()]

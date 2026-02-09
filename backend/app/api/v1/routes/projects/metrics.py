@@ -48,12 +48,9 @@ async def read_metrics_summary(
 async def read_metrics_time_series(
     project: ProjectDep,
     session: SessionDep,
-    params: schemas.MetricQuery,
-    granularity: schemas.TimeGranularity = schemas.TimeGranularity.MINUTE,
+    params: schemas.MetricTimeSeriesQuery,
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
-    return await metric_service.get_metrics_time_series(
-        session, project.id, params, granularity
-    )
+    return await metric_service.get_metrics_time_series(session, project.id, params)
 
 
 @router.get(

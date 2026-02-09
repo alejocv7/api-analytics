@@ -97,23 +97,11 @@ async def get_metrics_summary(
 async def get_metrics_time_series(
     session: AsyncSession,
     project_id: int,
-    params: schemas.MetricParams,
-    granularity: schemas.TimeGranularity = schemas.TimeGranularity.MINUTE,
+    params: schemas.MetricTimeSeriesQuery,
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
     # Group by granularity. Handling different dialects.
-    dialect = session.bind.dialect.name if session.bind else "postgresql"
-    if dialect == "sqlite":
-        # SQLite: use strftime to group
-        formats = {
-            schemas.TimeGranularity.MINUTE: "%Y-%m-%dT%H:%M:00",
-            schemas.TimeGranularity.HOUR: "%Y-%m-%dT%H:00:00",
-            schemas.TimeGranularity.DAY: "%Y-%m-%dT00:00:00",
-        }
-        timestamp: Any = func.strftime(formats[granularity], models.Metric.timestamp)
-    else:
-        # Default/PostgreSQL: use date_trunc
-        timestamp: Any = func.date_trunc(granularity.value, models.Metric.timestamp)
 
+    timestamp: Any = func.date_trunc(params.granularity.value, models.Metric.timestamp)
     query = select(
         timestamp.label("timestamp"),
         func.count(models.Metric.id).label("request_count"),

@@ -27,7 +27,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Run tests
-        run: uv run pytest --cov=app --cov-report=xml
+        run: uv run pytest --cov=app --cov-report=html
         working-directory: backend
 
       - name: Store coverage files

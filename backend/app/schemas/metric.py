@@ -1,9 +1,9 @@
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from enum import StrEnum
 from http import HTTPMethod, HTTPStatus
 from typing import Annotated, Self
 
-from fastapi import Depends
+from fastapi import Query
 from pydantic import (
     AwareDatetime,
     BaseModel,
@@ -159,12 +159,12 @@ class MetricEndpointStatsResponse(PerformanceStatsMixin):
 
 
 class MetricParams(BaseModel):
-    start_date: AwareDatetime | None = Field(
-        default=None,
+    start_date: AwareDatetime = Field(
+        default_factory=get_default_start_date,
         description="Start date (defaults to beginning of today)",
     )
-    end_date: AwareDatetime | None = Field(
-        default=None,
+    end_date: AwareDatetime = Field(
+        default_factory=get_default_end_date,
         description="End date (defaults to end of today)",
     )
     page: int = Field(default=1, ge=1, description="Page number")
@@ -172,22 +172,20 @@ class MetricParams(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> Self:
-        if self.start_date is None:
-            self.start_date = get_default_start_date()
-        if self.end_date is None:
-            self.end_date = get_default_end_date()
-
-        self.start_date = self.start_date.astimezone(timezone.utc)
-        self.end_date = self.end_date.astimezone(timezone.utc)
+        self.start_date = self.start_date.astimezone(UTC)
+        self.end_date = self.end_date.astimezone(UTC)
 
         if self.end_date < self.start_date:
-            raise ValueError("end_date cannot be before start_date")
+            raise ValueError(
+                f"end_date ({self.end_date}) cannot be before "
+                f"start_date ({self.start_date})"
+            )
 
-        if self.end_date - self.start_date > timedelta(days=60):
-            raise ValueError("Date range must be 60 days or less")
-
-        if self.end_date - self.start_date < timedelta(minutes=1):
-            raise ValueError("Date range must be at least 1 minute")
+        date_range = self.end_date - self.start_date
+        if date_range > timedelta(days=60):
+            raise ValueError(f"Date range ({date_range}) must be 60 days or less")
+        if date_range < timedelta(minutes=1):
+            raise ValueError(f"Date range ({date_range}) must be at least 1 minute")
 
         # Truncate to the minute
         self.start_date = self.start_date.replace(second=0, microsecond=0)
@@ -196,10 +194,17 @@ class MetricParams(BaseModel):
         return self
 
 
-MetricQuery = Annotated[MetricParams, Depends()]
+MetricQuery = Annotated[MetricParams, Query()]
 
 
 class TimeGranularity(StrEnum):
     MINUTE = "minute"
     HOUR = "hour"
     DAY = "day"
+
+
+class MetricTimeSeriesParams(MetricParams):
+    granularity: TimeGranularity = TimeGranularity.MINUTE
+
+
+MetricTimeSeriesQuery = Annotated[MetricTimeSeriesParams, Query()]

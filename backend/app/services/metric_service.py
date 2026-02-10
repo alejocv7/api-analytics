@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta, timezone
-from typing import Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import case, delete, func, select
 from sqlalchemy.exc import SQLAlchemyError
@@ -49,7 +50,7 @@ async def get_metrics(
 
 
 async def get_metrics_summary(
-    session: AsyncSession, project_id: int, params: schemas.MetricQuery
+    session: AsyncSession, project_id: int, params: schemas.MetricParams
 ) -> schemas.MetricSummaryResponse:
     query = select(
         func.count(models.Metric.id).label("request_count"),
@@ -65,16 +66,16 @@ async def get_metrics_summary(
     if not result or result.request_count == 0:
         return schemas.MetricSummaryResponse(
             request_count=0,
-            error_count=0,
             avg_response_time_ms=0,
-            requests_per_minute=0,
+            error_count=0,
             error_rate=0,
             slowest_request_ms=0,
             fastest_request_ms=0,
+            requests_per_minute=0,
         )
 
     duration_in_minutes = (params.end_date - params.start_date).total_seconds() / 60
-    duration_in_minutes = max(duration_in_minutes, 1)  # Ensure at least 1 minute
+    duration_in_minutes = max(duration_in_minutes, 1)
     error_count = int(result.error_count or 0)
 
     return schemas.MetricSummaryResponse(
@@ -96,23 +97,11 @@ async def get_metrics_summary(
 async def get_metrics_time_series(
     session: AsyncSession,
     project_id: int,
-    params: schemas.MetricQuery,
-    granularity: schemas.TimeGranularity = schemas.TimeGranularity.MINUTE,
+    params: schemas.MetricTimeSeriesQuery,
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
     # Group by granularity. Handling different dialects.
-    dialect = session.bind.dialect.name if session.bind else "postgresql"
-    if dialect == "sqlite":
-        # SQLite: use strftime to group
-        formats = {
-            schemas.TimeGranularity.MINUTE: "%Y-%m-%dT%H:%M:00",
-            schemas.TimeGranularity.HOUR: "%Y-%m-%dT%H:00:00",
-            schemas.TimeGranularity.DAY: "%Y-%m-%dT00:00:00",
-        }
-        timestamp = func.strftime(formats[granularity], models.Metric.timestamp)
-    else:
-        # Default/PostgreSQL: use date_trunc
-        timestamp = func.date_trunc(granularity.value, models.Metric.timestamp)
 
+    timestamp: Any = func.date_trunc(params.granularity.value, models.Metric.timestamp)
     query = select(
         timestamp.label("timestamp"),
         func.count(models.Metric.id).label("request_count"),
@@ -131,7 +120,7 @@ async def get_metrics_time_series(
         if isinstance(ts, str):
             ts = datetime.fromisoformat(ts)
         if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
+            ts = ts.replace(UTC)
 
         metrics_time_series.append(
             schemas.MetricTimeSeriesPointResponse(
@@ -146,7 +135,7 @@ async def get_metrics_time_series(
 
 
 async def get_metrics_endpoints_stats(
-    session: AsyncSession, project_id: int, params: schemas.MetricQuery
+    session: AsyncSession, project_id: int, params: schemas.MetricParams
 ) -> list[schemas.MetricEndpointStatsResponse]:
     query = select(
         models.Metric.url_path,
@@ -186,14 +175,16 @@ async def get_metrics_endpoints_stats(
 
 async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -> int:
     """Delete metrics older than a certain number of days."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    cutoff = datetime.now(UTC) - timedelta(days=retention_days)
     stmt = delete(models.Metric).where(models.Metric.timestamp < cutoff)
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount  # type: ignore
 
 
-def _apply_time_range_filter(query, project_id: int, params: schemas.MetricQuery):
+def _apply_time_range_filter(
+    query: Any, project_id: int, params: schemas.MetricParams
+) -> Any:
     """Apply common project_id and time range filters."""
     return query.filter(
         models.Metric.project_id == project_id,
@@ -202,12 +193,12 @@ def _apply_time_range_filter(query, project_id: int, params: schemas.MetricQuery
     )
 
 
-def _apply_pagination(query, params: schemas.MetricParams):
+def _apply_pagination(query: Any, params: schemas.MetricParams) -> Any:
     """Apply common pagination (offset/limit) filters."""
     offset = (params.page - 1) * params.page_size
     return query.offset(offset).limit(params.page_size)
 
 
-def _error_count_expr():
+def _error_count_expr() -> Any:
     """Common expression for counting errors (status >= 400)."""
     return func.sum(case((models.Metric.response_status_code >= 400, 1), else_=0))

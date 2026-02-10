@@ -1,17 +1,18 @@
 import asyncio
 import os
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
+
+from alembic import command
 
 os.environ.setdefault("ENVIRONMENT", "test")
 
@@ -78,7 +79,7 @@ async def db_session(engine):
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
     """Create a test client that uses the test database."""
     from app.dependencies import get_db
     from app.main import app
@@ -90,7 +91,8 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     try:
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
+            transport=ASGITransport(app=app, raise_app_exceptions=False),
+            base_url="http://test",
         ) as ac:
             yield ac
     finally:

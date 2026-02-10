@@ -3,11 +3,11 @@ import logging
 import re
 import time
 import uuid
-from http import HTTPMethod
+from http import HTTPMethod, HTTPStatus
 
-from fastapi import Request
-from starlette.background import BackgroundTasks
-from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Request, Response
+from starlette.background import BackgroundTask, BackgroundTasks
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from app import schemas
 from app.core import db
@@ -23,7 +23,7 @@ request_id_ctx = contextvars.ContextVar("request_id", default="none")
 async def log_metric(
     project_id: int,
     metric: schemas.MetricCreate,
-):
+) -> None:
     """
     Background task to log API metrics to the database.
     """
@@ -35,8 +35,10 @@ async def log_metric(
 
 
 class MetricMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        if settings.ENVIRONMENT == "testing" or not re.match(
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        if settings.ENVIRONMENT == "test" or not re.match(
             r"/api/v\d+/(?!track)", request.url.path
         ):
             return await call_next(request)
@@ -50,21 +52,24 @@ class MetricMiddleware(BaseHTTPMiddleware):
         metric = schemas.MetricCreate(
             url_path=request.url.path,
             method=HTTPMethod(request.method),
-            response_status_code=response.status_code,
+            response_status_code=HTTPStatus(response.status_code),
             response_time_ms=process_time,
             user_agent=request.headers.get("user-agent", "unknown"),
             ip=ip,
         )
 
         # Use BackgroundTasks to record the metric without blocking the response
-        project_id = settings.PROJECT_ID
-        if response.background:
-            response.background.add_task(log_metric, project_id, metric)
-        else:
-            background_tasks = BackgroundTasks()
-            background_tasks.add_task(log_metric, project_id, metric)
-            response.background = background_tasks
+        if not isinstance(response.background, BackgroundTasks):
+            new_background_tasks = BackgroundTasks()
+            if isinstance(response.background, BackgroundTask):
+                new_background_tasks.add_task(
+                    response.background.func,
+                    *response.background.args,
+                    **response.background.kwargs,
+                )
+            response.background = new_background_tasks
 
+        response.background.add_task(log_metric, settings.PROJECT_ID, metric)
         return response
 
 
@@ -73,7 +78,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     Middleware to generate and propagate a correlation ID for each request.
     """
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         token = request_id_ctx.set(request_id)
         try:
@@ -89,7 +96,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     Middleware to log every request and response.
     """
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         start_time = time.perf_counter()
         method = request.method
         path = request.url.path
@@ -111,7 +120,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
             # Log response
             logger.info(
-                f"Request finished: {method} {path} - {status_code} ({process_time:.2f}ms)",
+                f"Request finished: "
+                f"{method} {path} - {status_code} ({process_time:.2f}ms)",
                 extra={
                     "http_method": method,
                     "http_path": path,
@@ -123,13 +133,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             process_time = (time.perf_counter() - start_time) * 1000
             logger.error(
-                f"Request failed: {method} {path} - {str(e)}",
+                "Request failed: %s %s",
+                method,
+                path,
                 extra={
                     "http_method": method,
                     "http_path": path,
-                    "error": str(e),
+                    "error": f"{e!s}",
                     "process_time_ms": round(process_time, 2),
                 },
-                exc_info=True,
             )
             raise

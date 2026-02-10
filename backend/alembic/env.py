@@ -2,10 +2,12 @@ import asyncio
 import os
 import sys
 from logging.config import fileConfig
+from typing import Any
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
 
 # Add the backend directory to the sys.path so we can import from app
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
@@ -19,7 +21,10 @@ config = context.config
 
 # Set sqlalchemy.url from settings only if not already provided (e.g. tests).
 if not config.get_main_option("sqlalchemy.url"):
-    config.set_main_option("sqlalchemy.url", str(settings.SQLALCHEMY_DATABASE_URI))
+    config.set_main_option(
+        "sqlalchemy.url", str(settings.ASYNC_SQLALCHEMY_DATABASE_URI)
+    )
+
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -62,7 +67,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection) -> None:
+def do_run_migrations(connection: Any) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():

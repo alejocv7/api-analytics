@@ -1,5 +1,4 @@
-from fastapi.openapi.models import EmailStr
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class TokenResponse(BaseModel):

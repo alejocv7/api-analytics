@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import Depends, Security, status
@@ -15,7 +16,7 @@ reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{config.settings.API_PREFIX}/l
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
-async def get_db() -> AsyncSession:  # type: ignore
+async def get_db() -> AsyncGenerator[AsyncSession]:
     async with db.AsyncSessionLocal() as session:
         yield session
 

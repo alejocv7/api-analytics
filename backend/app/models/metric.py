@@ -21,7 +21,7 @@ class Metric(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
-    project: Mapped["Project"] = relationship(back_populates="metrics")
+    project: Mapped[Project] = relationship(back_populates="metrics")
 
     url_path: Mapped[str] = mapped_column(index=True)
     method: Mapped[HTTPMethod] = mapped_column(
@@ -45,5 +45,5 @@ class Metric(Base):
         Index("idx_project_url_method", "project_id", "url_path", "method"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Metric {self.method} {self.url_path} - {self.response_status_code}>"

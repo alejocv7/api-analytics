@@ -86,7 +86,9 @@ class APIKeyCreateResponse(APIKeyResponse):
                     "last_used_at": None,
                     "expires_at": None,
                     "total_requests": 0,
-                    "warning": "Save this key securely! You won't be able to see it again.",
+                    "warning": (
+                        "Save this key securely! You won't be able to see it again."
+                    ),
                 }
             ]
         }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http import HTTPMethod, HTTPStatus
 from typing import Any
 
@@ -109,9 +109,9 @@ async def create_metric(
         response_status_code = int(response_status_code)
 
     if timestamp is None:
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
     elif timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=timezone.utc)
+        timestamp = timestamp.replace(tzinfo=UTC)
 
     metric = models.Metric(
         project_id=project.id,

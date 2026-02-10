@@ -1,8 +1,8 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import APIRouter, status
 
-from app import schemas
+from app import models, schemas
 from app.dependencies import CurrentUserDep, ProjectDep, SessionDep
 from app.services import project_service
 
@@ -17,7 +17,9 @@ router = APIRouter()
     Returns a list of all projects belonging to the authenticated user.
     """,
 )
-async def get_projects(user: CurrentUserDep, session: SessionDep):
+async def get_projects(
+    user: CurrentUserDep, session: SessionDep
+) -> Sequence[models.Project]:
     return await project_service.get_user_projects(user.id, session)
 
 
@@ -27,13 +29,13 @@ async def get_projects(user: CurrentUserDep, session: SessionDep):
     summary="Create a new project",
     description="""
     Creates a new project for the authenticated user.
-    
+
     Each project is used to group metrics and can have multiple associated API keys.
     """,
 )
 async def create_project(
     project_in: schemas.ProjectCreate, user: CurrentUserDep, session: SessionDep
-):
+) -> models.Project:
     return await project_service.create_user_project(user.id, project_in, session)
 
 
@@ -45,7 +47,7 @@ async def create_project(
     Retrieves the details of a specific project identified by its project key.
     """,
 )
-async def get_project(project: ProjectDep):
+async def get_project(project: ProjectDep) -> models.Project:
     return project
 
 
@@ -61,7 +63,7 @@ async def update_project(
     project: ProjectDep,
     update_data: schemas.ProjectUpdate,
     session: SessionDep,
-):
+) -> models.Project:
     return await project_service.update_user_project(project, update_data, session)
 
 
@@ -71,9 +73,9 @@ async def update_project(
     summary="Delete a project",
     description="""
     Deletes a project and all its associated API keys and metrics.
-    
+
     This action is irreversible!
     """,
 )
-async def delete_project(project: ProjectDep, session: SessionDep):
+async def delete_project(project: ProjectDep, session: SessionDep) -> None:
     await project_service.delete_user_project(project, session)

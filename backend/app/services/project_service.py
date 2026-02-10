@@ -1,5 +1,5 @@
 import secrets
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import status
 from sqlalchemy import select, true
@@ -15,7 +15,7 @@ async def create_user_project(
     user_id: int,
     project_in: schemas.ProjectCreate,
     session: AsyncSession,
-):
+) -> models.Project:
     project_key = _generate_project_key(project_in.name)
     project = models.Project(
         name=project_in.name,
@@ -27,12 +27,12 @@ async def create_user_project(
     try:
         session.add(project)
         await session.commit()
-    except IntegrityError:
+    except IntegrityError as e:
         await session.rollback()
         raise APIError(
             status_code=status.HTTP_409_CONFLICT,
             message="Project already exists",
-        )
+        ) from e
     await session.refresh(project)
 
     return project
@@ -40,7 +40,7 @@ async def create_user_project(
 
 async def get_user_project_by_key(
     user_id: int, project_key: str, session: AsyncSession
-):
+) -> models.Project | None:
     statement = select(models.Project).where(
         models.Project.user_id == user_id,
         models.Project.project_key == project_key,
@@ -102,7 +102,7 @@ async def update_user_project(
 async def delete_user_project(
     project: models.Project,
     session: AsyncSession,
-):
+) -> None:
     await session.delete(project)
     await session.commit()
 

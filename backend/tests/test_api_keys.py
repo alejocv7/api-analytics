@@ -41,7 +41,7 @@ async def test_create_api_key_over_limit(
         json={"name": "K3"},
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 409
 
 
 async def test_list_api_keys(client: AsyncClient, auth_headers, project, db_session):

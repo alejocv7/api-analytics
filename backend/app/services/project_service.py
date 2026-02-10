@@ -1,14 +1,13 @@
 import secrets
 from collections.abc import Sequence
 
-from fastapi import status
 from sqlalchemy import select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core.config import settings
-from app.core.exceptions import APIError
+from app.core.exceptions import ConflictError
 
 
 async def create_user_project(
@@ -29,10 +28,7 @@ async def create_user_project(
         await session.commit()
     except IntegrityError as e:
         await session.rollback()
-        raise APIError(
-            status_code=status.HTTP_409_CONFLICT,
-            message="Project already exists",
-        ) from e
+        raise ConflictError("Project already exists") from e
     await session.refresh(project)
 
     return project
@@ -84,10 +80,7 @@ async def update_user_project(
         )
         result = await session.execute(stmt)
         if result.scalar_one_or_none():
-            raise APIError(
-                status_code=status.HTTP_409_CONFLICT,
-                message="Project name already in use",
-            )
+            raise ConflictError("Project name already in use")
 
     update_dict = update_data.model_dump(exclude_unset=True)
     for key, value in update_dict.items():

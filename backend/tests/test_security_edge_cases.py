@@ -28,7 +28,7 @@ async def test_expired_jwt_token(client: AsyncClient, test_user):
         headers={"Authorization": f"Bearer {expired_token}"},
     )
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -48,7 +48,7 @@ async def test_invalid_jwt_signature(client: AsyncClient, test_user):
         "/api/v1/projects/",
         headers={"Authorization": f"Bearer {fake_token}"},
     )
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 # --- API Key Edge Cases ---

@@ -1,14 +1,14 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
-from fastapi import Depends, Security, status
+from fastapi import Depends, Security
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
 from app.core import config, db, security
-from app.core.exceptions import APIError
+from app.core.exceptions import AuthenticationError, BadRequestError, NotFoundError
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -30,9 +30,7 @@ async def get_project_id_by_api_key(
 ) -> int:
     """Validates API key and returns the Project id."""
     if not api_key:
-        raise APIError(
-            status_code=status.HTTP_401_UNAUTHORIZED, message="API key required"
-        )
+        raise AuthenticationError("API key required")
 
     key_prefix = api_key[: config.settings.API_KEY_LOOKUP_PREFIX_LENGTH]
     api_key_obj_raw = await session.execute(
@@ -51,9 +49,7 @@ async def get_project_id_by_api_key(
         or not api_key_obj.is_valid
         or not security.compare_api_key(api_key, api_key_obj.key_hash)
     ):
-        raise APIError(
-            status_code=status.HTTP_401_UNAUTHORIZED, message="Invalid API key"
-        )
+        raise AuthenticationError("Invalid API key")
     return api_key_obj.project_id
 
 
@@ -64,15 +60,13 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
     token_data = security.decode_token(token)
     user = await session.get(models.User, token_data.user_id)
     if user is None:
-        raise APIError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            message="User not found",
+        raise NotFoundError(
+            "User not found",
             details={"headers": {"WWW-Authenticate": "Bearer"}},
         )
     if not user.is_active:
-        raise APIError(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            message="Inactive user",
+        raise BadRequestError(
+            "Inactive user",
             details={"headers": {"WWW-Authenticate": "Bearer"}},
         )
     return user
@@ -93,10 +87,7 @@ async def get_user_project(
         user.id, project_key, session
     )
     if not project:
-        raise APIError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            message="Project not found",
-        )
+        raise NotFoundError("Project not found")
     return project
 
 

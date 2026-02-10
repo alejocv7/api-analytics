@@ -1,12 +1,11 @@
 from collections.abc import Sequence
 
-from fastapi import status
 from sqlalchemy import func, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core.config import settings
-from app.core.exceptions import APIError
+from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 
 
 async def create_api_key(
@@ -19,7 +18,7 @@ async def create_api_key(
     result = await session.execute(stmt)
     active_keys_count = result.scalar_one()
     if active_keys_count >= settings.API_KEY_PROJECT_LIMIT:
-        raise ValueError("Project has reached the maximum number of API keys")
+        raise ConflictError("Project has reached the maximum number of API keys")
 
     api_key, plain_key = models.APIKey.new_key(
         key_in.name, project.id, key_in.expires_at
@@ -57,7 +56,10 @@ async def get_api_key(
         models.APIKey.project_id == project_id,
     )
     result = await session.execute(stmt)
-    return result.scalars().one()
+    api_key = result.scalars().one_or_none()
+    if api_key is None:
+        raise NotFoundError("API key not found")
+    return api_key
 
 
 async def update_api_key(
@@ -82,10 +84,7 @@ async def rotate_api_key(
 ) -> tuple[models.APIKey, str]:
     old_key = await get_api_key(api_key_id, project_id, session)
     if not old_key.is_active or old_key.is_expired:
-        raise APIError(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            message="Cannot rotate an inactive or expired API key.",
-        )
+        raise BadRequestError("Cannot rotate an inactive or expired API key.")
 
     new_api_key, new_plain_key = models.APIKey.new_key(
         old_key.name, old_key.project_id, old_key.expires_at
@@ -116,10 +115,7 @@ async def delete_api_key(
     result = await session.execute(stmt)
     active_keys_count = result.scalar_one()
     if active_keys_count == 0 and api_key.is_active:
-        raise APIError(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            message="Cannot delete the last active API key.",
-        )
+        raise BadRequestError("Cannot delete the last active API key.")
 
     await session.delete(api_key)
     await session.commit()

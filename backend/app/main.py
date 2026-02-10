@@ -24,7 +24,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
 
     await db.init_db()
     if not await db.is_db_connected():
-        raise Exception("Database connection failed")
+        raise RuntimeError("Database connection failed during startup")
     logger.info("Application started successfully!")
 
     yield

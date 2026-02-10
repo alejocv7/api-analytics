@@ -1,3 +1,29 @@
+"""
+Exception handling for the API Analytics service.
+
+Exception conventions:
+- **APIError subclasses**: Use in services/dependencies for any error that should
+  return an HTTP error response to the client (4xx/5xx). Always include a descriptive
+  `message` and the appropriate subclass sets the `status_code` automatically.
+
+  Available subclasses:
+  - NotFoundError (404): Resource not found
+  - ConflictError (409): Resource conflict (duplicate, constraint violation)
+  - AuthenticationError (401): Authentication failed
+  - BadRequestError (400): Invalid request data or business logic violation
+  - RateLimitError (429): Rate limit exceeded (rarely used directly, slowapi handles this)
+
+- **ValueError**: Only use inside Pydantic validators, model validators, and
+  type coercion functions. Pydantic catches these and converts them to 422
+  validation errors automatically.
+
+- **RuntimeError**: Use for startup/infrastructure failures that should crash
+  the application (e.g., database connection failure during lifespan).
+
+- Never raise bare `Exception`. Never let SQLAlchemy exceptions
+  (NoResultFound, IntegrityError) propagate unhandled.
+"""
+
 import logging
 from typing import Any
 
@@ -11,16 +37,54 @@ logger = logging.getLogger(__name__)
 
 
 class APIError(Exception):
+    """Base class for all API errors."""
+
+    status_code: int = 500
+    message: str = "Internal Server Error"
+
     def __init__(
         self,
-        message: str,
-        status_code: int = 500,
+        message: str | None = None,
         details: dict[str, Any] | None = None,
     ):
-        super().__init__(message)
-        self.message = message
-        self.status_code = status_code
+        self.message = message or self.message
         self.details = details or {}
+        super().__init__(self.message)
+
+
+class NotFoundError(APIError):
+    """Resource not found (404)."""
+
+    status_code = status.HTTP_404_NOT_FOUND
+    message = "Resource not found"
+
+
+class ConflictError(APIError):
+    """Resource conflict - duplicate or constraint violation (409)."""
+
+    status_code = status.HTTP_409_CONFLICT
+    message = "Resource conflict"
+
+
+class AuthenticationError(APIError):
+    """Authentication failed (401)."""
+
+    status_code = status.HTTP_401_UNAUTHORIZED
+    message = "Authentication failed"
+
+
+class BadRequestError(APIError):
+    """Invalid request data or business logic violation (400)."""
+
+    status_code = status.HTTP_400_BAD_REQUEST
+    message = "Bad request"
+
+
+class RateLimitError(APIError):
+    """Rate limit exceeded (429)."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    message = "Rate limit exceeded"
 
 
 def register_exceptions(app: FastAPI) -> None:
@@ -32,8 +96,13 @@ def register_exceptions(app: FastAPI) -> None:
     app.exception_handler(Exception)(generic_exception_handler)
 
 
-async def generic_exception_handler(_: Request, exc: Exception) -> JSONResponse:
-    logger.exception("Unhandled exception: %s", exc)
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception(
+        "Unhandled exception on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc,
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"error": "Internal Server Error", "details": {}},
@@ -58,7 +127,7 @@ async def api_exception_handler(_: Request, exc: APIError) -> JSONResponse:
 
 
 async def validation_exception_handler(
-    _: Request, exc: RequestValidationError
+    _: Request, exc: RequestValidationError | ValidationError
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

@@ -5,7 +5,6 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 import jwt
-from fastapi import status
 from jwt import InvalidTokenError
 from pwdlib import PasswordHash
 from pydantic import ValidationError
@@ -13,7 +12,7 @@ from zxcvbn import zxcvbn
 
 from app import schemas
 from app.core.config import settings
-from app.core.exceptions import APIError
+from app.core.exceptions import AuthenticationError
 from app.core.types import SecurePassword
 
 password_hash = PasswordHash.recommended()
@@ -112,7 +111,6 @@ def decode_token(token: str) -> schemas.TokenData:
 
     except (InvalidTokenError, ValidationError) as e:
         logger.warning("Invalid token: %s", e)
-        raise APIError(
-            status_code=status.HTTP_403_FORBIDDEN,
+        raise AuthenticationError(
             message="Invalid authentication credentials",
         ) from None

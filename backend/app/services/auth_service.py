@@ -1,18 +1,15 @@
-from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core import security
 from app.core.config import settings
-from app.core.exceptions import APIError
+from app.core.exceptions import AuthenticationError, BadRequestError
 from app.services import user_service
 
 
 async def register(user: schemas.UserCreate, session: AsyncSession) -> models.User:
     if await user_service.get_user_by_email(user.email, session):
-        raise APIError(
-            status_code=status.HTTP_400_BAD_REQUEST, message="Email already registered"
-        )
+        raise BadRequestError("Email already registered")
 
     hashed_password = security.hash_password(user.password.get_secret_value())
     new_user = models.User(
@@ -39,17 +36,15 @@ async def authenticate_user(
         # Prevent timing attacks by verifying password even when user doesn't exist.
         # This ensures the response time is similar whether or not the email exists.
         security.verify_password(password, settings.SECURITY_DUMMY_HASH)
-        raise APIError(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            message="Incorrect email or password",
+        raise AuthenticationError(
+            "Incorrect email or password",
             details={"headers": {"WWW-Authenticate": "Bearer"}},
         )
 
     success, updated_hash = security.verify_password(password, user.hashed_password)
     if not success:
-        raise APIError(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            message="Incorrect email or password",
+        raise AuthenticationError(
+            "Incorrect email or password",
             details={"headers": {"WWW-Authenticate": "Bearer"}},
         )
     if updated_hash:

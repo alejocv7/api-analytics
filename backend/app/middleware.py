@@ -142,6 +142,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "error": f"{e!s}",
                     "process_time_ms": round(process_time, 2),
                 },
-                exc_info=True,
             )
             raise

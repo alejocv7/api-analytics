@@ -64,25 +64,21 @@ def setup_logging() -> None:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
 
-    # Configure root logger
     root_logger = logging.getLogger()
 
     # Remove existing handlers to avoid duplicate logs (especially in uvicorn)
     for h in root_logger.handlers[:]:
+        h.close()
         root_logger.removeHandler(h)
 
     root_logger.addHandler(handler)
     root_logger.setLevel(log_level)
 
     # Optionally suppress noisy logs from libraries
-    logging.getLogger("uvicorn.access").handlers = [handler]
-    logging.getLogger("uvicorn.error").handlers = [handler]
+    for name in ("uvicorn.access", "uvicorn.error"):
+        uv_logger = logging.getLogger(name)
+        uv_logger.handlers.clear()
+        uv_logger.addHandler(handler)
+        uv_logger.propagate = False
 
-    # Example structured log on startup
-    logging.info(
-        "Logging configured",
-        extra={
-            "environment": settings.ENVIRONMENT,
-            "log_level": logging.getLevelName(log_level),
-        },
-    )
+    logging.info("Logging configured")

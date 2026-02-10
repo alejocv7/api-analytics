@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic_core import ValidationError
@@ -33,7 +33,7 @@ def register_exceptions(app: FastAPI) -> None:
 
 
 async def generic_exception_handler(_: Request, exc: Exception) -> JSONResponse:
-    logger.exception("Unhandled exception", exc_info=exc)
+    logger.exception("Unhandled exception: %s", exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"error": "Internal Server Error", "details": {}},

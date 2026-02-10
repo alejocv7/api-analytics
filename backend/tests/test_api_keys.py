@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
+from app.core.config import settings
 from tests.factories import create_api_key
 
 pytestmark = pytest.mark.asyncio
@@ -17,6 +18,30 @@ async def test_create_api_key(client: AsyncClient, auth_headers, project):
     assert data["name"] == "My API Key"
     assert "key" in data  # Plain key shown once
     assert data["key"].startswith("sk_")
+
+
+async def test_create_api_key_over_limit(
+    client: AsyncClient, auth_headers, project, monkeypatch
+):
+    API_KEY_TEST_LIMIT = 2
+
+    monkeypatch.setattr(settings, "API_KEY_PROJECT_LIMIT", API_KEY_TEST_LIMIT)
+    for i in range(API_KEY_TEST_LIMIT):
+        response = await client.post(
+            f"/api/v1/projects/{project.project_key}/api-keys/",
+            headers=auth_headers,
+            json={"name": f"K{i}"},
+        )
+        assert response.status_code == 201
+
+    # Try to create a 3rd key
+    response = await client.post(
+        f"/api/v1/projects/{project.project_key}/api-keys/",
+        headers=auth_headers,
+        json={"name": "K3"},
+    )
+
+    assert response.status_code == 500
 
 
 async def test_list_api_keys(client: AsyncClient, auth_headers, project, db_session):

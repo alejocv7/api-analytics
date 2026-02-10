@@ -1,13 +1,11 @@
-import contextvars
+import asyncio
 import logging
 import re
 import time
-import uuid
-from http import HTTPMethod, HTTPStatus
+from http import HTTPMethod
 
-from fastapi import Request, Response
-from starlette.background import BackgroundTask, BackgroundTasks
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.datastructures import Headers
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app import schemas
 from app.core import db
@@ -16,112 +14,122 @@ from app.services.metric_service import add_metric
 
 logger = logging.getLogger(__name__)
 
-# Context variable to store request ID
-request_id_ctx = contextvars.ContextVar("request_id", default="none")
 
-
-async def log_metric(
-    project_id: int,
-    metric: schemas.MetricCreate,
-) -> None:
+class MetricMiddleware:
     """
-    Background task to log API metrics to the database.
+    Middleware for tracking API metrics for this project.
     """
-    try:
-        async with db.AsyncSessionLocal() as session:
-            await add_metric(session, project_id, metric)
-    except Exception:
-        logger.exception("Failed to log metric in background")
 
+    API_TRACKING_PATTERN = re.compile(r"/api/v\d+/(?!track)")
 
-class MetricMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        if settings.ENVIRONMENT == "test" or not re.match(
-            r"/api/v\d+/(?!track)", request.url.path
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self._background_tasks: set[asyncio.Task] = set()
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        if (
+            settings.ENVIRONMENT == "test"
+            or settings.PROJECT_ID == 0
+            or not self.API_TRACKING_PATTERN.match(path)
         ):
-            return await call_next(request)
+            await self.app(scope, receive, send)
+            return
 
         start_time = time.perf_counter()
-        response = await call_next(request)
-        process_time = (time.perf_counter() - start_time) * 1000  # Convert to ms
+        status_code = 500  # Default if we don't see response.start
 
-        ip = request.client.host if request.client else None
+        async def send_wrapper(message: Message) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+            await send(message)
 
-        metric = schemas.MetricCreate(
-            url_path=request.url.path,
-            method=HTTPMethod(request.method),
-            response_status_code=HTTPStatus(response.status_code),
-            response_time_ms=process_time,
-            user_agent=request.headers.get("user-agent", "unknown"),
-            ip=ip,
-        )
-
-        # Use BackgroundTasks to record the metric without blocking the response
-        if not isinstance(response.background, BackgroundTasks):
-            new_background_tasks = BackgroundTasks()
-            if isinstance(response.background, BackgroundTask):
-                new_background_tasks.add_task(
-                    response.background.func,
-                    *response.background.args,
-                    **response.background.kwargs,
-                )
-            response.background = new_background_tasks
-
-        response.background.add_task(log_metric, settings.PROJECT_ID, metric)
-        return response
-
-
-class RequestIDMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware to generate and propagate a correlation ID for each request.
-    """
-
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-        token = request_id_ctx.set(request_id)
         try:
-            response = await call_next(request)
-            response.headers["X-Request-ID"] = request_id
-            return response
+            await self.app(scope, receive, send_wrapper)
         finally:
-            request_id_ctx.reset(token)
+            process_time = (time.perf_counter() - start_time) * 1000
+
+            headers = Headers(scope=scope)
+            user_agent = headers.get("user-agent", "unknown")
+
+            ip = None
+            if "x-forwarded-for" in headers:
+                ip = headers["x-forwarded-for"].split(",")[0].strip()
+            elif scope.get("client"):
+                ip = scope["client"][0]
+
+            metric = schemas.MetricCreate(
+                url_path=path,
+                method=HTTPMethod(scope["method"]),
+                response_status_code=status_code,
+                response_time_ms=process_time,
+                user_agent=user_agent,
+                ip=ip,
+            )
+
+            # Fire background metric logging using db session local context via manual
+            # background task. In pure ASGI we don't have response.background access
+            # easily without wrapping Starlette Response but we can just use
+            # asyncio.create_task since we're already non-blocking
+            task = asyncio.create_task(log_metric(settings.PROJECT_ID, metric))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
 
 
-class LoggingMiddleware(BaseHTTPMiddleware):
+class LoggingMiddleware:
     """
-    Middleware to log every request and response.
+    Logging middleware to log every request and response.
     """
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         start_time = time.perf_counter()
-        method = request.method
-        path = request.url.path
+        method, path = scope["method"], scope["path"]
+        client = scope.get("client")
+        client_ip = client[0] if client else "unknown"
 
         # Log request start
         logger.info(
-            f"Request started: {method} {path}",
+            "Request started: %s %s",
+            method,
+            path,
             extra={
                 "http_method": method,
                 "http_path": path,
-                "client_ip": request.client.host if request.client else "unknown",
+                "client_ip": client_ip,
             },
         )
 
+        status_code = "unknown"
+
+        async def send_wrapper(message: Message) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+            await send(message)
+
         try:
-            response = await call_next(request)
+            await self.app(scope, receive, send_wrapper)
             process_time = (time.perf_counter() - start_time) * 1000
-            status_code = response.status_code
 
             # Log response
             logger.info(
-                f"Request finished: "
-                f"{method} {path} - {status_code} ({process_time:.2f}ms)",
+                "Request finished: %s %s - %s (%.2fms)",
+                method,
+                path,
+                status_code,
+                process_time,
                 extra={
                     "http_method": method,
                     "http_path": path,
@@ -129,7 +137,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "process_time_ms": round(process_time, 2),
                 },
             )
-            return response
         except Exception as e:
             process_time = (time.perf_counter() - start_time) * 1000
             logger.error(
@@ -144,3 +151,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 },
             )
             raise
+
+
+async def log_metric(project_id: int, metric: schemas.MetricCreate) -> None:
+    """
+    Background task to log API metrics to the database.
+    """
+    try:
+        async with db.AsyncSessionLocal() as session:
+            await add_metric(session, project_id, metric)
+    except Exception:
+        logger.exception("Failed to log metric in background")

@@ -2,6 +2,7 @@ import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
+from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -13,7 +14,7 @@ from app.core.exceptions import register_exceptions
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
 from app.health import router as health_router
-from app.middleware import LoggingMiddleware, MetricMiddleware, RequestIDMiddleware
+from app.middleware import LoggingMiddleware, MetricMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ app.include_router(v1_router, prefix=settings.API_V1_STR)
 # Middleware (Executed in reverse order)
 app.add_middleware(MetricMiddleware)
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(RequestIDMiddleware)
+app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 
 # Security Middlewares
 app.add_middleware(

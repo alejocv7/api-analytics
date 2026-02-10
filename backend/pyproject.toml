@@ -21,6 +21,7 @@ dependencies = [
     "python-json-logger>=4.0.0",
     "colorlog>=6.10.1",
     "psycopg[binary]>=3.3.2",
+    "asgi-correlation-id>=4.3.4",
 ]
 
 [dependency-groups]

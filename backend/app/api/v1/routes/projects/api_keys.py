@@ -69,8 +69,8 @@ async def get_api_key(
 )
 async def update_api_key(
     api_key_id: int,
-    project: ProjectDep,
     update_data: schemas.APIKeyUpdate,
+    project: ProjectDep,
     session: SessionDep,
 ) -> models.APIKey:
     return await api_key_service.update_api_key(

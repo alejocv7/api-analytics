@@ -33,16 +33,17 @@ async def get_project_id_by_api_key(
         raise AuthenticationError("API key required")
 
     key_prefix = api_key[: config.settings.API_KEY_LOOKUP_PREFIX_LENGTH]
-    api_key_obj_raw = await session.execute(
-        select(models.APIKey)
-        .join(models.Project)
-        .where(
-            models.APIKey.key_prefix == key_prefix,
-            models.APIKey.is_active.is_(True),
-            models.Project.is_active.is_(True),
+    api_key_obj = (
+        await session.scalars(
+            select(models.APIKey)
+            .join(models.Project)
+            .where(
+                models.APIKey.key_prefix == key_prefix,
+                models.APIKey.is_active.is_(True),
+                models.Project.is_active.is_(True),
+            )
         )
-    )
-    api_key_obj = api_key_obj_raw.scalar_one_or_none()
+    ).one_or_none()
 
     if (
         not api_key_obj

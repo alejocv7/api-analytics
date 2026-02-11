@@ -1,13 +1,14 @@
 import secrets
 from collections.abc import Sequence
 
-from sqlalchemy import select, true
+from sqlalchemy import exists, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core.config import settings
 from app.core.exceptions import ConflictError
+from app.core.utils import apply_update
 
 
 async def create_user_project(
@@ -37,12 +38,11 @@ async def create_user_project(
 async def get_user_project_by_key(
     user_id: int, project_key: str, session: AsyncSession
 ) -> models.Project | None:
-    statement = select(models.Project).where(
+    stmt = select(models.Project).where(
         models.Project.user_id == user_id,
         models.Project.project_key == project_key,
     )
-    result = await session.execute(statement)
-    return result.scalar_one_or_none()
+    return (await session.scalars(stmt)).one_or_none()
 
 
 async def get_user_projects(
@@ -54,7 +54,7 @@ async def get_user_projects(
 ) -> Sequence[models.Project]:
     """Get a list of projects for a user."""
 
-    statement = (
+    stmt = (
         select(models.Project)
         .where(models.Project.user_id == user_id)
         .where(models.Project.is_active if active_only else true())
@@ -62,8 +62,7 @@ async def get_user_projects(
         .limit(limit)
     )
 
-    result = await session.execute(statement)
-    return result.scalars().all()
+    return (await session.scalars(stmt)).all()
 
 
 async def update_user_project(
@@ -73,18 +72,17 @@ async def update_user_project(
 ) -> models.Project:
     # Check if the new name is already in use
     if update_data.name != project.name:
-        stmt = select(models.Project).where(
-            models.Project.user_id == project.user_id,
-            models.Project.name == update_data.name,
-            models.Project.id != project.id,
+        stmt = select(
+            exists().where(
+                models.Project.user_id == project.user_id,
+                models.Project.name == update_data.name,
+                models.Project.id != project.id,
+            )
         )
-        result = await session.execute(stmt)
-        if result.scalar_one_or_none():
+        if await session.scalar(stmt):
             raise ConflictError("Project name already in use")
 
-    update_dict = update_data.model_dump(exclude_unset=True)
-    for key, value in update_dict.items():
-        setattr(project, key, value)
+    apply_update(project, update_data)
 
     await session.commit()
     await session.refresh(project)

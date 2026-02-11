@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import models, schemas
 from app.core.config import settings
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from app.core.utils import apply_update
 
 
 async def create_api_key(
@@ -15,9 +16,9 @@ async def create_api_key(
     stmt = select(func.count(models.APIKey.id)).where(
         models.APIKey.project_id == project.id, models.APIKey.is_active.is_(True)
     )
-    result = await session.execute(stmt)
-    active_keys_count = result.scalar_one()
-    if active_keys_count >= settings.API_KEY_PROJECT_LIMIT:
+
+    active_keys_count = (await session.scalars(stmt)).one_or_none()
+    if active_keys_count and active_keys_count >= settings.API_KEY_PROJECT_LIMIT:
         raise ConflictError("Project has reached the maximum number of API keys")
 
     api_key, plain_key = models.APIKey.new_key(
@@ -40,12 +41,11 @@ async def list_api_keys(
         select(models.APIKey)
         .where(
             models.APIKey.project_id == project_id,
-            models.APIKey.is_active == active_only if active_only else true(),
+            models.APIKey.is_active.is_(True) if active_only else true(),
         )
         .order_by(models.APIKey.created_at.desc())
     )
-    result = await session.execute(stmt)
-    return result.scalars().all()
+    return (await session.scalars(stmt)).all()
 
 
 async def get_api_key(
@@ -55,24 +55,21 @@ async def get_api_key(
         models.APIKey.id == api_key_id,
         models.APIKey.project_id == project_id,
     )
-    result = await session.execute(stmt)
-    api_key = result.scalars().one_or_none()
+    api_key = (await session.scalars(stmt)).one_or_none()
     if api_key is None:
         raise NotFoundError("API key not found")
     return api_key
 
 
 async def update_api_key(
+    update_data: schemas.APIKeyUpdate,
     api_key_id: int,
     project_id: int,
-    update_data: schemas.APIKeyUpdate,
     session: AsyncSession,
 ) -> models.APIKey:
     api_key = await get_api_key(api_key_id, project_id, session)
 
-    update_dict = update_data.model_dump(exclude_unset=True)
-    for key, value in update_dict.items():
-        setattr(api_key, key, value)
+    apply_update(api_key, update_data)
 
     await session.commit()
     await session.refresh(api_key)
@@ -112,8 +109,7 @@ async def delete_api_key(
         models.APIKey.is_active.is_(True),
         models.APIKey.id != api_key_id,
     )
-    result = await session.execute(stmt)
-    active_keys_count = result.scalar_one()
+    active_keys_count = await session.scalar(stmt)
     if active_keys_count == 0 and api_key.is_active:
         raise BadRequestError("Cannot delete the last active API key.")
 

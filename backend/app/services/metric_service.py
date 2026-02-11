@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import case, delete, func, select
+from sqlalchemy import Select, case, delete, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -16,7 +16,7 @@ from app.core.security import hash_ip
     stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.1, min=0.1, max=2)
 )
 async def add_metric(
-    session: AsyncSession, project_id: int, metric_in: schemas.MetricCreate
+    metric_in: schemas.MetricCreate, project_id: int, session: AsyncSession
 ) -> models.Metric:
     """Create a new metric entry."""
 
@@ -40,17 +40,16 @@ async def add_metric(
 
 
 async def get_metrics(
-    session: AsyncSession, project_id: int, params: schemas.MetricParams
+    params: schemas.MetricParams, project_id: int, session: AsyncSession
 ) -> Sequence[models.Metric]:
     query = select(models.Metric).order_by(models.Metric.timestamp.desc())
     query = _apply_time_range_filter(query, project_id, params)
     query = _apply_pagination(query, params)
-    result = await session.execute(query)
-    return result.scalars().all()
+    return (await session.scalars(query)).all()
 
 
 async def get_metrics_summary(
-    session: AsyncSession, project_id: int, params: schemas.MetricParams
+    params: schemas.MetricParams, project_id: int, session: AsyncSession
 ) -> schemas.MetricSummaryResponse:
     query = select(
         func.count(models.Metric.id).label("request_count"),
@@ -95,9 +94,9 @@ async def get_metrics_summary(
 
 
 async def get_metrics_time_series(
-    session: AsyncSession,
-    project_id: int,
     params: schemas.MetricTimeSeriesQuery,
+    project_id: int,
+    session: AsyncSession,
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
     # Group by granularity. Handling different dialects.
 
@@ -135,7 +134,7 @@ async def get_metrics_time_series(
 
 
 async def get_metrics_endpoints_stats(
-    session: AsyncSession, project_id: int, params: schemas.MetricParams
+    params: schemas.MetricParams, project_id: int, session: AsyncSession
 ) -> list[schemas.MetricEndpointStatsResponse]:
     query = select(
         models.Metric.url_path,
@@ -182,18 +181,18 @@ async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -
     return result.rowcount  # type: ignore
 
 
-def _apply_time_range_filter(
-    query: Any, project_id: int, params: schemas.MetricParams
-) -> Any:
+def _apply_time_range_filter[T](
+    query: Select[T], project_id: int, params: schemas.MetricParams
+) -> Select[T]:
     """Apply common project_id and time range filters."""
-    return query.filter(
+    return query.where(
         models.Metric.project_id == project_id,
         models.Metric.timestamp >= params.start_date,
         models.Metric.timestamp <= params.end_date,
     )
 
 
-def _apply_pagination(query: Any, params: schemas.MetricParams) -> Any:
+def _apply_pagination[T](query: Select[T], params: schemas.MetricParams) -> Select[T]:
     """Apply common pagination (offset/limit) filters."""
     offset = (params.page - 1) * params.page_size
     return query.offset(offset).limit(params.page_size)

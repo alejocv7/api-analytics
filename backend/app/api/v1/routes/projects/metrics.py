@@ -18,9 +18,9 @@ router = APIRouter()
     """,
 )
 async def read_metrics(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
+    params: schemas.MetricQuery, project: ProjectDep, session: SessionDep
 ) -> Sequence[models.Metric]:
-    return await metric_service.get_metrics(session, project.id, params)
+    return await metric_service.get_metrics(params, project.id, session)
 
 
 @router.get(
@@ -32,9 +32,9 @@ async def read_metrics(
     """,
 )
 async def read_metrics_summary(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
+    params: schemas.MetricQuery, project: ProjectDep, session: SessionDep
 ) -> schemas.MetricSummaryResponse:
-    return await metric_service.get_metrics_summary(session, project.id, params)
+    return await metric_service.get_metrics_summary(params, project.id, session)
 
 
 @router.get(
@@ -46,11 +46,11 @@ async def read_metrics_summary(
     """,
 )
 async def read_metrics_time_series(
+    params: schemas.MetricTimeSeriesQuery,
     project: ProjectDep,
     session: SessionDep,
-    params: schemas.MetricTimeSeriesQuery,
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
-    return await metric_service.get_metrics_time_series(session, project.id, params)
+    return await metric_service.get_metrics_time_series(params, project.id, session)
 
 
 @router.get(
@@ -62,6 +62,6 @@ async def read_metrics_time_series(
     """,
 )
 async def read_metrics_endpoints_stats(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
+    params: schemas.MetricQuery, project: ProjectDep, session: SessionDep
 ) -> list[schemas.MetricEndpointStatsResponse]:
-    return await metric_service.get_metrics_endpoints_stats(session, project.id, params)
+    return await metric_service.get_metrics_endpoints_stats(params, project.id, session)

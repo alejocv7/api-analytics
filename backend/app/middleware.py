@@ -139,7 +139,7 @@ class LoggingMiddleware:
             )
         except Exception as e:
             process_time = (time.perf_counter() - start_time) * 1000
-            logger.error(
+            logger.exception(
                 "Request failed: %s %s",
                 method,
                 path,
@@ -159,6 +159,6 @@ async def log_metric(project_id: int, metric: schemas.MetricCreate) -> None:
     """
     try:
         async with db.AsyncSessionLocal() as session:
-            await add_metric(session, project_id, metric)
+            await add_metric(metric, project_id, session)
     except Exception:
         logger.exception("Failed to log metric in background")

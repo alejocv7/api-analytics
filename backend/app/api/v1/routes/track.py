@@ -28,11 +28,11 @@ logger = logging.getLogger(__name__)
 async def track_metric(
     request: Request,  # noqa: ARG001
     metric: schemas.MetricCreate,
-    session: SessionDep,
     project_id: ProjectIdDep,
+    session: SessionDep,
 ) -> models.Metric:
     """
     Track an API metric.
     """
     logger.info("Tracking metric for project %s: %s", project_id, metric)
-    return await metric_service.add_metric(session, project_id, metric)
+    return await metric_service.add_metric(metric, project_id, session)

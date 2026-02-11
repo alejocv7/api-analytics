@@ -37,6 +37,6 @@ async def login(
     user_login: schemas.LoginRequest, session: SessionDep
 ) -> schemas.TokenResponse:
     user = await auth_service.authenticate_user(
-        user_login.email, user_login.password, session
+        user_login.email, user_login.password.get_secret_value(), session
     )
     return auth_service.create_user_token(user)

@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, ClassVar, Literal, Self
 
 from pydantic import (
     AnyUrl,
@@ -73,6 +73,34 @@ class Settings(BaseSettings):
         )
 
     # Security
+    CSP_STRICT: ClassVar[dict[str, str]] = {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "img-src": "'self' data: https:",
+        "connect-src": "'self'",
+        "font-src": "'self'",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'self'",
+        "frame-ancestors": "'none'",
+        "upgrade-insecure-requests": "",
+    }
+    CSP_BASIC: ClassVar[dict[str, str]] = {
+        "default-src": "'self'",
+        "script-src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "style-src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "font-src": "'self' data: https://cdn.jsdelivr.net",
+        "connect-src": "'self' https://cdn.jsdelivr.net",
+        "img-src": "'self' data: https://fastapi.tiangolo.com",
+    }
+    CSP_BY_ENV: ClassVar[dict[str, dict[str, str]]] = {
+        "local": CSP_BASIC,
+        "staging": CSP_STRICT,
+        "test": CSP_STRICT,
+        "prod": CSP_STRICT,
+    }
+
     SECURITY_KEY: str
     SECURITY_ALGORITHM: str = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
@@ -106,6 +134,31 @@ class Settings(BaseSettings):
     @property
     def IS_PRODUCTION(self) -> bool:
         return self.ENVIRONMENT == "prod"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def IS_LOCAL(self) -> bool:
+        return self.ENVIRONMENT == "local"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def security_headers(self) -> dict[str, str]:
+        csp_directives = self.CSP_BY_ENV.get(self.ENVIRONMENT, self.CSP_STRICT)
+        csp = "; ".join(f"{k} {v}".strip() for k, v in csp_directives.items()) + ";"
+
+        headers = {
+            "Content-Security-Policy": csp,
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "Permissions-Policy": (
+                "geolocation=(), microphone=(), camera=(), payment=()"
+            ),
+        }
+
+        if self.IS_PRODUCTION:
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+        return headers
 
     @model_validator(mode="after")
     def validate_security_key(self) -> Self:

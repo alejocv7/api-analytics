@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, SecretStr
 
 
 class TokenResponse(BaseModel):
@@ -43,7 +43,7 @@ class LoginRequest(BaseModel):
     """Schema for user login."""
 
     email: EmailStr
-    password: str
+    password: SecretStr
 
     model_config = ConfigDict(
         json_schema_extra={

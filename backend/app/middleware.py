@@ -4,7 +4,7 @@ import re
 import time
 from http import HTTPMethod
 
-from starlette.datastructures import Headers
+from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app import schemas
@@ -151,6 +151,30 @@ class LoggingMiddleware:
                 },
             )
             raise
+
+
+class SecurityHeadersMiddleware:
+    """
+    Adds security headers to the response.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self.headers = settings.security_headers
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers.update(self.headers)
+
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
 
 
 async def log_metric(project_id: int, metric: schemas.MetricCreate) -> None:

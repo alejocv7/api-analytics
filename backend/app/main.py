@@ -1,9 +1,9 @@
 import logging
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from asgi_correlation_id import CorrelationIdMiddleware
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -14,7 +14,11 @@ from app.core.exceptions import register_exceptions
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
 from app.health import router as health_router
-from app.middleware import LoggingMiddleware, MetricMiddleware
+from app.middleware import (
+    LoggingMiddleware,
+    MetricMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +41,9 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.PROJECT_DESCRIPTION,
     lifespan=lifespan,
+    docs_url=None if settings.IS_PRODUCTION else "/docs",
+    redoc_url=None if settings.IS_PRODUCTION else "/redoc",
+    openapi_url=None if settings.IS_PRODUCTION else "/openapi.json",
 )
 
 # Exception handlers
@@ -59,7 +66,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -68,22 +75,7 @@ app.add_middleware(
     allowed_hosts=settings.TRUSTED_HOSTS,
 )
 
-
-@app.middleware("http")
-async def add_security_headers(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-
-    if settings.IS_PRODUCTION:
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
-
-    return response
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.get("/", tags=["root"])

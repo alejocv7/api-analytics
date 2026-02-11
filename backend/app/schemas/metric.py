@@ -1,6 +1,6 @@
 from datetime import UTC, timedelta
 from enum import StrEnum
-from http import HTTPMethod, HTTPStatus
+from http import HTTPMethod
 from typing import Annotated, Self
 
 from fastapi import Query
@@ -23,7 +23,9 @@ class MetricBase(BaseModel):
     url_path: NormalizedUrlPath = Field(..., description="API endpoint path")
 
     method: HTTPMethod = Field(..., description="HTTP method")
-    response_status_code: HTTPStatus = Field(..., description="HTTP status code")
+    response_status_code: int = Field(
+        ..., ge=100, le=599, description="HTTP status code"
+    )
     response_time_ms: float = Field(
         ..., ge=0, le=120_000, description="Response time in milliseconds"
     )

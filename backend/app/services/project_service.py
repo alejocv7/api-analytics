@@ -57,7 +57,7 @@ async def get_user_projects(
     stmt = (
         select(models.Project)
         .where(models.Project.user_id == user_id)
-        .where(models.Project.is_active if active_only else true())
+        .where(models.Project.is_active.is_(True) if active_only else true())
         .offset(offset)
         .limit(limit)
     )
@@ -71,7 +71,7 @@ async def update_user_project(
     session: AsyncSession,
 ) -> models.Project:
     # Check if the new name is already in use
-    if update_data.name != project.name:
+    if update_data.name is not None and update_data.name != project.name:
         stmt = select(
             exists().where(
                 models.Project.user_id == project.user_id,

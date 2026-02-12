@@ -181,7 +181,7 @@ async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -
     return result.rowcount  # type: ignore
 
 
-def _apply_time_range_filter[T](
+def _apply_time_range_filter[T: tuple[Any, ...]](
     query: Select[T], project_id: int, params: schemas.MetricParams
 ) -> Select[T]:
     """Apply common project_id and time range filters."""
@@ -192,7 +192,9 @@ def _apply_time_range_filter[T](
     )
 
 
-def _apply_pagination[T](query: Select[T], params: schemas.MetricParams) -> Select[T]:
+def _apply_pagination[T: tuple[Any, ...]](
+    query: Select[T], params: schemas.MetricParams
+) -> Select[T]:
     """Apply common pagination (offset/limit) filters."""
     offset = (params.page - 1) * params.page_size
     return query.offset(offset).limit(params.page_size)

@@ -17,6 +17,7 @@ def setup_logging() -> None:
     # Correlation ID filter for asgi-correlation-id
     cid_filter = CorrelationIdFilter(uuid_length=32, default_value="-")
 
+    formatter: logging.Formatter
     if settings.ENVIRONMENT == "local":
         formatter = ColoredFormatter(
             "%(log_color)s%(asctime)s - %(levelname)s - %(name)s - %(message)s"

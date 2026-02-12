@@ -24,7 +24,7 @@ class MetricMiddleware:
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
-        self._background_tasks: set[asyncio.Task] = set()
+        self._background_tasks: set[asyncio.Task[None]] = set()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":

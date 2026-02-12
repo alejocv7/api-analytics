@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, status
 
 from app import models, schemas
+from app.core.rate_limiter import limiter
 from app.dependencies import ProjectDep, SessionDep
 from app.services import api_key_service
 
@@ -21,8 +22,12 @@ router = APIRouter()
     will be shown, so make sure to save it safely.
     """,
 )
+@limiter.limit("10/minute")
 async def create_api_key(
-    key_in: schemas.APIKeyCreate, project: ProjectDep, session: SessionDep
+    request: Request,
+    key_in: schemas.APIKeyCreate,
+    project: ProjectDep,
+    session: SessionDep,
 ) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.create_api_key(key_in, project, session)
 
@@ -90,8 +95,9 @@ async def update_api_key(
     The response includes the new plain-text API key.
     """,
 )
+@limiter.limit("5/minute")
 async def rotate_api_key(
-    api_key_id: int, project: ProjectDep, session: SessionDep
+    request: Request, api_key_id: int, project: ProjectDep, session: SessionDep
 ) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.rotate_api_key(
         api_key_id, project.id, session
@@ -110,7 +116,8 @@ async def rotate_api_key(
     Permanently deletes an API key.
     """,
 )
+@limiter.limit("10/minute")
 async def delete_api_key(
-    api_key_id: int, project: ProjectDep, session: SessionDep
+    request: Request, api_key_id: int, project: ProjectDep, session: SessionDep
 ) -> None:
     await api_key_service.delete_api_key(api_key_id, project.id, session)

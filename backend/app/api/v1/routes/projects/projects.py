@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, status
 
 from app import models, schemas
+from app.core.rate_limiter import limiter
 from app.dependencies import CurrentUserDep, ProjectDep, SessionDep
 from app.services import project_service
 
@@ -33,8 +34,12 @@ async def get_projects(
     Each project is used to group metrics and can have multiple associated API keys.
     """,
 )
+@limiter.limit("20/minute")
 async def create_project(
-    project_in: schemas.ProjectCreate, user: CurrentUserDep, session: SessionDep
+    request: Request,
+    project_in: schemas.ProjectCreate,
+    user: CurrentUserDep,
+    session: SessionDep,
 ) -> models.Project:
     return await project_service.create_user_project(user.id, project_in, session)
 
@@ -77,5 +82,8 @@ async def update_project(
     This action is irreversible!
     """,
 )
-async def delete_project(project: ProjectDep, session: SessionDep) -> None:
+@limiter.limit("10/minute")
+async def delete_project(
+    request: Request, project: ProjectDep, session: SessionDep
+) -> None:
     await project_service.delete_user_project(project, session)

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, status
 
 from app import models, schemas
+from app.core.rate_limiter import limiter
 from app.dependencies import SessionDep
 from app.services import auth_service
 
@@ -18,7 +19,10 @@ router = APIRouter()
     Upon successful registration, use the credentials to login and obtain a JWT token.
     """,
 )
-async def register(user: schemas.UserCreate, session: SessionDep) -> models.User:
+@limiter.limit("5/minute")
+async def register(
+    request: Request, user: schemas.UserCreate, session: SessionDep
+) -> models.User:
     return await auth_service.register(user, session)
 
 
@@ -33,8 +37,9 @@ async def register(user: schemas.UserCreate, session: SessionDep) -> models.User
     for all authenticated requests.
     """,
 )
+@limiter.limit("10/minute")
 async def login(
-    user_login: schemas.LoginRequest, session: SessionDep
+    request: Request, user_login: schemas.LoginRequest, session: SessionDep
 ) -> schemas.TokenResponse:
     user = await auth_service.authenticate_user(
         user_login.email, user_login.password.get_secret_value(), session

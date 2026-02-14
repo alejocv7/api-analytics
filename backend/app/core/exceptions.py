@@ -73,6 +73,13 @@ class AuthenticationError(APIError):
     message = "Authentication failed"
 
 
+class ForbiddenError(APIError):
+    """Forbidden (403)."""
+
+    status_code = status.HTTP_403_FORBIDDEN
+    message = "Forbidden"
+
+
 class BadRequestError(APIError):
     """Invalid request data or business logic violation (400)."""
 

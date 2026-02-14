@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
 from app.core import config, db, security
-from app.core.exceptions import AuthenticationError, BadRequestError, NotFoundError
+from app.core.exceptions import AuthenticationError, ForbiddenError
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -61,15 +61,12 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
     token_data = security.decode_token(token)
     user = await session.get(models.User, token_data.user_id)
     if user is None:
-        raise NotFoundError(
-            "User not found",
+        raise AuthenticationError(
+            "Invalid authentication credentials",
             details={"headers": {"WWW-Authenticate": "Bearer"}},
         )
     if not user.is_active:
-        raise BadRequestError(
-            "Inactive user",
-            details={"headers": {"WWW-Authenticate": "Bearer"}},
-        )
+        raise ForbiddenError("Inactive user")
     return user
 
 

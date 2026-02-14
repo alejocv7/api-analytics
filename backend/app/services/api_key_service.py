@@ -43,6 +43,8 @@ async def list_api_keys(
     project_id: int,
     session: AsyncSession,
     active_only: bool = False,
+    offset: int = 0,
+    limit: int = 20,
 ) -> Sequence[models.APIKey]:
     stmt = (
         select(models.APIKey)
@@ -51,8 +53,22 @@ async def list_api_keys(
             models.APIKey.is_active.is_(True) if active_only else true(),
         )
         .order_by(models.APIKey.created_at.desc())
+        .offset(offset)
+        .limit(limit)
     )
     return (await session.scalars(stmt)).all()
+
+
+async def count_api_keys(
+    project_id: int,
+    session: AsyncSession,
+    active_only: bool = False,
+) -> int:
+    stmt = select(func.count(models.APIKey.id)).where(
+        models.APIKey.project_id == project_id,
+        models.APIKey.is_active.is_(True) if active_only else true(),
+    )
+    return (await session.scalar(stmt)) or 0
 
 
 async def get_api_key(

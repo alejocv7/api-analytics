@@ -10,6 +10,7 @@ from app.schemas.health import HealthResponse
 from app.schemas.metric import (
     MetricCreate,
     MetricEndpointStatsResponse,
+    MetricListResponse,
     MetricParams,
     MetricQuery,
     MetricResponse,
@@ -41,6 +42,7 @@ __all__ = [
     # Metrics
     "MetricCreate",
     "MetricEndpointStatsResponse",
+    "MetricListResponse",
     "MetricParams",
     "MetricQuery",
     "MetricResponse",

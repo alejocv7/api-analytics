@@ -21,7 +21,9 @@ router = APIRouter()
 )
 @limiter.limit("5/minute")
 async def register(
-    request: Request, user: schemas.UserCreate, session: SessionDep
+    request: Request,  # noqa: ARG001
+    user: schemas.UserCreate,
+    session: SessionDep,
 ) -> models.User:
     return await auth_service.register(user, session)
 
@@ -39,7 +41,9 @@ async def register(
 )
 @limiter.limit("10/minute")
 async def login(
-    request: Request, user_login: schemas.LoginRequest, session: SessionDep
+    request: Request,  # noqa: ARG001
+    user_login: schemas.LoginRequest,
+    session: SessionDep,
 ) -> schemas.TokenResponse:
     user = await auth_service.authenticate_user(
         user_login.email, user_login.password.get_secret_value(), session

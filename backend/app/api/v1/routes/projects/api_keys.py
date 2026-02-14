@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from fastapi import APIRouter, Request, status
 
 from app import models, schemas
@@ -24,7 +22,7 @@ router = APIRouter()
 )
 @limiter.limit("10/minute")
 async def create_api_key(
-    request: Request,
+    request: Request,  # noqa: ARG001
     key_in: schemas.APIKeyCreate,
     project: ProjectDep,
     session: SessionDep,
@@ -35,16 +33,26 @@ async def create_api_key(
 
 @router.get(
     "/",
-    response_model=Sequence[schemas.APIKeyResponse],
+    response_model=schemas.APIKeyListResponse,
     summary="List API keys",
     description="""
     Returns a list of all API keys associated with the project.
     """,
 )
 async def list_api_keys(
-    project: ProjectDep, session: SessionDep, active_only: bool = False
-) -> Sequence[models.APIKey]:
-    return await api_key_service.list_api_keys(project.id, session, active_only)
+    project: ProjectDep,
+    session: SessionDep,
+    active_only: bool = False,
+    page: int = 1,
+    page_size: int = 20,
+) -> schemas.APIKeyListResponse:
+    items = await api_key_service.list_api_keys(
+        project.id, session, active_only, offset=(page - 1) * page_size, limit=page_size
+    )
+    total = await api_key_service.count_api_keys(project.id, session, active_only)
+    return schemas.APIKeyListResponse(
+        items=items, total=total, page=page, page_size=page_size
+    )
 
 
 @router.get(
@@ -94,7 +102,10 @@ async def update_api_key(
 )
 @limiter.limit("5/minute")
 async def rotate_api_key(
-    request: Request, api_key_id: int, project: ProjectDep, session: SessionDep
+    request: Request,  # noqa: ARG001
+    api_key_id: int,
+    project: ProjectDep,
+    session: SessionDep,
 ) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.rotate_api_key(
         api_key_id, project.id, session
@@ -112,7 +123,10 @@ async def rotate_api_key(
 )
 @limiter.limit("10/minute")
 async def delete_api_key(
-    request: Request, api_key_id: int, project: ProjectDep, session: SessionDep
+    request: Request,  # noqa: ARG001
+    api_key_id: int,
+    project: ProjectDep,
+    session: SessionDep,
 ) -> None:
     await api_key_service.delete_api_key(api_key_id, project.id, session)
 

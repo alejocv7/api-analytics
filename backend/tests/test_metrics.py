@@ -141,7 +141,8 @@ async def test_metrics_pagination(client: AsyncClient, auth_headers, project_wit
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 2
+    assert len(data["items"]) == 2
+    assert data["total"] == 3
 
     # Request page 2 with page_size 2
     response = await client.get(
@@ -151,4 +152,5 @@ async def test_metrics_pagination(client: AsyncClient, auth_headers, project_wit
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
+    assert len(data["items"]) == 1
+    assert data["total"] == 3

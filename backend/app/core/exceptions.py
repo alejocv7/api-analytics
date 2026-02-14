@@ -12,7 +12,8 @@ Exception conventions:
   - AuthenticationError (401): Authentication failed
   - BearerAuthenticationError (401): Authentication failed with Bearer header
   - BadRequestError (400): Invalid request data or business logic violation
-  - RateLimitError (429): Rate limit exceeded (rarely used directly, slowapi handles this)
+  - RateLimitError (429): Rate limit exceeded
+    (rarely used directly, slowapi handles this)
 
 - **ValueError**: Only use inside Pydantic validators, model validators, and
   type coercion functions. Pydantic catches these and converts them to 422

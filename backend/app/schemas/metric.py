@@ -210,3 +210,18 @@ class MetricTimeSeriesParams(MetricParams):
 
 
 MetricTimeSeriesQuery = Annotated[MetricTimeSeriesParams, Query()]
+
+
+class MetricListResponse(BaseModel):
+    """Response for list of raw metrics."""
+
+    items: list[MetricResponse]
+    total: int
+    page: int
+    page_size: int
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 1000}]
+        }
+    )

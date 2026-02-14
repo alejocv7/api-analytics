@@ -51,7 +51,7 @@ async def get_projects(
 )
 @limiter.limit("20/minute")
 async def create_project(
-    request: Request,
+    request: Request,  # noqa: ARG001
     project_in: schemas.ProjectCreate,
     user: CurrentUserDep,
     session: SessionDep,
@@ -99,6 +99,8 @@ async def update_project(
 )
 @limiter.limit("10/minute")
 async def delete_project(
-    request: Request, project: ProjectDep, session: SessionDep
+    request: Request,  # noqa: ARG001
+    project: ProjectDep,
+    session: SessionDep,
 ) -> None:
     await project_service.delete_user_project(project, session)

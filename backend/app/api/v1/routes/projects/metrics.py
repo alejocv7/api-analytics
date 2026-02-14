@@ -1,8 +1,6 @@
-from collections.abc import Sequence
-
 from fastapi import APIRouter
 
-from app import models, schemas
+from app import schemas
 from app.dependencies import ProjectDep, SessionDep
 from app.services import metric_service
 
@@ -11,7 +9,7 @@ router = APIRouter()
 
 @router.get(
     "/",
-    response_model=list[schemas.MetricResponse],
+    response_model=schemas.MetricListResponse,
     summary="List raw metrics",
     description="""
     Retrieves a list of individual metrics recorded for the project.
@@ -19,8 +17,15 @@ router = APIRouter()
 )
 async def read_metrics(
     params: schemas.MetricQuery, project: ProjectDep, session: SessionDep
-) -> Sequence[models.Metric]:
-    return await metric_service.get_metrics(params, project.id, session)
+) -> schemas.MetricListResponse:
+    items = await metric_service.get_metrics(params, project.id, session)
+    total = await metric_service.count_metrics(params, project.id, session)
+    return schemas.MetricListResponse(
+        items=items,
+        total=total,
+        page=params.page,
+        page_size=params.page_size,
+    )
 
 
 @router.get(

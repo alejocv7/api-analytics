@@ -57,9 +57,25 @@ async def test_list_api_keys(client: AsyncClient, auth_headers, project, db_sess
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) >= 1
-    assert data[0]["name"] == "K1"
-    assert "key" not in data[0]  # Hash shouldn't be leaked
+    assert data["total"] >= 1
+    assert data["items"][0]["name"] == "K1"
+    assert "key" not in data["items"][0]  # Hash shouldn't be leaked
+
+
+async def test_update_api_key(client: AsyncClient, auth_headers, project, db_session):
+    k, _ = await create_api_key(
+        db_session,
+        project=project,
+        name="Old Name",
+    )
+
+    response = await client.patch(
+        f"/api/v1/projects/{project.project_key}/api-keys/{k.id}",
+        headers=auth_headers,
+        json={"name": "New Name"},
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "New Name"
 
 
 async def test_rotate_api_key(client: AsyncClient, auth_headers, project, db_session):
@@ -106,3 +122,23 @@ async def test_delete_api_key(client: AsyncClient, auth_headers, project, db_ses
         headers=auth_headers,
     )
     assert response.status_code == 204
+
+
+async def test_delete_last_active_key(
+    client: AsyncClient, auth_headers, project, db_session
+):
+    # Conftest project fixture doesn't create a key.
+    # Let's create one.
+    k1, _ = await create_api_key(
+        db_session,
+        project=project,
+        name="Last Key",
+        is_active=True,
+    )
+
+    response = await client.delete(
+        f"/api/v1/projects/{project.project_key}/api-keys/{k1.id}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 400
+    assert "Cannot delete the last active API key" in response.json()["error"]

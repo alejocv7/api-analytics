@@ -48,6 +48,15 @@ async def get_metrics(
     return (await session.scalars(query)).all()
 
 
+async def count_metrics(
+    params: schemas.MetricParams, project_id: int, session: AsyncSession
+) -> int:
+    """Count raw metrics matching params."""
+    query = select(func.count(models.Metric.id))
+    query = _apply_time_range_filter(query, project_id, params)
+    return (await session.scalar(query)) or 0
+
+
 async def get_metrics_summary(
     params: schemas.MetricParams, project_id: int, session: AsyncSession
 ) -> schemas.MetricSummaryResponse:

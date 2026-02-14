@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Query, Request, status
 
 from app import models, schemas
-from app.core.rate_limiter import limiter
+from app.core import rate_limits
+from app.core.rate_limiter import _get_user_key, limiter
 from app.dependencies import ProjectDep, SessionDep
 from app.services import api_key_service
 
@@ -20,7 +21,7 @@ router = APIRouter()
     will be shown, so make sure to save it safely.
     """,
 )
-@limiter.limit("10/minute")
+@limiter.limit(rate_limits.DATA_WRITE, key_func=_get_user_key)
 async def create_api_key(
     request: Request,  # noqa: ARG001
     key_in: schemas.APIKeyCreate,
@@ -100,7 +101,7 @@ async def update_api_key(
     The response includes the new plain-text API key.
     """,
 )
-@limiter.limit("5/minute")
+@limiter.limit(rate_limits.KEY_ROTATE, key_func=_get_user_key)
 async def rotate_api_key(
     request: Request,  # noqa: ARG001
     api_key_id: int,
@@ -121,7 +122,7 @@ async def rotate_api_key(
     Permanently deletes an API key.
     """,
 )
-@limiter.limit("10/minute")
+@limiter.limit(rate_limits.DATA_DELETE, key_func=_get_user_key)
 async def delete_api_key(
     request: Request,  # noqa: ARG001
     api_key_id: int,

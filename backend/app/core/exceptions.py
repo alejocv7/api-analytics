@@ -161,4 +161,5 @@ async def rate_limit_handler(_: Request, exc: RateLimitExceeded) -> JSONResponse
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"error": "Rate limit exceeded", "details": str(exc)},
+        headers={"Retry-After": "60"},
     )

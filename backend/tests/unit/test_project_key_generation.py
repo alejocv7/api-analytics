@@ -26,6 +26,6 @@ def test_generate_project_key_special_chars():
     name = "Project! With @ Special # Chars"
     key = _generate_project_key(name)
 
-    # Current implementation only does lower() and replace(" ", "-")
-    # If it was more robust, it would strip special chars, but let's test current behavior
+    # Current implementation only does lower() and replace(" ", "-"). If it was
+    # more robust, it would strip special chars, but let's test current behavior
     assert "project!-with-@-special-#-chars-" in key

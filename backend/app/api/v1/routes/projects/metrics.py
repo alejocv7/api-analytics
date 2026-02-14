@@ -1,6 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app import schemas
+from app.core import rate_limits
+from app.core.rate_limiter import _get_user_key, limiter
 from app.dependencies import ProjectDep, SessionDep
 from app.services import metric_service
 
@@ -15,8 +17,12 @@ router = APIRouter()
     Retrieves a list of individual metrics recorded for the project.
     """,
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
 async def read_metrics(
-    params: schemas.MetricQuery, project: ProjectDep, session: SessionDep
+    request: Request,  # noqa: ARG001
+    params: schemas.MetricQuery,
+    project: ProjectDep,
+    session: SessionDep,
 ) -> schemas.MetricListResponse:
     items = await metric_service.get_metrics(params, project.id, session)
     total = await metric_service.count_metrics(params, project.id, session)
@@ -36,8 +42,12 @@ async def read_metrics(
     Calculates overall performance statistics for the project.
     """,
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
 async def read_metrics_summary(
-    params: schemas.MetricQuery, project: ProjectDep, session: SessionDep
+    request: Request,  # noqa: ARG001
+    params: schemas.MetricQuery,
+    project: ProjectDep,
+    session: SessionDep,
 ) -> schemas.MetricSummaryResponse:
     return await metric_service.get_metrics_summary(params, project.id, session)
 
@@ -50,7 +60,9 @@ async def read_metrics_summary(
     Retrieves aggregated metrics grouped by a specified time granularity.
     """,
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
 async def read_metrics_time_series(
+    request: Request,  # noqa: ARG001
     params: schemas.MetricTimeSeriesQuery,
     project: ProjectDep,
     session: SessionDep,
@@ -73,8 +85,12 @@ async def read_metrics_time_series(
     Retrieves performance statistics grouped by endpoint (URL path and method).
     """,
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
 async def read_metrics_endpoints_stats(
-    params: schemas.MetricQuery, project: ProjectDep, session: SessionDep
+    request: Request,  # noqa: ARG001
+    params: schemas.MetricQuery,
+    project: ProjectDep,
+    session: SessionDep,
 ) -> schemas.MetricEndpointStatsListResponse:
     items = await metric_service.get_metrics_endpoints_stats(
         params, project.id, session

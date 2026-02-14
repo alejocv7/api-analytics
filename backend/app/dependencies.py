@@ -5,6 +5,7 @@ from fastapi import Depends, Security
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app import models
 from app.core import config, db, security
@@ -30,6 +31,7 @@ SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 async def get_project_id_by_api_key(
+    request: Request,
     session: SessionDep,
     api_key: str = Security(api_key_header),
 ) -> int:
@@ -62,19 +64,25 @@ async def get_project_id_by_api_key(
         or not api_key_obj.is_valid
     ):
         raise AuthenticationError("Invalid API key")
+
+    request.state.project_id = api_key_obj.project_id
     return api_key_obj.project_id
 
 
 ProjectIdDep = Annotated[int, Depends(get_project_id_by_api_key)]
 
 
-async def get_current_user(session: SessionDep, token: TokenDep) -> models.User:
+async def get_current_user(
+    request: Request, session: SessionDep, token: TokenDep
+) -> models.User:
     token_data = security.decode_token(token)
     user = await session.get(models.User, token_data.user_id)
     if user is None:
         raise BearerAuthenticationError("Invalid authentication credentials")
     if not user.is_active:
         raise ForbiddenError("Inactive user")
+
+    request.state.user = user
     return user
 
 

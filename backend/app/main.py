@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.routes import router as v1_router
@@ -58,6 +59,7 @@ app.include_router(health_router, tags=["health"])
 app.include_router(v1_router, prefix=settings.API_V1_STR)
 
 # Middleware (Executed in reverse order)
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(MetricMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")

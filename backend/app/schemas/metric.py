@@ -225,3 +225,33 @@ class MetricListResponse(BaseModel):
             "examples": [{"items": [], "total": 0, "page": 1, "page_size": 1000}]
         }
     )
+
+
+class MetricTimeSeriesListResponse(BaseModel):
+    """Response for list of time-series points."""
+
+    items: list[MetricTimeSeriesPointResponse]
+    total: int
+    page: int
+    page_size: int
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 1000}]
+        }
+    )
+
+
+class MetricEndpointStatsListResponse(BaseModel):
+    """Response for list of endpoint statistics."""
+
+    items: list[MetricEndpointStatsResponse]
+    total: int
+    page: int
+    page_size: int
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 1000}]
+        }
+    )

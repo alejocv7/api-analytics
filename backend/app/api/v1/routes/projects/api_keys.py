@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Query, Request, status
 
 from app import models, schemas
 from app.core.rate_limiter import limiter
@@ -43,8 +43,8 @@ async def list_api_keys(
     project: ProjectDep,
     session: SessionDep,
     active_only: bool = False,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> schemas.APIKeyListResponse:
     items = await api_key_service.list_api_keys(
         project.id, session, active_only, offset=(page - 1) * page_size, limit=page_size

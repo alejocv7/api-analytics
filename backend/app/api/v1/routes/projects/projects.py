@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Query, Request, status
 
 from app import models, schemas
 from app.core.rate_limiter import limiter
@@ -20,8 +20,8 @@ async def get_projects(
     user: CurrentUserDep,
     session: SessionDep,
     active_only: bool = False,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> schemas.ProjectListResponse:
     items = await project_service.get_user_projects(
         user.id,

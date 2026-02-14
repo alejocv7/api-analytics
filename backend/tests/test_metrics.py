@@ -75,9 +75,9 @@ async def test_get_metrics_endpoints(
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 2  # /users and /posts
+    assert len(data["items"]) == 2  # /users and /posts
 
-    users_stat = next(d for d in data if d["url_path"] == "/users")
+    users_stat = next(d for d in data["items"] if d["url_path"] == "/users")
     assert users_stat["request_count"] == 2
     assert users_stat["error_count"] == 1
 
@@ -93,9 +93,9 @@ async def test_get_metrics_time_series(
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) >= 1
-    assert "timestamp" in data[0]
-    assert "request_count" in data[0]
+    assert len(data["items"]) >= 1
+    assert "timestamp" in data["items"][0]
+    assert "request_count" in data["items"][0]
 
 
 async def test_cleanup_metrics(db_session, project_with_data):

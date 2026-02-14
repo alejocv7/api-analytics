@@ -142,6 +142,22 @@ async def get_metrics_time_series(
     return metrics_time_series
 
 
+async def count_metrics_time_series(
+    params: schemas.MetricTimeSeriesQuery,
+    project_id: int,
+    session: AsyncSession,
+) -> int:
+    """Count time-series points matching params."""
+    timestamp: Any = func.date_trunc(params.granularity.value, models.Metric.timestamp)
+    query = select(timestamp)
+    query = _apply_time_range_filter(query, project_id, params)
+    query = query.group_by(timestamp)
+
+    # Count the number of distinct time buckets
+    count_stmt = select(func.count()).select_from(query.subquery())
+    return (await session.scalar(count_stmt)) or 0
+
+
 async def get_metrics_endpoints_stats(
     params: schemas.MetricParams, project_id: int, session: AsyncSession
 ) -> list[schemas.MetricEndpointStatsResponse]:
@@ -179,6 +195,18 @@ async def get_metrics_endpoints_stats(
         )
 
     return metrics_endpoint_stats
+
+
+async def count_metrics_endpoints_stats(
+    params: schemas.MetricParams, project_id: int, session: AsyncSession
+) -> int:
+    """Count distinct endpoints matching params."""
+    query = select(models.Metric.url_path, models.Metric.method)
+    query = _apply_time_range_filter(query, project_id, params)
+    query = query.group_by(models.Metric.url_path, models.Metric.method)
+
+    count_stmt = select(func.count()).select_from(query.subquery())
+    return (await session.scalar(count_stmt)) or 0
 
 
 async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -> int:

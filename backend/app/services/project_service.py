@@ -1,3 +1,4 @@
+import logging
 import secrets
 from collections.abc import Sequence
 
@@ -9,6 +10,8 @@ from app import models, schemas
 from app.core.config import settings
 from app.core.exceptions import ConflictError
 from app.core.utils import apply_update
+
+logger = logging.getLogger(__name__)
 
 
 async def create_user_project(
@@ -27,8 +30,12 @@ async def create_user_project(
     try:
         session.add(project)
         await session.commit()
+        logger.info("Project created: %s (user_id: %s)", project_key, user_id)
     except IntegrityError as e:
         await session.rollback()
+        logger.warning(
+            "Project creation failed: Duplicate name for user_id: %s", user_id
+        )
         raise ConflictError("Project already exists") from e
     await session.refresh(project)
 
@@ -80,6 +87,11 @@ async def update_user_project(
             )
         )
         if await session.scalar(stmt):
+            logger.warning(
+                "Project update failed: Name '%s' already in use for user_id: %s",
+                update_data.name,
+                project.user_id,
+            )
             raise ConflictError("Project name already in use")
 
     apply_update(project, update_data)
@@ -87,6 +99,9 @@ async def update_user_project(
     await session.commit()
     await session.refresh(project)
 
+    logger.info(
+        "Project updated: %s (user_id: %s)", project.project_key, project.user_id
+    )
     return project
 
 
@@ -94,8 +109,11 @@ async def delete_user_project(
     project: models.Project,
     session: AsyncSession,
 ) -> None:
+    project_key = project.project_key
+    user_id = project.user_id
     await session.delete(project)
     await session.commit()
+    logger.info("Project deleted: %s (user_id: %s)", project_key, user_id)
 
 
 def _generate_project_key(name: str) -> str:

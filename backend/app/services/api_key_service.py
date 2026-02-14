@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 
 from sqlalchemy import func, select, true
@@ -7,6 +8,8 @@ from app import models, schemas
 from app.core.config import settings
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.core.utils import apply_update
+
+logger = logging.getLogger(__name__)
 
 
 async def create_api_key(
@@ -19,6 +22,9 @@ async def create_api_key(
 
     active_keys_count = (await session.scalars(stmt)).one_or_none()
     if active_keys_count and active_keys_count >= settings.API_KEY_PROJECT_LIMIT:
+        logger.warning(
+            "API key creation failed: Limit reached for project_id: %s", project.id
+        )
         raise ConflictError("Project has reached the maximum number of API keys")
 
     api_key, plain_key = models.APIKey.new_key(
@@ -29,6 +35,7 @@ async def create_api_key(
     await session.commit()
     await session.refresh(api_key)
 
+    logger.info("API key created: %s (project_id: %s)", api_key.id, project.id)
     return api_key, plain_key
 
 
@@ -73,6 +80,7 @@ async def update_api_key(
 
     await session.commit()
     await session.refresh(api_key)
+    logger.info("API key updated: %s (project_id: %s)", api_key_id, project_id)
     return api_key
 
 
@@ -81,6 +89,11 @@ async def rotate_api_key(
 ) -> tuple[models.APIKey, str]:
     old_key = await get_api_key(api_key_id, project_id, session)
     if not old_key.is_active or old_key.is_expired:
+        logger.warning(
+            "API key rotation failed: Key is inactive or expired: %s (project_id: %s)",
+            api_key_id,
+            project_id,
+        )
         raise BadRequestError("Cannot rotate an inactive or expired API key.")
 
     new_api_key, new_plain_key = models.APIKey.new_key(
@@ -95,6 +108,12 @@ async def rotate_api_key(
     await session.commit()
     await session.refresh(new_api_key)
 
+    logger.info(
+        "API key rotated: %s -> %s (project_id: %s)",
+        api_key_id,
+        new_api_key.id,
+        project_id,
+    )
     return new_api_key, new_plain_key
 
 
@@ -111,7 +130,11 @@ async def delete_api_key(
     )
     active_keys_count = await session.scalar(stmt)
     if active_keys_count == 0 and api_key.is_active:
+        logger.warning(
+            "API key deletion failed: Last active key for project_id: %s", project_id
+        )
         raise BadRequestError("Cannot delete the last active API key.")
 
     await session.delete(api_key)
     await session.commit()
+    logger.info("API key deleted: %s (project_id: %s)", api_key_id, project_id)

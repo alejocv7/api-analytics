@@ -40,6 +40,5 @@ class Project(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("user_id", "name", name="uq_user_project_name"),
-        Index("idx_project_project_key", "project_key"),
         Index("idx_project_user_active", "user_id", "is_active"),
     )

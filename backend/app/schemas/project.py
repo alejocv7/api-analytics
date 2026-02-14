@@ -40,6 +40,7 @@ class ProjectUpdate(BaseModel):
     name: str | None = Field(
         None, min_length=1, max_length=100, pattern=settings.PROJECT_NAME_PATTERN
     )
+    description: str | None = Field(None, max_length=1000)
     is_active: bool | None = None
 
     model_config = ConfigDict(

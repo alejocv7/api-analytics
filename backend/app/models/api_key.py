@@ -45,10 +45,7 @@ class APIKey(Base, TimestampMixin):
 
     total_requests: Mapped[int] = mapped_column(default=0)
 
-    __table_args__ = (
-        Index("idx_apikey_project_active", "project_id", "is_active"),
-        Index("idx_apikey_hash", "key_hash"),
-    )
+    __table_args__ = (Index("idx_apikey_project_active", "project_id", "is_active"),)
 
     def __repr__(self) -> str:
         return f"ApiKey(id={self.id}, name={self.name}, project_id={self.project_id})"

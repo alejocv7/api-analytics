@@ -62,8 +62,8 @@ async def get_api_key(
 
 
 async def update_api_key(
-    update_data: schemas.APIKeyUpdate,
     api_key_id: int,
+    update_data: schemas.APIKeyUpdate,
     project_id: int,
     session: AsyncSession,
 ) -> models.APIKey:

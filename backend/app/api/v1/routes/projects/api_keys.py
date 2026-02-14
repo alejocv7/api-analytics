@@ -30,10 +30,7 @@ async def create_api_key(
     session: SessionDep,
 ) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.create_api_key(key_in, project, session)
-
-    res_data = schemas.APIKeyResponse.model_validate(api_key).model_dump()
-    res = schemas.APIKeyCreateResponse(**res_data, key=plain_key)
-    return res
+    return _build_api_key_create_response(api_key, plain_key)
 
 
 @router.get(
@@ -79,7 +76,7 @@ async def update_api_key(
     session: SessionDep,
 ) -> models.APIKey:
     return await api_key_service.update_api_key(
-        api_key_id, project.id, update_data, session
+        api_key_id, update_data, project.id, session
     )
 
 
@@ -102,10 +99,7 @@ async def rotate_api_key(
     api_key, plain_key = await api_key_service.rotate_api_key(
         api_key_id, project.id, session
     )
-
-    res_data = schemas.APIKeyResponse.model_validate(api_key).model_dump()
-    res = schemas.APIKeyCreateResponse(**res_data, key=plain_key)
-    return res
+    return _build_api_key_create_response(api_key, plain_key)
 
 
 @router.delete(
@@ -121,3 +115,11 @@ async def delete_api_key(
     request: Request, api_key_id: int, project: ProjectDep, session: SessionDep
 ) -> None:
     await api_key_service.delete_api_key(api_key_id, project.id, session)
+
+
+def _build_api_key_create_response(
+    api_key: models.APIKey, plain_key: str
+) -> schemas.APIKeyCreateResponse:
+    """Helper to build the response for API key creation and rotation."""
+    res_data = schemas.APIKeyResponse.model_validate(api_key).model_dump()
+    return schemas.APIKeyCreateResponse(**res_data, key=plain_key)

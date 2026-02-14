@@ -10,10 +10,10 @@ from pwdlib import PasswordHash
 from pydantic import ValidationError
 from zxcvbn import zxcvbn
 
-from app import schemas
 from app.core.config import settings
 from app.core.exceptions import BearerAuthenticationError
 from app.core.types import SecurePassword
+from app.schemas import TokenData
 
 password_hash = PasswordHash.recommended()
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ def validate_password(password: SecurePassword) -> SecurePassword:
 
 
 # --------------- JWT Token ----------------
-def create_access_token(token_data: schemas.TokenData) -> str:
+def create_access_token(token_data: TokenData) -> str:
     """Create a JWT access token."""
     now = datetime.now(UTC)
     payload = {
@@ -101,13 +101,13 @@ def create_access_token(token_data: schemas.TokenData) -> str:
     )
 
 
-def decode_token(token: str) -> schemas.TokenData:
+def decode_token(token: str) -> TokenData:
     """Decode and validate a JWT token."""
     try:
         payload = jwt.decode(
             token, settings.SECURITY_KEY, algorithms=[settings.SECURITY_ALGORITHM]
         )
-        return schemas.TokenData(**payload)
+        return TokenData(**payload)
 
     except (InvalidTokenError, ValidationError) as e:
         logger.warning("Invalid token: %s", e)

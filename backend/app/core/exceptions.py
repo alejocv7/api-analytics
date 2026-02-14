@@ -10,6 +10,7 @@ Exception conventions:
   - NotFoundError (404): Resource not found
   - ConflictError (409): Resource conflict (duplicate, constraint violation)
   - AuthenticationError (401): Authentication failed
+  - BearerAuthenticationError (401): Authentication failed with Bearer header
   - BadRequestError (400): Invalid request data or business logic violation
   - RateLimitError (429): Rate limit exceeded (rarely used directly, slowapi handles this)
 
@@ -71,6 +72,13 @@ class AuthenticationError(APIError):
 
     status_code = status.HTTP_401_UNAUTHORIZED
     message = "Authentication failed"
+
+
+class BearerAuthenticationError(AuthenticationError):
+    """Authentication failed (401) with Bearer header."""
+
+    def __init__(self, message: str | None = None):
+        super().__init__(message, details={"headers": {"WWW-Authenticate": "Bearer"}})
 
 
 class ForbiddenError(APIError):

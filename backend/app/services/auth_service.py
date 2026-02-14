@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import models, schemas
 from app.core import security
 from app.core.config import settings
-from app.core.exceptions import AuthenticationError, BadRequestError
+from app.core.exceptions import BadRequestError, BearerAuthenticationError
 from app.services import user_service
 
 
@@ -36,17 +36,11 @@ async def authenticate_user(
         # Prevent timing attacks by verifying password even when user doesn't exist.
         # This ensures the response time is similar whether or not the email exists.
         security.verify_password(password, settings.SECURITY_DUMMY_HASH)
-        raise AuthenticationError(
-            "Incorrect email or password",
-            details={"headers": {"WWW-Authenticate": "Bearer"}},
-        )
+        raise BearerAuthenticationError("Incorrect email or password")
 
     success, updated_hash = security.verify_password(password, user.hashed_password)
     if not success:
-        raise AuthenticationError(
-            "Incorrect email or password",
-            details={"headers": {"WWW-Authenticate": "Bearer"}},
-        )
+        raise BearerAuthenticationError("Incorrect email or password")
     if updated_hash:
         user.hashed_password = updated_hash
         session.add(user)

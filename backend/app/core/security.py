@@ -12,7 +12,7 @@ from zxcvbn import zxcvbn
 
 from app import schemas
 from app.core.config import settings
-from app.core.exceptions import AuthenticationError
+from app.core.exceptions import BearerAuthenticationError
 from app.core.types import SecurePassword
 
 password_hash = PasswordHash.recommended()
@@ -111,6 +111,4 @@ def decode_token(token: str) -> schemas.TokenData:
 
     except (InvalidTokenError, ValidationError) as e:
         logger.warning("Invalid token: %s", e)
-        raise AuthenticationError(
-            message="Invalid authentication credentials",
-        ) from None
+        raise BearerAuthenticationError("Invalid authentication credentials") from None

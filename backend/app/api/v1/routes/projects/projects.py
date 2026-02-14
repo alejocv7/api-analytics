@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from fastapi import APIRouter, Request, status
 
 from app import models, schemas
@@ -12,21 +10,38 @@ router = APIRouter()
 
 @router.get(
     "/",
-    response_model=Sequence[schemas.ProjectResponse],
+    response_model=schemas.ProjectListResponse,
     summary="List all projects",
     description="""
     Returns a list of all projects belonging to the authenticated user.
     """,
 )
 async def get_projects(
-    user: CurrentUserDep, session: SessionDep
-) -> Sequence[models.Project]:
-    return await project_service.get_user_projects(user.id, session)
+    user: CurrentUserDep,
+    session: SessionDep,
+    active_only: bool = False,
+    page: int = 1,
+    page_size: int = 20,
+) -> schemas.ProjectListResponse:
+    items = await project_service.get_user_projects(
+        user.id,
+        session,
+        active_only=active_only,
+        offset=(page - 1) * page_size,
+        limit=page_size,
+    )
+    total = await project_service.count_user_projects(
+        user.id, session, active_only=active_only
+    )
+    return schemas.ProjectListResponse(
+        items=items, total=total, page=page, page_size=page_size
+    )
 
 
 @router.post(
     "/",
     response_model=schemas.ProjectResponse,
+    status_code=status.HTTP_201_CREATED,
     summary="Create a new project",
     description="""
     Creates a new project for the authenticated user.

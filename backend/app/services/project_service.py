@@ -2,7 +2,7 @@ import logging
 import secrets
 from collections.abc import Sequence
 
-from sqlalchemy import exists, select, true
+from sqlalchemy import exists, func, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,6 +70,20 @@ async def get_user_projects(
     )
 
     return (await session.scalars(stmt)).all()
+
+
+async def count_user_projects(
+    user_id: int,
+    session: AsyncSession,
+    active_only: bool = False,
+) -> int:
+    """Count projects for a user."""
+    stmt = (
+        select(func.count(models.Project.id))
+        .where(models.Project.user_id == user_id)
+        .where(models.Project.is_active.is_(True) if active_only else true())
+    )
+    return (await session.scalar(stmt)) or 0
 
 
 async def update_user_project(

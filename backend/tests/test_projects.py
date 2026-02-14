@@ -12,7 +12,7 @@ async def test_create_project(client: AsyncClient, auth_headers):
         headers=auth_headers,
         json={"name": "Test Project", "description": "Project Description"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Test Project"
     assert "project_key" in data
@@ -37,7 +37,7 @@ async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_se
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 2
-    names = [p["name"] for p in data]
+    names = [p["name"] for p in data["items"]]
     assert "P1" in names
     assert "P2" in names
 

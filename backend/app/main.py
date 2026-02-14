@@ -34,6 +34,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
 
     yield
 
+    await db.async_engine.dispose()
     logger.info("Application shutting down!")
 
 

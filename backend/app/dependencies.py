@@ -50,10 +50,16 @@ async def get_project_id_by_api_key(
         )
     ).one_or_none()
 
+    # Prevent timing attacks by verifying the API key even when it doesn't exist.
+    # This ensures the response time is similar whether or not the API key exists.
+    key_hash = (
+        api_key_obj.key_hash if api_key_obj else config.settings.SECURITY_DUMMY_HASH
+    )
+
     if (
-        not api_key_obj
+        not security.compare_api_key(api_key, key_hash)
+        or not api_key_obj
         or not api_key_obj.is_valid
-        or not security.compare_api_key(api_key, api_key_obj.key_hash)
     ):
         raise AuthenticationError("Invalid API key")
     return api_key_obj.project_id

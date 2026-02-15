@@ -59,8 +59,8 @@ app.include_router(v1_router, prefix=settings.API_V1_STR)
 
 # Middleware (Executed in reverse order)
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(MetricMiddleware)
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(MetricMiddleware)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 
 # Security Middlewares
@@ -76,7 +76,6 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=settings.TRUSTED_HOSTS,
 )
-
 app.add_middleware(SecurityHeadersMiddleware)
 
 

@@ -10,7 +10,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app import schemas
 from app.core import db
 from app.core.config import settings
-from app.services.metric_service import add_metric
+from app.services import metric_service, project_service
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ class MetricMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
         self._background_tasks: set[asyncio.Task[None]] = set()
+        self._project_id: int | None = None
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -34,7 +35,7 @@ class MetricMiddleware:
         path = scope.get("path", "")
         if (
             settings.ENVIRONMENT == "test"
-            or settings.PROJECT_ID == 0
+            or not settings.PROJECT_KEY
             or not self.API_TRACKING_PATTERN.match(path)
         ):
             await self.app(scope, receive, send)
@@ -72,13 +73,36 @@ class MetricMiddleware:
                 ip=ip,
             )
 
-            # Fire background metric logging using db session local context via manual
-            # background task. In pure ASGI we don't have response.background access
-            # easily without wrapping Starlette Response but we can just use
-            # asyncio.create_task since we're already non-blocking
-            task = asyncio.create_task(log_metric(settings.PROJECT_ID, metric))
+            # Fire background metric logging
+            task = asyncio.create_task(self.log_metric(metric))
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
+
+    async def log_metric(self, metric: schemas.MetricCreate) -> None:
+        """
+        Background task to log API metrics to the database.
+        Lazily resolves and caches the self-monitoring project ID.
+        """
+        try:
+            async with db.AsyncSessionLocal() as session:
+                if not self._project_id:
+                    project = await project_service.get_project_by_key(
+                        settings.PROJECT_KEY, session
+                    )
+                    if not project:
+                        logger.warning(
+                            "Self-monitoring project not found for key: %s",
+                            settings.PROJECT_KEY,
+                        )
+                        return
+
+                    # Cache project ID for future metrics
+                    self._project_id = project.id
+
+                await metric_service.add_metric(metric, self._project_id, session)
+
+        except Exception:
+            logger.exception("Failed to log metric in background")
 
 
 class LoggingMiddleware:
@@ -175,14 +199,3 @@ class SecurityHeadersMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_wrapper)
-
-
-async def log_metric(project_id: int, metric: schemas.MetricCreate) -> None:
-    """
-    Background task to log API metrics to the database.
-    """
-    try:
-        async with db.AsyncSessionLocal() as session:
-            await add_metric(metric, project_id, session)
-    except Exception:
-        logger.exception("Failed to log metric in background")

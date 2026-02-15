@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     setup_logging()
 
-    await db.init_db()
     if not await db.is_db_connected():
         raise RuntimeError("Database connection failed during startup")
     logger.info("Application started successfully!")

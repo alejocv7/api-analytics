@@ -19,13 +19,6 @@ from app.core.config import settings  # noqa
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set sqlalchemy.url from settings only if not already provided (e.g. tests).
-if not config.get_main_option("sqlalchemy.url"):
-    config.set_main_option(
-        "sqlalchemy.url", str(settings.ASYNC_SQLALCHEMY_DATABASE_URI)
-    )
-
-
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -43,6 +36,10 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def get_url() -> str:
+    return str(settings.ASYNC_SQLALCHEMY_DATABASE_URI)
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -55,7 +52,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = get_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -81,8 +78,10 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+    configuration = config.get_section(config.config_ini_section, {})
+    configuration["sqlalchemy.url"] = get_url()
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

@@ -5,6 +5,7 @@ from typing import Annotated, Any, ClassVar, Literal, Self
 from pydantic import (
     AnyUrl,
     BeforeValidator,
+    EmailStr,
     PostgresDsn,
     computed_field,
     model_validator,
@@ -44,7 +45,8 @@ class Settings(BaseSettings):
     )
 
     # Project
-    PROJECT_ID: int = 0
+    PROJECT_USER: EmailStr
+    PROJECT_KEY: str
     PROJECT_NAME: str = "API Analytics Service"
     PROJECT_DESCRIPTION: str = "Track and analyze API performance metrics"
     PROJECT_SUFFIX_LENGTH: int = 4

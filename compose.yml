@@ -21,10 +21,27 @@ services:
     depends_on:
       db:
         condition: service_healthy
-        restart: true
       redis:
         condition: service_healthy
-        restart: true
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ./scripts/migrate.sh
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:16-alpine

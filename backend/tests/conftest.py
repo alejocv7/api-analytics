@@ -7,40 +7,32 @@ import pytest
 import pytest_asyncio
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
-from sqlalchemy.engine import make_url
+from sqlalchemy import event, pool
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
 from alembic import command
+from app.core.config import settings
 
-os.environ.setdefault("ENVIRONMENT", "test")
+os.environ["ENVIRONMENT"] = "test"
 
 
 @pytest.fixture(scope="session")
 def postgres_container():
     with PostgresContainer("postgres:16-alpine") as pg:
-        # Make sure this is set before the settings are initialized
-        os.environ.update(
-            {
-                "POSTGRES_SERVER": pg.get_container_host_ip(),
-                "POSTGRES_PORT": str(pg.get_exposed_port(5432)),
-                "POSTGRES_DB": pg.dbname,
-                "POSTGRES_USER": pg.username,
-                "POSTGRES_PASSWORD": pg.password,
-            }
-        )
-
         yield pg
 
 
 @pytest.fixture(scope="session")
-def async_db_url(postgres_container):
-    return (
-        make_url(postgres_container.get_connection_url())
-        .set(drivername="postgresql+asyncpg")
-        .render_as_string(hide_password=False)
-    )
+def async_db_url(postgres_container) -> str:
+    settings.POSTGRES_SERVER = postgres_container.get_container_host_ip()
+    settings.POSTGRES_PORT = postgres_container.get_exposed_port(5432)
+    settings.POSTGRES_DB = postgres_container.dbname
+    settings.POSTGRES_USER = postgres_container.username
+    settings.POSTGRES_PASSWORD = postgres_container.password
+    settings.model_rebuild()
+
+    return str(settings.ASYNC_SQLALCHEMY_DATABASE_URI)
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -48,13 +40,12 @@ async def apply_migrations(async_db_url: str):
     project_root = Path(__file__).resolve().parent.parent
     alembic_cfg = Config(project_root / "alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", async_db_url)
-
     await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
 
 
 @pytest_asyncio.fixture(scope="session")
-async def engine(async_db_url):
-    engine = create_async_engine(async_db_url, pool_pre_ping=True)
+async def engine(async_db_url: str):
+    engine = create_async_engine(async_db_url, poolclass=pool.NullPool)
     yield engine
     await engine.dispose()
 

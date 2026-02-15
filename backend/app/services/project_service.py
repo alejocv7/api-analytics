@@ -42,14 +42,25 @@ async def create_user_project(
     return project
 
 
+async def get_project_by_key(
+    project_key: str, session: AsyncSession
+) -> models.Project | None:
+    result = await session.scalars(
+        select(models.Project).where(models.Project.project_key == project_key)
+    )
+    return result.one_or_none()
+
+
 async def get_user_project_by_key(
     user_id: int, project_key: str, session: AsyncSession
 ) -> models.Project | None:
-    stmt = select(models.Project).where(
-        models.Project.user_id == user_id,
-        models.Project.project_key == project_key,
+    result = await session.scalars(
+        select(models.Project).where(
+            models.Project.user_id == user_id,
+            models.Project.project_key == project_key,
+        )
     )
-    return (await session.scalars(stmt)).one_or_none()
+    return result.one_or_none()
 
 
 async def get_user_projects(

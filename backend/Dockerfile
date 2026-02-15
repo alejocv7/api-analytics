@@ -36,6 +36,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy the application into the container.
 COPY ./backend/pyproject.toml ./backend/alembic.ini ./backend/README.md /app/backend/
+COPY ./backend/scripts /app/backend/scripts
+COPY ./backend/alembic /app/backend/alembic
 COPY ./backend/app /app/backend/app
 
 # Sync the project

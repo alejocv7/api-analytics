@@ -4,7 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
-from app.models import Base
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +30,3 @@ async def is_db_connected() -> bool:
         return True
     except Exception:
         return False
-
-
-async def init_db() -> None:
-    try:
-        async with async_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("Successfully initialized database")
-    except Exception:
-        logger.exception("Error initializing database")
-        raise

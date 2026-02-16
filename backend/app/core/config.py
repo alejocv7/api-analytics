@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     AnyUrl,
@@ -91,47 +91,13 @@ class Settings(BaseSettings):
         )
 
     # Security
-    CSP_STRICT: ClassVar[dict[str, str]] = {
-        "default-src": "'self'",
-        "script-src": "'self'",
-        "style-src": "'self'",
-        "img-src": "'self' data: https:",
-        "connect-src": "'self'",
-        "font-src": "'self'",
-        "object-src": "'none'",
-        "base-uri": "'self'",
-        "form-action": "'self'",
-        "frame-ancestors": "'none'",
-        "upgrade-insecure-requests": "",
-    }
-    CSP_BASIC: ClassVar[dict[str, str]] = {
-        "default-src": "'self'",
-        "script-src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-        "style-src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-        "font-src": "'self' data: https://cdn.jsdelivr.net",
-        "connect-src": "'self' https://cdn.jsdelivr.net",
-        "img-src": "'self' data: https://fastapi.tiangolo.com",
-    }
-    CSP_BY_ENV: ClassVar[dict[str, dict[str, str]]] = {
-        "local": CSP_BASIC,
-        "staging": CSP_STRICT,
-        "test": CSP_STRICT,
-        "prod": CSP_STRICT,
-    }
-
     @computed_field  # type: ignore[prop-decorator]
     @property
     def security_headers(self) -> dict[str, str]:
-        csp_directives = self.CSP_BY_ENV.get(self.ENVIRONMENT, self.CSP_STRICT)
-        csp = "; ".join(f"{k} {v}".strip() for k, v in csp_directives.items()) + ";"
-
         headers = {
-            "Content-Security-Policy": csp,
+            # Basic security headers suitable for an API
             "X-Content-Type-Options": "nosniff",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-            "Permissions-Policy": (
-                "geolocation=(), microphone=(), camera=(), payment=()"
-            ),
+            "Content-Security-Policy": "frame-ancestors 'none';",
         }
 
         if self.IS_PRODUCTION:

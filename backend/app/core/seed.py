@@ -60,7 +60,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
 
         project = models.Project(
             name=f"{settings.PROJECT_NAME} Self-Monitoring",
-            description="Automatic metrics for this API instance",
+            description=settings.PROJECT_DESCRIPTION,
             project_key=settings.PROJECT_KEY,
             user_id=user.id,
             is_active=True,

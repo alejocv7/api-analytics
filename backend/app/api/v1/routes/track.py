@@ -35,5 +35,5 @@ async def track_metric(
     """
     Track an API metric.
     """
-    logger.info("Tracking metric for project %s: %s", project_id, metric)
+    logger.info("Tracking metric for project %s", project_id)
     return await metric_service.add_metric(metric, project_id, session)

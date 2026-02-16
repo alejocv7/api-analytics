@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
-from app.core import security
+from app.core import security, utils
 from app.core.config import settings
 from app.core.exceptions import BadRequestError, BearerAuthenticationError
 from app.services import user_service
@@ -12,9 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 async def register(user: schemas.UserCreate, session: AsyncSession) -> models.User:
-    logger.info("Registration attempt for email: %s", user.email)
+    logger.info("Registration attempt")
     if await user_service.get_user_by_email(user.email, session):
-        logger.warning("Registration failed: Email already registered: %s", user.email)
+        logger.warning(
+            "Registration failed: Email already registered: %s", _mask_email(user.email)
+        )
         raise BadRequestError("Email already registered")
 
     hashed_password = security.hash_password(user.password.get_secret_value())
@@ -26,9 +28,7 @@ async def register(user: schemas.UserCreate, session: AsyncSession) -> models.Us
     await session.commit()
     await session.refresh(new_user)
 
-    logger.info(
-        "Registration successful for email: %s (user_id: %s)", user.email, new_user.id
-    )
+    logger.info("Registration successful (user_id: %s)", new_user.id)
     return new_user
 
 
@@ -40,18 +40,24 @@ def create_user_token(user: models.User) -> schemas.TokenResponse:
 async def authenticate_user(
     email: str, password: str, session: AsyncSession
 ) -> models.User:
-    logger.info("Authentication attempt for email: %s", email)
+    logger.info("Authentication attempt")
     user = await user_service.get_user_by_email(email, session)
     if not user or not user.is_active:
         # Prevent timing attacks by verifying password even when user doesn't exist.
         # This ensures the response time is similar whether or not the email exists.
         security.verify_password(password, settings.SECURITY_DUMMY_HASH)
-        logger.warning("Authentication failed: User not found or inactive: %s", email)
+        logger.warning(
+            "Authentication failed: User not found or inactive: %s",
+            utils.mask_email(email),
+        )
         raise BearerAuthenticationError("Incorrect email or password")
 
     success, updated_hash = security.verify_password(password, user.hashed_password)
     if not success:
-        logger.warning("Authentication failed: Incorrect password for email: %s", email)
+        logger.warning(
+            "Authentication failed: Incorrect password for email: %s",
+            utils.mask_email(email),
+        )
         raise BearerAuthenticationError("Incorrect email or password")
 
     if updated_hash:
@@ -60,5 +66,5 @@ async def authenticate_user(
         await session.commit()
         await session.refresh(user)
 
-    logger.info("Authentication successful for email: %s (user_id: %s)", email, user.id)
+    logger.info("Authentication successful (user_id: %s)", user.id)
     return user

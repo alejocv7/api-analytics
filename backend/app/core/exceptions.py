@@ -43,14 +43,17 @@ class APIError(Exception):
 
     status_code: int = 500
     message: str = "Internal Server Error"
+    headers: dict[str, str] | None = None
 
     def __init__(
         self,
         message: str | None = None,
         details: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ):
         self.message = message or self.message
         self.details = details or {}
+        self.headers = headers or self.__class__.headers
         super().__init__(self.message)
 
 
@@ -78,8 +81,10 @@ class AuthenticationError(APIError):
 class BearerAuthenticationError(AuthenticationError):
     """Authentication failed (401) with Bearer header."""
 
+    headers = {"WWW-Authenticate": "Bearer"}
+
     def __init__(self, message: str | None = None):
-        super().__init__(message, details={"headers": {"WWW-Authenticate": "Bearer"}})
+        super().__init__(message)
 
 
 class ForbiddenError(APIError):
@@ -132,6 +137,7 @@ async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse
             "error": exc.detail if isinstance(exc.detail, str) else "Request Error",
             "details": {} if isinstance(exc.detail, str) else exc.detail,
         },
+        headers=exc.headers,
     )
 
 
@@ -139,6 +145,7 @@ async def api_exception_handler(_: Request, exc: APIError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.message, "details": exc.details},
+        headers=exc.headers,
     )
 
 

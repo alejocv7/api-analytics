@@ -128,7 +128,7 @@ async def get_metrics_time_series(
         if isinstance(ts, str):
             ts = datetime.fromisoformat(ts)
         if ts.tzinfo is None:
-            ts = ts.replace(UTC)
+            ts = ts.replace(tzinfo=UTC)
 
         metrics_time_series.append(
             schemas.MetricTimeSeriesPointResponse(

@@ -138,10 +138,15 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_security_key(self) -> Self:
         key = self.SECURITY_KEY.strip()
-        if self.IS_PRODUCTION and (not key or key == "change_this"):
-            raise ValueError(
-                "SECURITY_KEY must be set to a secure value in production!"
-            )
+        if self.IS_PRODUCTION:
+            if len(key) < 32:
+                raise ValueError(
+                    "SECURITY_KEY must be at least 32 characters in production"
+                )
+            if key.lower() in ("changethis", "change_this", "secret", "password"):
+                raise ValueError(
+                    "SECURITY_KEY must be set to a secure value in production"
+                )
         self.SECURITY_KEY = key
         return self
 

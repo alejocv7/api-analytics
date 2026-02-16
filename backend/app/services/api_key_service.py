@@ -20,7 +20,7 @@ async def create_api_key(
         models.APIKey.project_id == project.id, models.APIKey.is_active.is_(True)
     )
 
-    active_keys_count = (await session.scalars(stmt)).one_or_none()
+    active_keys_count = await session.scalar(stmt) or 0
     if active_keys_count and active_keys_count >= settings.API_KEY_PROJECT_LIMIT:
         logger.warning(
             "API key creation failed: Limit reached for project_id: %s", project.id

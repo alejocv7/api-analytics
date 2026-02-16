@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-API analytics backend: multi-tenant service for tracking and analyzing API performance metrics. Built with Python 3.14, FastAPI, PostgreSQL (async via SQLAlchemy 2.0 + asyncpg), and Redis (rate limiting).
+API analytics backend: multi-tenant service for tracking and analyzing API performance metrics. Built with Python 3.14, Pydantic v2.12.5, FastAPI 0.128.0, SQLAlchemy 2.0.45, PostgreSQL (async via SQLAlchemy 2.0 + asyncpg), and Redis (rate limiting).
 
 ## Commands
 
@@ -60,7 +60,7 @@ Monorepo with a `uv` workspace. Root `pyproject.toml` declares `backend/` as the
 - **Dependency injection**: Routes use FastAPI `Depends()` with typed aliases (`SessionDep`, `CurrentUserDep`, `ProjectDep`). Override `get_db` in tests.
 - **Settings via pydantic-settings**: `Settings` class loads from `.env` files based on `ENVIRONMENT` env var. Config is a module-level singleton (`settings = Settings()`).
 - **Auth flow**: JWT tokens (HS256) for user auth, API keys (hashed with prefix lookup) for metric tracking via `X-API-Key` header.
-- **Multi-tenant**: Users own Projects, Projects have API Keys. The `project_key` URL param identifies projects. All project routes are scoped to the authenticated user.
+- **Multi-tenant**: Users own Projects, Projects have API Keys. The `project_key` URL param identifies projects. All project routes are scoped to the authenticated user. A project-to-user relationship is many-to-mant. Project-to-api-key relationship is one-to-many.
 
 ### Testing
 

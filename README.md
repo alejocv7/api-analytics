@@ -5,6 +5,7 @@ A production-ready, high-performance API analytics backend built with Python 3.1
 ## 🚀 Key Features
 
 - **Multi-tenant Architecture**: Support for multiple users and projects.
+  Project-to-user relationship is many-to-many. Project-to-api-key relationship is one-to-many.
 - **Secure API Key Management**: Hash-based API key storage with rotation support.
 - **High-Performance Tracking**: Asynchronous metric recording using FastAPIs background tasks.
 - **Advanced Analytics**: Aggregated statistics for response times, error rates, and throughput.

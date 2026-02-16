@@ -18,7 +18,9 @@ from app.core.exceptions import (
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{config.settings.API_PREFIX}/login")
+reusable_oauth2 = OAuth2PasswordBearer(
+    tokenUrl=f"{config.settings.API_PREFIX}/auth/login"
+)
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 

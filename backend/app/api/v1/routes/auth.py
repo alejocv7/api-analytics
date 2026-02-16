@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Request, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app import models, schemas
 from app.core import rate_limits
@@ -43,10 +46,10 @@ async def register(
 @limiter.limit(rate_limits.AUTH_LOGIN)
 async def login(
     request: Request,  # noqa: ARG001
-    user_login: schemas.LoginRequest,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: SessionDep,
 ) -> schemas.TokenResponse:
     user = await auth_service.authenticate_user(
-        user_login.email, user_login.password.get_secret_value(), session
+        form_data.username, form_data.password, session
     )
     return auth_service.create_user_token(user)

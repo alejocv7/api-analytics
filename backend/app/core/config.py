@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     # Project
     PROJECT_USER: EmailStr
+    PROJECT_PASSWORD: str
     PROJECT_KEY: str
     PROJECT_NAME: str = "API Analytics Service"
     PROJECT_DESCRIPTION: str = "Track and analyze API performance metrics"

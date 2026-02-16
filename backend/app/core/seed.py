@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import secrets
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,9 +30,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
     user = await user_service.get_user_by_email(system_email, session)
     if not user:
         logger.info("Creating system user for self-monitoring...")
-        # Random secure password for system user (it won't be used for login)
-        random_pwd = secrets.token_urlsafe(32)
-        hashed_password = security.hash_password(random_pwd)
+        hashed_password = security.hash_password(settings.PROJECT_PASSWORD)
         user = models.User(
             email=system_email,
             hashed_password=hashed_password,

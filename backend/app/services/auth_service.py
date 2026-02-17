@@ -15,7 +15,8 @@ async def register(user: schemas.UserCreate, session: AsyncSession) -> models.Us
     logger.info("Registration attempt")
     if await user_service.get_user_by_email(user.email, session):
         logger.warning(
-            "Registration failed: Email already registered: %s", _mask_email(user.email)
+            "Registration failed: Email already registered: %s",
+            utils.mask_email(user.email),
         )
         raise BadRequestError("Email already registered")
 

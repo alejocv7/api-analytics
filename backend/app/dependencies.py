@@ -67,7 +67,13 @@ async def get_project_id_by_api_key(
     ):
         raise AuthenticationError("Invalid API key")
 
+    # Set project_id in request state for limiter
     request.state.project_id = api_key_obj.project_id
+
+    # Record API key usage
+    api_key_obj.record_usage()
+    await session.commit()
+
     return api_key_obj.project_id
 
 

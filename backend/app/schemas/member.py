@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from app.models.user_project import ProjectRole
+from app.schemas.pagination import PaginatedResponse
 
 AssignableRole = Literal[ProjectRole.member, ProjectRole.viewer]
 
@@ -51,10 +52,4 @@ class MemberResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class MemberListResponse(BaseModel):
-    """Response for listing project members."""
-
-    items: list[MemberResponse]
-    total: int
-    page: int
-    page_size: int
+MemberListResponse = PaginatedResponse[MemberResponse]

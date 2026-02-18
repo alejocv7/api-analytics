@@ -1,9 +1,15 @@
-from fastapi import APIRouter, Query, Request, status
+from fastapi import APIRouter, Request, status
 
 from app import models, schemas
 from app.core import rate_limits
 from app.core.rate_limiter import _get_user_key, limiter
-from app.dependencies import CurrentUserDep, OwnerProjectDep, ProjectDep, SessionDep
+from app.dependencies import (
+    CurrentUserDep,
+    OwnerProjectDep,
+    ProjectDep,
+    SessionDep,
+)
+from app.schemas import PaginationQuery
 from app.services import project_service
 
 router = APIRouter()
@@ -20,22 +26,24 @@ router = APIRouter()
 async def get_projects(
     user: CurrentUserDep,
     session: SessionDep,
+    pagination: PaginationQuery,
     active_only: bool = False,
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> schemas.ProjectListResponse:
     items = await project_service.get_user_projects(
         user.id,
         session,
         active_only=active_only,
-        offset=(page - 1) * page_size,
-        limit=page_size,
+        offset=pagination.offset,
+        limit=pagination.page_size,
     )
     total = await project_service.count_user_projects(
         user.id, session, active_only=active_only
     )
     return schemas.ProjectListResponse(
-        items=items, total=total, page=page, page_size=page_size
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
 

@@ -5,6 +5,8 @@ from pydantic import (
     Field,
 )
 
+from app.schemas.pagination import PaginatedResponse
+
 
 class APIKeyBase(BaseModel):
     """Base API key schema."""
@@ -95,16 +97,4 @@ class APIKeyCreateResponse(APIKeyResponse):
     )
 
 
-class APIKeyListResponse(BaseModel):
-    """Response for list of API keys."""
-
-    items: list[APIKeyResponse]
-    total: int
-    page: int
-    page_size: int
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 20}]
-        }
-    )
+APIKeyListResponse = PaginatedResponse[APIKeyResponse]

@@ -6,6 +6,7 @@ from pydantic import (
 )
 
 from app.core.config import settings
+from app.schemas.pagination import PaginatedResponse
 
 
 class ProjectBase(BaseModel):
@@ -121,16 +122,4 @@ class ProjectDetailResponse(ProjectResponse):
     )
 
 
-class ProjectListResponse(BaseModel):
-    """Response for list of projects."""
-
-    items: list[ProjectResponse]
-    total: int
-    page: int
-    page_size: int
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 20}]
-        }
-    )
+ProjectListResponse = PaginatedResponse[ProjectResponse]

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Query, Request, status
+from fastapi import APIRouter, Request, status
 
 from app import models, schemas
 from app.core import rate_limits
 from app.core.rate_limiter import _get_user_key, limiter
 from app.dependencies import ProjectDep, SessionDep
+from app.schemas import PaginationQuery
 from app.services import api_key_service
 
 router = APIRouter()
@@ -43,16 +44,22 @@ async def create_api_key(
 async def list_api_keys(
     project: ProjectDep,
     session: SessionDep,
+    pagination: PaginationQuery,
     active_only: bool = False,
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> schemas.APIKeyListResponse:
     items = await api_key_service.list_api_keys(
-        project.id, session, active_only, offset=(page - 1) * page_size, limit=page_size
+        project.id,
+        session,
+        active_only,
+        offset=pagination.offset,
+        limit=pagination.page_size,
     )
     total = await api_key_service.count_api_keys(project.id, session, active_only)
     return schemas.APIKeyListResponse(
-        items=items, total=total, page=page, page_size=page_size
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
 

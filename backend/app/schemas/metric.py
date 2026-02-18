@@ -17,6 +17,7 @@ from app.core.types import (
     get_default_end_date,
     get_default_start_date,
 )
+from app.schemas.pagination import PaginatedResponse, PaginationParams
 
 
 class MetricBase(BaseModel):
@@ -160,7 +161,7 @@ class MetricEndpointStatsResponse(PerformanceStatsMixin):
     )
 
 
-class MetricParams(BaseModel):
+class MetricParams(PaginationParams):
     start_date: AwareDatetime = Field(
         default_factory=get_default_start_date,
         description="Start date (defaults to beginning of today)",
@@ -212,46 +213,6 @@ class MetricTimeSeriesParams(MetricParams):
 MetricTimeSeriesQuery = Annotated[MetricTimeSeriesParams, Query()]
 
 
-class MetricListResponse(BaseModel):
-    """Response for list of raw metrics."""
-
-    items: list[MetricResponse]
-    total: int
-    page: int
-    page_size: int
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 1000}]
-        }
-    )
-
-
-class MetricTimeSeriesListResponse(BaseModel):
-    """Response for list of time-series points."""
-
-    items: list[MetricTimeSeriesPointResponse]
-    total: int
-    page: int
-    page_size: int
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 1000}]
-        }
-    )
-
-
-class MetricEndpointStatsListResponse(BaseModel):
-    """Response for list of endpoint statistics."""
-
-    items: list[MetricEndpointStatsResponse]
-    total: int
-    page: int
-    page_size: int
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 1000}]
-        }
-    )
+MetricListResponse = PaginatedResponse[MetricResponse]
+MetricTimeSeriesListResponse = PaginatedResponse[MetricTimeSeriesPointResponse]
+MetricEndpointStatsListResponse = PaginatedResponse[MetricEndpointStatsResponse]

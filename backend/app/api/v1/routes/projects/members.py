@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, status
 
 from app import models, schemas
 from app.dependencies import OwnerProjectDep, ProjectDep, SessionDep
+from app.schemas import PaginationQuery
 from app.services import member_service
 
 router = APIRouter()
@@ -39,15 +40,17 @@ async def add_member(
 async def list_members(
     project: ProjectDep,
     session: SessionDep,
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    pagination: PaginationQuery,
 ) -> schemas.MemberListResponse:
     items = await member_service.list_members(
-        project.id, session, offset=(page - 1) * page_size, limit=page_size
+        project.id, session, offset=pagination.offset, limit=pagination.page_size
     )
     total = await member_service.count_members(project.id, session)
     return schemas.MemberListResponse(
-        items=list(items), total=total, page=page, page_size=page_size
+        items=list(items),
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
 

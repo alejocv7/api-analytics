@@ -3,7 +3,7 @@ from fastapi import APIRouter, Query, Request, status
 from app import models, schemas
 from app.core import rate_limits
 from app.core.rate_limiter import _get_user_key, limiter
-from app.dependencies import CurrentUserDep, ProjectDep, SessionDep
+from app.dependencies import CurrentUserDep, OwnerProjectDep, ProjectDep, SessionDep
 from app.services import project_service
 
 router = APIRouter()
@@ -81,7 +81,7 @@ async def get_project(project: ProjectDep) -> models.Project:
     """,
 )
 async def update_project(
-    project: ProjectDep,
+    project: OwnerProjectDep,
     update_data: schemas.ProjectUpdate,
     session: SessionDep,
 ) -> models.Project:
@@ -101,7 +101,7 @@ async def update_project(
 @limiter.limit(rate_limits.DATA_DELETE, key_func=_get_user_key)
 async def delete_project(
     request: Request,  # noqa: ARG001
-    project: ProjectDep,
+    project: OwnerProjectDep,
     session: SessionDep,
 ) -> None:
     await project_service.delete_user_project(project, session)

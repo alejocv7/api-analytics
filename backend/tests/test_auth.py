@@ -46,9 +46,10 @@ async def test_register_duplicate_email(client: AsyncClient, test_user):
 
 
 async def test_login_success(client: AsyncClient, test_user):
+    # Login uses OAuth2PasswordRequestForm: form data with `username` field
     response = await client.post(
         "/api/v1/auth/login",
-        json={"email": test_user.email, "password": "Password123!"},
+        data={"username": test_user.email, "password": "Password123!"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -59,7 +60,7 @@ async def test_login_success(client: AsyncClient, test_user):
 async def test_login_invalid_credentials(client: AsyncClient, test_user):
     response = await client.post(
         "/api/v1/auth/login",
-        json={"email": test_user.email, "password": "WrongPassword"},
+        data={"username": test_user.email, "password": "WrongPassword"},
     )
     assert response.status_code == 401
     assert "Incorrect email or password" in response.json()["error"]

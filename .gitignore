@@ -155,7 +155,7 @@ activemq-data/
 
 # Environments
 .DS_Store
-.env*
+.env
 .envrc
 .venv
 env/
@@ -221,3 +221,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Claude Code
+.claude

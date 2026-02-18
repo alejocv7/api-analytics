@@ -10,10 +10,15 @@ if TYPE_CHECKING:
     from app.models.api_key import APIKey
     from app.models.metric import Metric
     from app.models.user import User
+    from app.models.user_project import UserProject
 
 
 class Project(Base, TimestampMixin):
-    """Projects belong to users. Each project represents an app being tracked."""
+    """Projects belong to users. Each project represents an app being tracked.
+
+    The canonical owner is stored in `user_id`. All user-project relationships
+    (including ownership) are also reflected in the `user_projects` junction table.
+    """
 
     __tablename__ = "projects"
 
@@ -25,8 +30,15 @@ class Project(Base, TimestampMixin):
     )
     description: Mapped[str | None] = mapped_column(String(1000))
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    owner: Mapped[User] = relationship(back_populates="projects")
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
+    owner: Mapped[User] = relationship(back_populates="owned_projects")
+
+    members: Mapped[list[UserProject]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
     api_keys: Mapped[list[APIKey]] = relationship(
         back_populates="project", cascade="all, delete-orphan"

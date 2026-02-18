@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -17,10 +17,8 @@ async def test_create_api_key_limit(monkeypatch):
 
     monkeypatch.setattr(settings, "API_KEY_PROJECT_LIMIT", 5)
 
-    # Mock session.scalars to be awaited and return a result with one_or_none
-    mock_res = MagicMock()
-    mock_res.one_or_none.return_value = 5  # Already 5 active keys
-    session.scalars.return_value = mock_res
+    # Service uses `await session.scalar(stmt) or 0` after the Step 1 fix
+    session.scalar.return_value = 5  # Already 5 active keys
 
     with pytest.raises(ConflictError) as exc:
         await api_key_service.create_api_key(key_in, project, session)

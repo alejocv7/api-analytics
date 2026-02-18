@@ -7,6 +7,12 @@ from app.schemas.api_key import (
 )
 from app.schemas.auth import LoginRequest, TokenData, TokenResponse
 from app.schemas.health import HealthResponse
+from app.schemas.member import (
+    MemberAdd,
+    MemberListResponse,
+    MemberResponse,
+    MemberUpdate,
+)
 from app.schemas.metric import (
     MetricCreate,
     MetricEndpointStatsListResponse,
@@ -41,6 +47,11 @@ __all__ = [
     "HealthResponse",
     # Auth
     "LoginRequest",
+    # Member
+    "MemberAdd",
+    "MemberListResponse",
+    "MemberResponse",
+    "MemberUpdate",
     # Metrics
     "MetricCreate",
     "MetricEndpointStatsListResponse",

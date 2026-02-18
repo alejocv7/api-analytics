@@ -45,14 +45,14 @@ Monorepo with a `uv` workspace. Root `pyproject.toml` declares `backend/` as the
 ### Backend Structure (`backend/app/`)
 
 - **`main.py`** — FastAPI app factory with lifespan, middleware stack, and router registration
-- **`dependencies.py`** — FastAPI dependency injection: `SessionDep`, `CurrentUserDep`, `ProjectDep`, `ProjectIdDep`. All DB access flows through `get_db()` dependency
+- **`dependencies.py`** — FastAPI dependency injection: `SessionDep`, `CurrentUserDep`, `ProjectDep`, `OwnerProjectDep`, `ProjectIdDep`. All DB access flows through `get_db()` dependency
 - **`middleware.py`** — Custom ASGI middleware: logging, metrics timing, security headers
 - **`health.py`** — Health check endpoint at `/health`
 - **`core/`** — Configuration (`config.py` with pydantic-settings `Settings`), DB engine/session setup (`db.py`), security utilities (`security.py`), rate limiting (`rate_limiter.py`), custom exceptions (`exceptions.py`), logging config
-- **`models/`** — SQLAlchemy 2.0 async models: `User`, `Project`, `APIKey`, `Metric`
+- **`models/`** — SQLAlchemy 2.0 async models: `User`, `Project`, `APIKey`, `Metric`, `UserProject` (junction table)
 - **`schemas/`** — Pydantic v2 request/response schemas
-- **`services/`** — Business logic layer: `auth_service`, `user_service`, `project_service`, `api_key_service`, `metric_service`
-- **`api/v1/routes/`** — Route handlers organized by domain. Projects sub-router includes `projects.py`, `api_keys.py`, `metrics.py`
+- **`services/`** — Business logic layer: `auth_service`, `user_service`, `project_service`, `api_key_service`, `metric_service`, `member_service`
+- **`api/v1/routes/`** — Route handlers organized by domain. Projects sub-router includes `projects.py`, `api_keys.py`, `metrics.py`, `members.py`
 
 ### Key Patterns
 
@@ -60,7 +60,11 @@ Monorepo with a `uv` workspace. Root `pyproject.toml` declares `backend/` as the
 - **Dependency injection**: Routes use FastAPI `Depends()` with typed aliases (`SessionDep`, `CurrentUserDep`, `ProjectDep`). Override `get_db` in tests.
 - **Settings via pydantic-settings**: `Settings` class loads from `.env` files based on `ENVIRONMENT` env var. Config is a module-level singleton (`settings = Settings()`).
 - **Auth flow**: JWT tokens (HS256) for user auth, API keys (hashed with prefix lookup) for metric tracking via `X-API-Key` header.
-- **Multi-tenant**: Users own Projects, Projects have API Keys. The `project_key` URL param identifies projects. All project routes are scoped to the authenticated user. A project-to-user relationship is many-to-mant. Project-to-api-key relationship is one-to-many.
+- **Multi-tenant**: Users own Projects, Projects have API Keys. The `project_key` URL param identifies projects. All project routes are scoped to the authenticated user.
+  - **Ownership**: Each project has exactly one owner stored as `Project.user_id` FK. An owner cannot have two projects with the same name.
+  - **Membership**: All user-project relationships (including ownership) are recorded in the `user_projects` junction table with roles: `owner`, `member`, `viewer`. Viewers and members may have access to multiple projects with the same name from different owners.
+  - **Access control**: `ProjectDep` grants access to any user with a junction table entry. `OwnerProjectDep` restricts to the project owner only (mutating operations).
+  - Project-to-api-key relationship is one-to-many.
 
 ### Testing
 
@@ -75,3 +79,29 @@ Monorepo with a `uv` workspace. Root `pyproject.toml` declares `backend/` as the
 ### Ruff Lint Rules
 
 Configured in `backend/pyproject.toml`. Notable enforced rules: `DTZ` (datetime timezone safety), `T201` (no print statements), `ARG001` (no unused function args). Alembic directory is excluded.
+
+## Development Standards
+
+### Testing Requirements
+
+Every code change must be backed by a test. Choose the appropriate level:
+
+- **Unit tests** (`tests/unit/`) for isolated business logic, service methods, and utilities.
+- **Integration tests** (`tests/`) for route handlers, DB interactions, and multi-component flows.
+
+Do not submit a change without a corresponding test that covers the new or modified behavior.
+
+### Code Quality
+
+- **Readable**: Write code that is clear and self-explanatory. Prefer explicit names over abbreviations.
+- **No duplication**: Extract shared logic into helpers or services. Do not copy-paste code blocks.
+- **Focused**: Each function or method should do one thing. Keep functions small and purposeful.
+- **Consistent**: Follow existing patterns in the codebase (naming conventions, error handling, async style).
+
+### Linting and Formatting
+
+To ensure code quality, always run the following commands before submitting a change, then fix any issues:
+
+- `uv run ruff check .`
+- `uv run mypy .`
+- `uv run pytest`

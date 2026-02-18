@@ -10,6 +10,7 @@ from app import models, schemas
 from app.core.config import settings
 from app.core.exceptions import ConflictError
 from app.core.utils import apply_update
+from app.models.user_project import ProjectRole
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,11 @@ async def create_user_project(
 
     try:
         session.add(project)
+        await session.flush()  # get project.id without committing
+        owner_membership = models.UserProject(
+            user_id=user_id, project_id=project.id, role=ProjectRole.owner
+        )
+        session.add(owner_membership)
         await session.commit()
         logger.info("Project created: %s (user_id: %s)", project_key, user_id)
     except IntegrityError as e:
@@ -55,8 +61,10 @@ async def get_user_project_by_key(
     user_id: int, project_key: str, session: AsyncSession
 ) -> models.Project | None:
     result = await session.scalars(
-        select(models.Project).where(
-            models.Project.user_id == user_id,
+        select(models.Project)
+        .join(models.UserProject, models.UserProject.project_id == models.Project.id)
+        .where(
+            models.UserProject.user_id == user_id,
             models.Project.project_key == project_key,
         )
     )
@@ -74,7 +82,8 @@ async def get_user_projects(
 
     stmt = (
         select(models.Project)
-        .where(models.Project.user_id == user_id)
+        .join(models.UserProject, models.UserProject.project_id == models.Project.id)
+        .where(models.UserProject.user_id == user_id)
         .where(models.Project.is_active.is_(True) if active_only else true())
         .offset(offset)
         .limit(limit)
@@ -91,7 +100,8 @@ async def count_user_projects(
     """Count projects for a user."""
     stmt = (
         select(func.count(models.Project.id))
-        .where(models.Project.user_id == user_id)
+        .join(models.UserProject, models.UserProject.project_id == models.Project.id)
+        .where(models.UserProject.user_id == user_id)
         .where(models.Project.is_active.is_(True) if active_only else true())
     )
     return (await session.scalar(stmt)) or 0

@@ -92,12 +92,13 @@ async def test_per_user_rate_limit_isolation(
 
 async def test_auth_rate_limiting_by_ip(client: AsyncClient):
     """Test that auth endpoints are rate limited by IP."""
-    # Login endpoint is 10/minute
+    # Login endpoint is 10/minute.
+    # Must use OAuth2 form data (not JSON) so requests reach the rate limiter.
     responses = []
     for _ in range(11):
         response = await client.post(
             "/api/v1/auth/login",
-            json={"email": "test@example.com", "password": "wrong"},
+            data={"username": "test@example.com", "password": "wrong"},
         )
         responses.append(response)
 

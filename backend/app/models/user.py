@@ -6,6 +6,7 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.models.user_project import UserProject
 
 
 class User(Base, TimestampMixin):
@@ -23,6 +24,10 @@ class User(Base, TimestampMixin):
 
     is_active: Mapped[bool] = mapped_column(default=True)
 
-    projects: Mapped[list[Project]] = relationship(
+    owned_projects: Mapped[list[Project]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
+    )
+
+    shared_projects: Mapped[list[UserProject]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )

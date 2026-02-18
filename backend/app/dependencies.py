@@ -1,7 +1,7 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
-from fastapi import Depends, Security
+from fastapi import Depends, Path, Security
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,9 +92,9 @@ CurrentUserDep = Annotated[models.User, Depends(get_current_user)]
 
 
 async def get_user_project(
-    project_key: str,
     user: CurrentUserDep,
     session: SessionDep,
+    project_key: str = Path(...),
 ) -> models.Project:
     # Avoid circular import
     from app.services import project_service
@@ -108,3 +108,16 @@ async def get_user_project(
 
 
 ProjectDep = Annotated[models.Project, Depends(get_user_project)]
+
+
+async def get_owner_project(
+    project: ProjectDep,
+    user: CurrentUserDep,
+) -> models.Project:
+    """Dependency that restricts access to the project owner only."""
+    if project.user_id != user.id:
+        raise ForbiddenError("Only the project owner can perform this action")
+    return project
+
+
+OwnerProjectDep = Annotated[models.Project, Depends(get_owner_project)]

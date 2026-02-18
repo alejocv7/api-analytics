@@ -27,7 +27,7 @@ Exception conventions:
 """
 
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import HTTPException, RequestValidationError
@@ -41,9 +41,9 @@ logger = logging.getLogger(__name__)
 class APIError(Exception):
     """Base class for all API errors."""
 
-    status_code: int = 500
-    message: str = "Internal Server Error"
-    headers: dict[str, str] | None = None
+    STATUS_CODE: ClassVar[int] = 500
+    MESSAGE: ClassVar[str] = "Internal Server Error"
+    HEADERS: ClassVar[dict[str, str] | None] = None
 
     def __init__(
         self,
@@ -51,61 +51,62 @@ class APIError(Exception):
         details: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ):
-        self.message = message or self.message
+        self.status_code = self.STATUS_CODE
+        self.message = message or self.MESSAGE
         self.details = details or {}
-        self.headers = headers or self.__class__.headers
+
+        base_headers = headers or self.HEADERS
+        self.headers = dict(base_headers) if base_headers else None
+
         super().__init__(self.message)
 
 
 class NotFoundError(APIError):
     """Resource not found (404)."""
 
-    status_code = status.HTTP_404_NOT_FOUND
-    message = "Resource not found"
+    STATUS_CODE = status.HTTP_404_NOT_FOUND
+    MESSAGE = "Resource not found"
 
 
 class ConflictError(APIError):
     """Resource conflict - duplicate or constraint violation (409)."""
 
-    status_code = status.HTTP_409_CONFLICT
-    message = "Resource conflict"
+    STATUS_CODE = status.HTTP_409_CONFLICT
+    MESSAGE = "Resource conflict"
 
 
 class AuthenticationError(APIError):
     """Authentication failed (401)."""
 
-    status_code = status.HTTP_401_UNAUTHORIZED
-    message = "Authentication failed"
+    STATUS_CODE = status.HTTP_401_UNAUTHORIZED
+    MESSAGE = "Authentication failed"
 
 
 class BearerAuthenticationError(AuthenticationError):
     """Authentication failed (401) with Bearer header."""
 
-    headers = {"WWW-Authenticate": "Bearer"}
-
-    def __init__(self, message: str | None = None):
-        super().__init__(message)
+    HEADERS: ClassVar[dict[str, str] | None] = {"WWW-Authenticate": "Bearer"}
 
 
 class ForbiddenError(APIError):
     """Forbidden (403)."""
 
-    status_code = status.HTTP_403_FORBIDDEN
-    message = "Forbidden"
+    STATUS_CODE = status.HTTP_403_FORBIDDEN
+    MESSAGE = "Forbidden"
 
 
 class BadRequestError(APIError):
     """Invalid request data or business logic violation (400)."""
 
-    status_code = status.HTTP_400_BAD_REQUEST
-    message = "Bad request"
+    STATUS_CODE = status.HTTP_400_BAD_REQUEST
+    MESSAGE = "Bad request"
 
 
 class RateLimitError(APIError):
     """Rate limit exceeded (429)."""
 
-    status_code = status.HTTP_429_TOO_MANY_REQUESTS
-    message = "Rate limit exceeded"
+    STATUS_CODE = status.HTTP_429_TOO_MANY_REQUESTS
+    MESSAGE = "Rate limit exceeded"
 
 
 def register_exceptions(app: FastAPI) -> None:

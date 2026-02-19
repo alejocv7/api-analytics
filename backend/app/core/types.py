@@ -9,9 +9,7 @@ def get_default_start_date() -> AwareDatetime:
 
 
 def get_default_end_date() -> AwareDatetime:
-    return datetime.now(UTC).replace(
-        hour=23, minute=59, second=59, microsecond=999999
-    )
+    return datetime.now(UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
 
 
 def normalize_url_path(url_path: str) -> str:

@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.exceptions import register_exceptions
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
+from app.core.scheduler import MetricCleanupScheduler
 from app.health import router as health_router
 from app.middleware import (
     LoggingMiddleware,
@@ -25,26 +26,43 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_logging()
 
     if not await db.is_db_connected():
         raise RuntimeError("Database connection failed during startup")
+
+    cleanup_scheduler = MetricCleanupScheduler()
+    cleanup_scheduler.start()
+
     logger.info("Application started successfully!")
 
     yield
 
-    await db.async_engine.dispose()
     logger.info("Application shutting down!")
+
+    logger.info("Shutdown: stopping metric cleanup scheduler")
+    await cleanup_scheduler.stop(
+        timeout_seconds=settings.SHUTDOWN_TASKS_CANCEL_TIMEOUT_SECONDS
+    )
+
+    if metric_middleware := getattr(app.state, "metric_middleware", None):
+        logger.info("Shutdown: draining in-flight metric background tasks")
+        await metric_middleware.drain_background_tasks(
+            timeout_seconds=settings.SHUTDOWN_TASKS_CANCEL_TIMEOUT_SECONDS
+        )
+
+    logger.info("Shutdown: disposing database engine")
+    await db.async_engine.dispose()
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.PROJECT_DESCRIPTION,
     lifespan=lifespan,
-    docs_url=None if settings.IS_PRODUCTION else "/docs",
-    redoc_url=None if settings.IS_PRODUCTION else "/redoc",
-    openapi_url=None if settings.IS_PRODUCTION else "/openapi.json",
+    docs_url="/docs" if settings.SHOW_DOCS else None,
+    redoc_url="/redoc" if settings.SHOW_DOCS else None,
+    openapi_url="/openapi.json" if settings.SHOW_DOCS else None,
 )
 
 # Exception handlers
@@ -60,7 +78,7 @@ app.include_router(v1_router, prefix=settings.API_V1_STR)
 # Middleware (Executed in reverse order)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(MetricMiddleware)
+app.add_middleware(MetricMiddleware, app_state=app.state)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 
 # Security Middlewares

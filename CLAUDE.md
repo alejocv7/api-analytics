@@ -82,26 +82,52 @@ Configured in `backend/pyproject.toml`. Notable enforced rules: `DTZ` (datetime 
 
 ## Development Standards
 
-### Testing Requirements
+### Production-Readiness Contract (Non-Negotiable)
 
-Every code change must be backed by a test. Choose the appropriate level:
+Never optimize for "make it work quickly" over long-term quality. All delivered code must be production ready.
 
-- **Unit tests** (`tests/unit/`) for isolated business logic, service methods, and utilities.
-- **Integration tests** (`tests/`) for route handlers, DB interactions, and multi-component flows.
+- **Root cause first**: Fix the actual issue, not just symptoms.
+- **No hacks**: Do not ship temporary patches, brittle workarounds, TODO-based behavior, or placeholder logic.
+- **Safe failure modes**: Handle errors explicitly with meaningful exceptions and messages. Never silently swallow errors.
+- **Maintainable by default**: Prefer clear, boring, well-factored solutions over clever shortcuts.
+- **Respect existing architecture**: Follow established layering (routes -> services -> models/core) and dependency patterns.
+- **Security baseline**: No hardcoded secrets, no leaking sensitive values, and no unsafe shortcuts around auth/authorization.
+- **Backward compatibility**: Do not introduce breaking API or data behavior unless the task explicitly requires it.
 
-Do not submit a change without a corresponding test that covers the new or modified behavior.
-
-### Code Quality
+### Implementation Expectations
 
 - **Readable**: Write code that is clear and self-explanatory. Prefer explicit names over abbreviations.
 - **No duplication**: Extract shared logic into helpers or services. Do not copy-paste code blocks.
 - **Focused**: Each function or method should do one thing. Keep functions small and purposeful.
 - **Consistent**: Follow existing patterns in the codebase (naming conventions, error handling, async style).
+- **Typed correctly**: Avoid `Any`-driven shortcuts and type ignores unless absolutely necessary and justified in comments.
+- **No hidden behavior changes**: When refactoring, preserve semantics unless the task explicitly asks for behavior changes.
 
-### Linting and Formatting
+### Testing Requirements
 
-To ensure code quality, use the `code-quality-verifier` subagent to confirm your changes make sure it knows to run the following commands:
+Every code change must be backed by tests that prove behavior and guard against regressions.
+
+- **Unit tests** (`tests/unit/`) for isolated business logic, service methods, and utilities.
+- **Integration tests** (`tests/`) for route handlers, DB interactions, and multi-component flows.
+- **Bug fixes require regression tests**: Add or update a test that would fail before the fix and pass after it.
+- **Coverage scope**: Test happy path, failure path, and authorization/validation boundaries when applicable.
+
+Do not submit a change without a corresponding test that covers the new or modified behavior.
+
+### Validation and Quality Gates
+
+To validate and ensure code standards, use the `code-quality-verifier` subagent to check changes. Don't run these commands yourself; have the subagent run and report:
 
 - `uv run ruff check .`
 - `uv run mypy .`
 - `uv run pytest`
+
+A task is not complete until these checks pass, tests are relevant to the change, and no new lint/type failures are introduced.
+
+### Explicitly Prohibited Shortcuts
+
+- Disabling lint/type/test checks to force a green result.
+- Broad `except Exception` blocks without re-raise or deliberate handling.
+- Silently returning fallback values that hide failures.
+- Hardcoding environment-specific values in application code.
+- Shipping dead code, commented-out production logic, or partial implementations.

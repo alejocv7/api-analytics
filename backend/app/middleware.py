@@ -3,6 +3,7 @@ import logging
 import re
 import time
 from http import HTTPMethod
+from typing import Any
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -22,10 +23,14 @@ class MetricMiddleware:
 
     API_TRACKING_PATTERN = re.compile(r"/api/v\d+/(?!track)")
 
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, app_state: Any = None) -> None:
         self.app = app
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._project_id: int | None = None
+        self._project_id_lock: asyncio.Lock = asyncio.Lock()
+
+        if app_state is not None:
+            app_state.metric_middleware = self
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -53,56 +58,85 @@ class MetricMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            process_time = (time.perf_counter() - start_time) * 1000
+            try:
+                process_time = (time.perf_counter() - start_time) * 1000
 
-            headers = Headers(scope=scope)
-            user_agent = headers.get("user-agent", "unknown")
+                headers = Headers(scope=scope)
+                user_agent = headers.get("user-agent", "unknown")
 
-            ip = None
-            if "x-forwarded-for" in headers:
-                ip = headers["x-forwarded-for"].split(",")[0].strip()
-            elif scope.get("client"):
-                ip = scope["client"][0]
+                ip = None
+                if "x-forwarded-for" in headers:
+                    ip = headers["x-forwarded-for"].split(",")[0].strip()
+                elif scope.get("client"):
+                    ip = scope["client"][0]
 
-            metric = schemas.MetricCreate(
-                url_path=path,
-                method=HTTPMethod(scope["method"]),
-                response_status_code=status_code,
-                response_time_ms=process_time,
-                user_agent=user_agent,
-                ip=ip,
-            )
+                metric = schemas.MetricCreate(
+                    url_path=path,
+                    method=HTTPMethod(scope["method"]),
+                    response_status_code=status_code,
+                    response_time_ms=process_time,
+                    user_agent=user_agent,
+                    ip=ip,
+                )
 
-            # Fire background metric logging
-            task = asyncio.create_task(self.log_metric(metric))
-            self._background_tasks.add(task)
-            task.add_done_callback(self._background_tasks.discard)
+                task = asyncio.create_task(self.log_metric(metric))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
+            except Exception:
+                logger.exception("Failed to schedule metric background task")
 
     async def log_metric(self, metric: schemas.MetricCreate) -> None:
         """
         Background task to log API metrics to the database.
-        Lazily resolves and caches the self-monitoring project ID.
+
+        Lazily resolves and caches the self-monitoring project ID using
+        double-checked locking to prevent redundant DB lookups under
+        concurrent burst traffic on cold start.
         """
         try:
             async with db.AsyncSessionLocal() as session:
                 if not self._project_id:
-                    project = await project_service.get_project_by_key(
-                        settings.PROJECT_KEY, session
-                    )
-                    if not project:
-                        logger.warning(
-                            "Self-monitoring project not found for key: %s",
-                            settings.PROJECT_KEY,
-                        )
-                        return
+                    async with self._project_id_lock:
+                        if not self._project_id:
+                            project = await project_service.get_project_by_key(
+                                settings.PROJECT_KEY, session
+                            )
+                            if not project:
+                                logger.warning(
+                                    "Self-monitoring project not found for key: %s",
+                                    settings.PROJECT_KEY,
+                                )
+                                return
 
-                    # Cache project ID for future metrics
-                    self._project_id = project.id
+                            self._project_id = project.id
 
                 await metric_service.add_metric(metric, self._project_id, session)
 
         except Exception:
             logger.exception("Failed to log metric in background")
+
+    async def drain_background_tasks(self, timeout_seconds: float) -> None:
+        """Wait for in-flight metric tasks and cancel leftovers on timeout."""
+        tasks = set(self._background_tasks)
+        if not tasks:
+            return
+
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True),
+                timeout=timeout_seconds,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Timed out draining %d metric background tasks; "
+                "cancelling pending tasks",
+                len(tasks),
+            )
+
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
 
 class LoggingMiddleware:
@@ -123,7 +157,6 @@ class LoggingMiddleware:
         client = scope.get("client")
         client_ip = client[0] if client else "unknown"
 
-        # Log request start
         logger.info(
             "Request started: %s %s",
             method,
@@ -147,7 +180,6 @@ class LoggingMiddleware:
             await self.app(scope, receive, send_wrapper)
             process_time = (time.perf_counter() - start_time) * 1000
 
-            # Log response
             logger.info(
                 "Request finished: %s %s - %s (%.2fms)",
                 method,
@@ -170,7 +202,7 @@ class LoggingMiddleware:
                 extra={
                     "http_method": method,
                     "http_path": path,
-                    "error": f"{e!s}",
+                    "error": str(e),
                     "process_time_ms": round(process_time, 2),
                 },
             )

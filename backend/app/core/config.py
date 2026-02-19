@@ -6,6 +6,7 @@ from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
+    Field,
     PostgresDsn,
     computed_field,
     model_validator,
@@ -60,6 +61,11 @@ class Settings(BaseSettings):
     @property
     def IS_PRODUCTION(self) -> bool:
         return self.ENVIRONMENT == "prod"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SHOW_DOCS(self) -> bool:
+        return not self.IS_PRODUCTION
 
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
@@ -134,6 +140,12 @@ class Settings(BaseSettings):
     API_KEY_LOOKUP_PREFIX_LENGTH: int = 20
     API_KEY_PROJECT_LIMIT: int = 10
     API_KEY_DEFAULT_EXPIRY_DAYS: int = 60
+
+    # Metric cleanup scheduler
+    METRIC_CLEANUP_INTERVAL_HOURS: int = Field(default=24, ge=1)
+    METRIC_RETENTION_DAYS: int = Field(default=90, ge=30, le=365)
+
+    SHUTDOWN_TASKS_CANCEL_TIMEOUT_SECONDS: int = Field(default=5, ge=1, le=60)
 
     @model_validator(mode="after")
     def validate_security_key(self) -> Self:

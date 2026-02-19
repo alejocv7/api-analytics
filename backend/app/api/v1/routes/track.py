@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 
 from app import models, schemas
 from app.core import rate_limits
-from app.core.rate_limiter import _get_project_key, limiter
+from app.core.rate_limiter import get_project_key, limiter
 from app.dependencies import ProjectIdDep, SessionDep
 from app.services import metric_service
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
     The API key must be sent in the `X-API-Key` header.
     """,
 )
-@limiter.limit(rate_limits.TRACK, key_func=_get_project_key)
+@limiter.limit(rate_limits.TRACK, key_func=get_project_key)
 async def track_metric(
     request: Request,  # noqa: ARG001
     metric: schemas.MetricCreate,

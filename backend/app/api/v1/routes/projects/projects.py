@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, status
 
 from app import models, schemas
 from app.core import rate_limits
-from app.core.rate_limiter import _get_user_key, limiter
+from app.core.rate_limiter import get_user_key, limiter
 from app.dependencies import (
     CurrentUserDep,
     OwnerProjectDep,
@@ -58,7 +58,7 @@ async def get_projects(
     Each project is used to group metrics and can have multiple associated API keys.
     """,
 )
-@limiter.limit(rate_limits.DATA_WRITE, key_func=_get_user_key)
+@limiter.limit(rate_limits.DATA_WRITE, key_func=get_user_key)
 async def create_project(
     request: Request,  # noqa: ARG001
     project_in: schemas.ProjectCreate,
@@ -106,7 +106,7 @@ async def update_project(
     This action is irreversible!
     """,
 )
-@limiter.limit(rate_limits.DATA_DELETE, key_func=_get_user_key)
+@limiter.limit(rate_limits.DATA_DELETE, key_func=get_user_key)
 async def delete_project(
     request: Request,  # noqa: ARG001
     project: OwnerProjectDep,

@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 
 from app.core import rate_limits
-from app.core.rate_limiter import _get_project_key, _get_user_key
+from app.core.rate_limiter import get_project_key, get_user_key
 
 
 class MockUser:
@@ -22,59 +22,59 @@ class MockRequest:
 
 
 def test_get_user_key_with_user():
-    """Test _get_user_key returns user-based key when user is set."""
+    """Test get_user_key returns user-based key when user is set."""
     request = MockRequest()
     request.state.user = MockUser(42)
 
-    key = _get_user_key(request)  # type: ignore[arg-type]
+    key = get_user_key(request)  # type: ignore[arg-type]
 
     assert key == "user:42"
 
 
 def test_get_user_key_without_user():
-    """Test _get_user_key falls back to IP when user is not set."""
+    """Test get_user_key falls back to IP when user is not set."""
     request = MockRequest()
 
-    key = _get_user_key(request)  # type: ignore[arg-type]
+    key = get_user_key(request)  # type: ignore[arg-type]
 
     assert key == "127.0.0.1"
 
 
 def test_get_user_key_with_none_user():
-    """Test _get_user_key falls back to IP when user is None."""
+    """Test get_user_key falls back to IP when user is None."""
     request = MockRequest()
     request.state.user = None
 
-    key = _get_user_key(request)  # type: ignore[arg-type]
+    key = get_user_key(request)  # type: ignore[arg-type]
 
     assert key == "127.0.0.1"
 
 
 def test_get_project_key_with_project():
-    """Test _get_project_key returns project-based key when project_id is set."""
+    """Test get_project_key returns project-based key when project_id is set."""
     request = MockRequest()
     request.state.project_id = 123
 
-    key = _get_project_key(request)  # type: ignore[arg-type]
+    key = get_project_key(request)  # type: ignore[arg-type]
 
     assert key == "project:123"
 
 
 def test_get_project_key_without_project():
-    """Test _get_project_key falls back to IP when project_id is not set."""
+    """Test get_project_key falls back to IP when project_id is not set."""
     request = MockRequest()
 
-    key = _get_project_key(request)  # type: ignore[arg-type]
+    key = get_project_key(request)  # type: ignore[arg-type]
 
     assert key == "127.0.0.1"
 
 
 def test_get_project_key_with_none_project():
-    """Test _get_project_key falls back to IP when project_id is None."""
+    """Test get_project_key falls back to IP when project_id is None."""
     request = MockRequest()
     request.state.project_id = None
 
-    key = _get_project_key(request)  # type: ignore[arg-type]
+    key = get_project_key(request)  # type: ignore[arg-type]
 
     assert key == "127.0.0.1"
 

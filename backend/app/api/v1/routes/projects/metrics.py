@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 
 from app import schemas
 from app.core import rate_limits
-from app.core.rate_limiter import _get_user_key, limiter
+from app.core.rate_limiter import get_user_key, limiter
 from app.dependencies import ProjectDep, SessionDep
 from app.services import metric_service
 
@@ -17,7 +17,7 @@ router = APIRouter()
     Retrieves a list of individual metrics recorded for the project.
     """,
 )
-@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics(
     request: Request,  # noqa: ARG001
     params: schemas.MetricQuery,
@@ -42,7 +42,7 @@ async def read_metrics(
     Calculates overall performance statistics for the project.
     """,
 )
-@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_summary(
     request: Request,  # noqa: ARG001
     params: schemas.MetricQuery,
@@ -60,7 +60,7 @@ async def read_metrics_summary(
     Retrieves aggregated metrics grouped by a specified time granularity.
     """,
 )
-@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_time_series(
     request: Request,  # noqa: ARG001
     params: schemas.MetricTimeSeriesQuery,
@@ -85,7 +85,7 @@ async def read_metrics_time_series(
     Retrieves performance statistics grouped by endpoint (URL path and method).
     """,
 )
-@limiter.limit(rate_limits.DATA_READ, key_func=_get_user_key)
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_endpoints_stats(
     request: Request,  # noqa: ARG001
     params: schemas.MetricQuery,

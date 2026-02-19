@@ -118,7 +118,8 @@ Do not submit a change without a corresponding test that covers the new or modif
 
 To validate and ensure code standards, use the `code-quality-verifier` subagent to check changes. Don't run these commands yourself; have the subagent run and report:
 
-- `uv run ruff check .`
+- `uv run ruff check --fix .`
+- `uv run ruff format .`
 - `uv run mypy .`
 - `uv run pytest`
 

@@ -49,6 +49,7 @@ async def test_rate_limit_response_format(client: AsyncClient):
     assert "error" in data
     assert data["error"] == "Rate limit exceeded"
     assert "details" in data
+    assert "request_id" in data
 
     # Check Retry-After header
     assert "retry-after" in response.headers

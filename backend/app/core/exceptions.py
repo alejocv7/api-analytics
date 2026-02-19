@@ -35,7 +35,18 @@ from fastapi.responses import JSONResponse
 from pydantic_core import ValidationError
 from slowapi.errors import RateLimitExceeded
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
+
+
+def register_exceptions(app: FastAPI) -> None:
+    app.exception_handler(RateLimitExceeded)(rate_limit_handler)
+    app.exception_handler(HTTPException)(http_exception_handler)
+    app.exception_handler(APIError)(api_exception_handler)
+    app.exception_handler(RequestValidationError)(validation_exception_handler)
+    app.exception_handler(ValidationError)(validation_exception_handler)
+    app.exception_handler(Exception)(generic_exception_handler)
 
 
 class APIError(Exception):
@@ -109,15 +120,6 @@ class RateLimitError(APIError):
     MESSAGE = "Rate limit exceeded"
 
 
-def register_exceptions(app: FastAPI) -> None:
-    app.exception_handler(RateLimitExceeded)(rate_limit_handler)
-    app.exception_handler(HTTPException)(http_exception_handler)
-    app.exception_handler(APIError)(api_exception_handler)
-    app.exception_handler(RequestValidationError)(validation_exception_handler)
-    app.exception_handler(ValidationError)(validation_exception_handler)
-    app.exception_handler(Exception)(generic_exception_handler)
-
-
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception(
         "Unhandled exception on %s %s: %s",
@@ -127,31 +129,40 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"error": "Internal Server Error", "details": {}},
+        content={
+            "error": "Internal Server Error",
+            "details": {},
+            "request_id": request.headers.get(settings.REQUEST_ID_HEADER),
+        },
     )
 
 
-async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
         content={
             "error": exc.detail if isinstance(exc.detail, str) else "Request Error",
             "details": {} if isinstance(exc.detail, str) else exc.detail,
+            "request_id": request.headers.get(settings.REQUEST_ID_HEADER),
         },
         headers=exc.headers,
     )
 
 
-async def api_exception_handler(_: Request, exc: APIError) -> JSONResponse:
+async def api_exception_handler(request: Request, exc: APIError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": exc.message, "details": exc.details},
+        content={
+            "error": exc.message,
+            "details": exc.details,
+            "request_id": request.headers.get(settings.REQUEST_ID_HEADER),
+        },
         headers=exc.headers,
     )
 
 
 async def validation_exception_handler(
-    _: Request, exc: RequestValidationError | ValidationError
+    request: Request, exc: RequestValidationError | ValidationError
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -161,13 +172,19 @@ async def validation_exception_handler(
                 {"field": error["loc"], "message": error["msg"]}
                 for error in exc.errors()
             ],
+            "request_id": request.headers.get(settings.REQUEST_ID_HEADER),
         },
     )
 
 
-async def rate_limit_handler(_: Request, exc: RateLimitExceeded) -> JSONResponse:
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    retry_after = str(exc.limit.limit.get_expiry()) if exc.limit else "60"
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        content={"error": "Rate limit exceeded", "details": str(exc)},
-        headers={"Retry-After": "60"},
+        content={
+            "error": "Rate limit exceeded",
+            "details": str(exc),
+            "request_id": request.headers.get(settings.REQUEST_ID_HEADER),
+        },
+        headers={"Retry-After": retry_after},
     )

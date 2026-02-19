@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     PROJECT_SUFFIX_LENGTH: int = 4
     PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
 
+    REQUEST_ID_HEADER: str = "X-Request-ID"
+
     # Environment
     ENVIRONMENT: Literal["local", "staging", "test", "prod"] = "local"
 

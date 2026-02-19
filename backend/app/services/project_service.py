@@ -1,5 +1,4 @@
 import logging
-import secrets
 from collections.abc import Sequence
 
 from sqlalchemy import exists, func, select, true
@@ -7,7 +6,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
-from app.core.config import settings
 from app.core.exceptions import ConflictError
 from app.core.utils import apply_update
 from app.models.user_project import ProjectRole
@@ -20,11 +18,9 @@ async def create_user_project(
     project_in: schemas.ProjectCreate,
     session: AsyncSession,
 ) -> models.Project:
-    project_key = _generate_project_key(project_in.name)
     project = models.Project(
         name=project_in.name,
         description=project_in.description,
-        project_key=project_key,
         user_id=user_id,
     )
 
@@ -36,7 +32,7 @@ async def create_user_project(
         )
         session.add(owner_membership)
         await session.commit()
-        logger.info("Project created: %s (user_id: %s)", project_key, user_id)
+        logger.info("Project created: %s (user_id: %s)", project.project_key, user_id)
     except IntegrityError as e:
         await session.rollback()
         logger.warning(
@@ -144,17 +140,5 @@ async def delete_user_project(
     project: models.Project,
     session: AsyncSession,
 ) -> None:
-    project_key = project.project_key
-    user_id = project.user_id
     await session.delete(project)
     await session.commit()
-    logger.info("Project deleted: %s (user_id: %s)", project_key, user_id)
-
-
-def _generate_project_key(name: str) -> str:
-    """Generate a project key for a project."""
-    return (
-        name.lower().replace(" ", "-")
-        + "-"
-        + secrets.token_hex(settings.PROJECT_SUFFIX_LENGTH)
-    )

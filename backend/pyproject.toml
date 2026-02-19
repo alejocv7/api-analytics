@@ -21,6 +21,7 @@ dependencies = [
     "colorlog>=6.10.1",
     "psycopg[binary]>=3.3.2",
     "asgi-correlation-id>=4.3.4",
+    "python-slugify>=8.0.4",
 ]
 
 [dependency-groups]

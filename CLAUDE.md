@@ -100,7 +100,7 @@ Do not submit a change without a corresponding test that covers the new or modif
 
 ### Linting and Formatting
 
-To ensure code quality, always run the following commands before submitting a change, then fix any issues:
+To ensure code quality, use the `code-quality-verifier` subagent to confirm your changes make sure it knows to run the following commands:
 
 - `uv run ruff check .`
 - `uv run mypy .`

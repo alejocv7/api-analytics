@@ -12,7 +12,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_create_api_key_limit(monkeypatch):
     session = AsyncMock()
-    project = models.Project(id=1)
+    project = models.Project(id=1, name="Test Project")
     key_in = schemas.APIKeyCreate(name="Limit Key")
 
     monkeypatch.setattr(settings, "API_KEY_PROJECT_LIMIT", 5)

@@ -20,9 +20,3 @@ async def test_update_project_name_exists():
     with pytest.raises(ConflictError) as exc:
         await project_service.update_user_project(project, update_data, session)
     assert "Project name already in use" in str(exc.value)
-
-
-async def test_generate_project_key():
-    key = project_service._generate_project_key("My Project")
-    assert "my-project" in key
-    assert len(key) > len("my-project")

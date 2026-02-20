@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, status
 from app import models, schemas
 from app.core import rate_limits
 from app.core.rate_limiter import get_user_key, limiter
-from app.dependencies import ProjectDep, SessionDep
+from app.dependencies import OwnerProjectDep, ProjectDep, SessionDep
 from app.schemas import PaginationQuery
 from app.services import api_key_service
 
@@ -26,7 +26,7 @@ router = APIRouter()
 async def create_api_key(
     request: Request,  # noqa: ARG001
     key_in: schemas.APIKeyCreate,
-    project: ProjectDep,
+    project: OwnerProjectDep,
     session: SessionDep,
 ) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.create_api_key(key_in, project, session)
@@ -88,7 +88,7 @@ async def get_api_key(
 async def update_api_key(
     api_key_id: int,
     update_data: schemas.APIKeyUpdate,
-    project: ProjectDep,
+    project: OwnerProjectDep,
     session: SessionDep,
 ) -> models.APIKey:
     return await api_key_service.update_api_key(
@@ -112,7 +112,7 @@ async def update_api_key(
 async def rotate_api_key(
     request: Request,  # noqa: ARG001
     api_key_id: int,
-    project: ProjectDep,
+    project: OwnerProjectDep,
     session: SessionDep,
 ) -> schemas.APIKeyCreateResponse:
     api_key, plain_key = await api_key_service.rotate_api_key(
@@ -133,7 +133,7 @@ async def rotate_api_key(
 async def delete_api_key(
     request: Request,  # noqa: ARG001
     api_key_id: int,
-    project: ProjectDep,
+    project: OwnerProjectDep,
     session: SessionDep,
 ) -> None:
     await api_key_service.delete_api_key(api_key_id, project.id, session)

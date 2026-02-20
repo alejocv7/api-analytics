@@ -53,3 +53,33 @@ async def test_authenticate_user_wrong_password():
                 await auth_service.authenticate_user(
                     "test@example.com", "wrong", session
                 )
+
+
+async def test_authenticate_user_rehashes_password_when_needed():
+    """
+    When verify_password signals that the hash needs updating, the new hash
+    is persisted and the user is returned.
+    """
+    session = AsyncMock()
+    user = models.User(
+        id=1, email="test@example.com", hashed_password="old_hash", is_active=True
+    )
+    with (
+        patch(
+            "app.services.user_service.get_user_by_email",
+            new_callable=AsyncMock,
+            return_value=user,
+        ),
+        patch(
+            "app.core.security.verify_password",
+            return_value=(True, "new_hash"),
+        ),
+    ):
+        result = await auth_service.authenticate_user(
+            "test@example.com", "correct_password", session
+        )
+
+    assert user.hashed_password == "new_hash"
+    session.add.assert_called_once_with(user)
+    session.commit.assert_called_once()
+    assert result is user

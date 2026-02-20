@@ -12,7 +12,7 @@ hooks = [
   { 
     id = "local-mypy",
     name = "mypy",
-    entry = "uv run --directory backend mypy .",
+    entry = "uv run --directory backend/app mypy .",
     language = "system",
     files = "^backend/app/.*\\.py$",
     pass_filenames = false,

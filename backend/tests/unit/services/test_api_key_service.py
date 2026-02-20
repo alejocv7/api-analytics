@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -40,3 +41,39 @@ async def test_delete_last_active_key_fails():
         with pytest.raises(BadRequestError) as exc:
             await api_key_service.delete_api_key(api_key_id, project_id, session)
         assert "Cannot delete the last active API key" in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# APIKey.record_usage
+# ---------------------------------------------------------------------------
+
+
+def test_record_usage_increments_total_requests():
+    api_key = models.APIKey(name="Test", project_id=1, total_requests=0)
+    assert api_key.total_requests == 0
+
+    api_key.record_usage()
+
+    assert api_key.total_requests == 1
+    assert api_key.last_used_at is not None
+
+
+def test_record_usage_accumulates_across_calls():
+    api_key = models.APIKey(name="Test", project_id=1)
+    api_key.total_requests = 5
+
+    api_key.record_usage()
+    api_key.record_usage()
+
+    assert api_key.total_requests == 7
+
+
+def test_record_usage_sets_last_used_at_to_utc_now():
+    api_key = models.APIKey(name="Test", project_id=1, total_requests=0)
+    before = datetime.now(UTC)
+
+    api_key.record_usage()
+
+    after = datetime.now(UTC)
+    assert api_key.last_used_at is not None
+    assert before <= api_key.last_used_at <= after

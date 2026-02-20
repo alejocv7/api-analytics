@@ -13,7 +13,9 @@ from app.core.security import hash_ip
 
 
 @retry(
-    stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.1, min=0.1, max=2)
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=0.1, min=0.1, max=2),
+    reraise=True,
 )
 async def add_metric(
     metric_in: schemas.MetricCreate, project_id: int, session: AsyncSession

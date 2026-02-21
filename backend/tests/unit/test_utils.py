@@ -21,24 +21,24 @@ class _FakeModel:
 
 def test_apply_update_applies_only_explicitly_set_fields():
     model = _FakeModel(name="original", value=42)
-    update = _FakeUpdate(name="updated")  # value is not set
-    apply_update(model, update)
+    update = _FakeUpdate(name="updated")
+    apply_update(model, update)  # type: ignore[arg-type]
     assert model.name == "updated"
     assert model.value == 42  # untouched
 
 
 def test_apply_update_empty_update_changes_nothing():
     model = _FakeModel(name="original", value=42)
-    update = _FakeUpdate()  # nothing explicitly set
-    apply_update(model, update)
+    update = _FakeUpdate()
+    apply_update(model, update)  # type: ignore[arg-type]
     assert model.name == "original"
     assert model.value == 42
 
 
 def test_apply_update_explicit_none_is_applied():
     model = _FakeModel(name="original", value=42)
-    update = _FakeUpdate(name=None)  # None explicitly provided
-    apply_update(model, update)
+    update = _FakeUpdate(name=None)
+    apply_update(model, update)  # type: ignore[arg-type]
     assert model.name is None
     assert model.value == 42  # untouched
 
@@ -46,7 +46,7 @@ def test_apply_update_explicit_none_is_applied():
 def test_apply_update_all_fields():
     model = _FakeModel(name="original", value=42)
     update = _FakeUpdate(name="new", value=99)
-    apply_update(model, update)
+    apply_update(model, update)  # type: ignore[arg-type]
     assert model.name == "new"
     assert model.value == 99
 

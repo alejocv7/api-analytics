@@ -21,6 +21,15 @@ router = APIRouter()
     The response includes the plain-text API key. This is the **only time** the key
     will be shown, so make sure to save it safely.
     """,
+    responses={
+        400: {"model": schemas.ErrorResponse, "description": "API key limit reached"},
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_WRITE, key_func=get_user_key)
 async def create_api_key(
@@ -40,6 +49,11 @@ async def create_api_key(
     description="""
     Returns a list of all API keys associated with the project.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+    },
 )
 async def list_api_keys(
     project: ProjectDep,
@@ -70,6 +84,14 @@ async def list_api_keys(
     description="""
     Retrieves the metadata of a specific API key.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "API key or project not found",
+        },
+    },
 )
 async def get_api_key(
     api_key_id: int, project: ProjectDep, session: SessionDep
@@ -84,6 +106,18 @@ async def get_api_key(
     description="""
     Updates the metadata or status of an existing API key.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "API key or project not found",
+        },
+        422: {"model": schemas.ErrorResponse, "description": "Validation error"},
+    },
 )
 async def update_api_key(
     api_key_id: int,
@@ -107,6 +141,18 @@ async def update_api_key(
 
     The response includes the new plain-text API key.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "API key or project not found",
+        },
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.KEY_ROTATE, key_func=get_user_key)
 async def rotate_api_key(
@@ -128,6 +174,18 @@ async def rotate_api_key(
     description="""
     Permanently deletes an API key.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "API key or project not found",
+        },
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_DELETE, key_func=get_user_key)
 async def delete_api_key(

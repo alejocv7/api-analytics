@@ -22,6 +22,17 @@ router = APIRouter()
 
     Upon successful registration, use the credentials to login and obtain a JWT token.
     """,
+    responses={
+        400: {
+            "model": schemas.ErrorResponse,
+            "description": "Email already registered",
+        },
+        422: {
+            "model": schemas.ErrorResponse,
+            "description": "Validation error (weak password, invalid email)",
+        },
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.AUTH_REGISTER)
 async def register(
@@ -42,6 +53,10 @@ async def register(
     The returned token must be included in the `Authorization: Bearer <token>` header
     for all authenticated requests.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Invalid credentials"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.AUTH_LOGIN)
 async def login(

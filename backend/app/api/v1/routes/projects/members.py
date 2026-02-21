@@ -18,6 +18,21 @@ router = APIRouter()
 
     The `owner` role cannot be assigned via this endpoint.
     """,
+    responses={
+        400: {
+            "model": schemas.ErrorResponse,
+            "description": "User already a member or owner",
+        },
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "User or project not found",
+        },
+    },
 )
 async def add_member(
     member_in: schemas.MemberAdd,
@@ -36,6 +51,11 @@ async def add_member(
     description="""
     Returns all members of the project, including the owner.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+    },
 )
 async def list_members(
     project: ProjectDep,
@@ -47,7 +67,7 @@ async def list_members(
     )
     total = await member_service.count_members(project.id, session)
     return schemas.MemberListResponse(
-        items=list(items),
+        items=items,
         total=total,
         page=pagination.page,
         page_size=pagination.page_size,
@@ -62,6 +82,21 @@ async def list_members(
     Changes the role of an existing project member. Only the project owner can change
     roles. The owner's role cannot be changed, and the `owner` role cannot be assigned.
     """,
+    responses={
+        400: {
+            "model": schemas.ErrorResponse,
+            "description": "Cannot change owner role",
+        },
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "Member or project not found",
+        },
+    },
 )
 async def update_member_role(
     user_id: int,
@@ -83,6 +118,21 @@ async def update_member_role(
 
     The project owner cannot be removed.
     """,
+    responses={
+        400: {
+            "model": schemas.ErrorResponse,
+            "description": "Cannot remove project owner",
+        },
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "Member or project not found",
+        },
+    },
 )
 async def remove_member(
     user_id: int,

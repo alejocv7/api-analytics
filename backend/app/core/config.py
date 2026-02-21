@@ -1,4 +1,5 @@
 import os
+from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
@@ -12,6 +13,11 @@ from pydantic import (
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+try:
+    __VERSION__ = version("app")
+except Exception:
+    __VERSION__ = "1.0.0"
 
 
 def parse_list(v: Any) -> list[str] | str:
@@ -53,6 +59,8 @@ class Settings(BaseSettings):
     PROJECT_DESCRIPTION: str = "Track and analyze API performance metrics"
     PROJECT_SUFFIX_LENGTH: int = 4
     PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
+
+    VERSION: str = __VERSION__
 
     REQUEST_ID_HEADER: str = "X-Request-ID"
 

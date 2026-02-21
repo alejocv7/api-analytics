@@ -5,7 +5,8 @@ from app.schemas.api_key import (
     APIKeyResponse,
     APIKeyUpdate,
 )
-from app.schemas.auth import LoginRequest, TokenData, TokenResponse
+from app.schemas.auth import TokenData, TokenResponse
+from app.schemas.errors import ErrorResponse
 from app.schemas.health import HealthResponse
 from app.schemas.member import (
     MemberAdd,
@@ -44,10 +45,10 @@ __all__ = [
     "APIKeyListResponse",
     "APIKeyResponse",
     "APIKeyUpdate",
+    # Errors
+    "ErrorResponse",
     # Health
     "HealthResponse",
-    # Auth
-    "LoginRequest",
     # Member
     "MemberAdd",
     "MemberListResponse",

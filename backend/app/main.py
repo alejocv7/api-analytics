@@ -98,9 +98,12 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.get("/", tags=["root"])
-async def root() -> dict[str, str]:
+async def root() -> dict[str, str | None]:
     return {
-        "message": settings.PROJECT_NAME,
+        "service": settings.PROJECT_NAME,
         "description": settings.PROJECT_DESCRIPTION,
-        "docs": "/docs",
+        "version": settings.VERSION,
+        "docs": "/docs" if settings.SHOW_DOCS else None,
+        "redoc": "/redoc" if settings.SHOW_DOCS else None,
+        "openapi": "/openapi.json" if settings.SHOW_DOCS else None,
     }

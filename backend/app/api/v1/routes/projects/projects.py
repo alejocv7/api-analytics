@@ -22,6 +22,10 @@ router = APIRouter()
     description="""
     Returns a list of all projects belonging to the authenticated user.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 async def get_projects(
     user: CurrentUserDep,
@@ -57,6 +61,15 @@ async def get_projects(
 
     Each project is used to group metrics and can have multiple associated API keys.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        409: {
+            "model": schemas.ErrorResponse,
+            "description": "Project name already exists",
+        },
+        422: {"model": schemas.ErrorResponse, "description": "Validation error"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_WRITE, key_func=get_user_key)
 async def create_project(
@@ -75,6 +88,11 @@ async def create_project(
     description="""
     Retrieves the details of a specific project identified by its project key.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+    },
 )
 async def get_project(project: ProjectDep) -> models.Project:
     return project
@@ -87,6 +105,19 @@ async def get_project(project: ProjectDep) -> models.Project:
     description="""
     Updates the information of an existing project.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        409: {
+            "model": schemas.ErrorResponse,
+            "description": "Project name already exists",
+        },
+        422: {"model": schemas.ErrorResponse, "description": "Validation error"},
+    },
 )
 async def update_project(
     project: OwnerProjectDep,
@@ -105,6 +136,15 @@ async def update_project(
 
     This action is irreversible!
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {
+            "model": schemas.ErrorResponse,
+            "description": "Not owner of the project",
+        },
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_DELETE, key_func=get_user_key)
 async def delete_project(

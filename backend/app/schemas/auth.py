@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, SecretStr
+from pydantic import BaseModel, ConfigDict
 
 
 class TokenResponse(BaseModel):
@@ -33,24 +33,6 @@ class TokenData(BaseModel):
                     "user_id": 1,
                     "email": "[EMAIL_ADDRESS]",
                     "exp": 1738198800,
-                }
-            ]
-        }
-    )
-
-
-class LoginRequest(BaseModel):
-    """Schema for user login."""
-
-    email: EmailStr
-    password: SecretStr
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "email": "[EMAIL_ADDRESS]",
-                    "password": "[PASSWORD]",
                 }
             ]
         }

@@ -16,6 +16,12 @@ router = APIRouter()
     description="""
     Retrieves a list of individual metrics recorded for the project.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics(
@@ -41,6 +47,12 @@ async def read_metrics(
     description="""
     Calculates overall performance statistics for the project.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_summary(
@@ -59,6 +71,12 @@ async def read_metrics_summary(
     description="""
     Retrieves aggregated metrics grouped by a specified time granularity.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_time_series(
@@ -84,6 +102,12 @@ async def read_metrics_time_series(
     description="""
     Retrieves performance statistics grouped by endpoint (URL path and method).
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_endpoints_stats(

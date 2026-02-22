@@ -1,5 +1,5 @@
 import os
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
@@ -16,7 +16,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 try:
     __VERSION__ = version("app")
-except Exception:
+except PackageNotFoundError:
     __VERSION__ = "1.0.0"
 
 
@@ -125,6 +125,11 @@ class Settings(BaseSettings):
     SECURITY_KEY: str
     SECURITY_ALGORITHM: str = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    SECURITY_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    LOGIN_MAX_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_WINDOW_SECONDS: int = 900  # 15 minutes
+
     # Dummy hash to use for timing attack prevention when user is not found.
     # This is an Argon2 hash of a random password,
     # used to ensure constant-time comparison

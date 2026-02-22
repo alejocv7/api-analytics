@@ -13,6 +13,7 @@ from testcontainers.postgres import PostgresContainer
 
 from alembic import command
 from app.core.config import settings
+from tests.fakes import FakeAsyncRedis
 
 os.environ["ENVIRONMENT"] = "test"
 
@@ -70,15 +71,27 @@ async def db_session(engine):
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
-    """Create a test client that uses the test database."""
-    from app.dependencies import get_db
+async def fake_redis() -> FakeAsyncRedis:
+    """Fresh in-memory Redis substitute per test."""
+    return FakeAsyncRedis()
+
+
+@pytest_asyncio.fixture
+async def client(
+    db_session: AsyncSession, fake_redis: FakeAsyncRedis
+) -> AsyncGenerator[AsyncClient]:
+    """Create a test client that uses the test database and fake Redis."""
+    from app.dependencies import get_db, get_redis
     from app.main import app
 
     async def override_get_db():
         yield db_session
 
+    async def override_get_redis():
+        yield fake_redis
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_redis] = override_get_redis
 
     try:
         async with AsyncClient(
@@ -88,6 +101,19 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
             yield ac
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Reset slowapi's in-memory rate limit counters before each test.
+
+    Prevents rate limit state from bleeding across tests when the same IP
+    hits the same endpoint in multiple tests within the same process.
+    """
+    from app.core.rate_limiter import limiter
+
+    limiter.reset()
+    yield
 
 
 @pytest_asyncio.fixture

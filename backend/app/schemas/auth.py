@@ -2,9 +2,10 @@ from pydantic import BaseModel, ConfigDict
 
 
 class TokenResponse(BaseModel):
-    """JWT token."""
+    """JWT access + refresh token pair."""
 
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
     model_config = ConfigDict(
@@ -12,6 +13,7 @@ class TokenResponse(BaseModel):
             "examples": [
                 {
                     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                     "token_type": "bearer",
                 }
             ]
@@ -19,21 +21,30 @@ class TokenResponse(BaseModel):
     )
 
 
+class RefreshTokenRequest(BaseModel):
+    """Request body for the token refresh endpoint."""
+
+    refresh_token: str
+
+
 class TokenData(BaseModel):
-    """Data stored in JWT token."""
+    """Application identity extracted from a validated JWT token."""
 
     user_id: int
-    email: str
-    exp: int | None = None
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
                     "user_id": 1,
-                    "email": "[EMAIL_ADDRESS]",
-                    "exp": 1738198800,
                 }
             ]
         }
     )
+
+
+class RefreshTokenData(BaseModel):
+    """Claims extracted from a validated refresh token."""
+
+    user_id: int
+    token_version: int

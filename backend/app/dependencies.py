@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
+import redis.asyncio as redis
 from fastapi import Depends, Path, Security
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
@@ -30,6 +31,19 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
+
+
+async def get_redis() -> AsyncGenerator[redis.Redis]:
+    client: redis.Redis = redis.from_url(
+        config.settings.REDIS_URL, decode_responses=True
+    )
+    try:
+        yield client
+    finally:
+        await client.aclose()
+
+
+RedisDep = Annotated[redis.Redis, Depends(get_redis)]
 
 
 async def get_project_id_by_api_key(

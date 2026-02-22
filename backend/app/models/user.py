@@ -23,6 +23,7 @@ class User(Base, TimestampMixin):
     full_name: Mapped[str | None]
 
     is_active: Mapped[bool] = mapped_column(default=True)
+    refresh_token_version: Mapped[int] = mapped_column(default=0, server_default="0")
 
     owned_projects: Mapped[list[Project]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"

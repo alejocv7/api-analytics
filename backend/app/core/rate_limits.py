@@ -11,6 +11,7 @@ GLOBAL = "120/minute"
 # Auth endpoints (by IP — no user identity yet)
 AUTH_REGISTER = "5/minute"
 AUTH_LOGIN = "10/minute"
+AUTH_REFRESH = "10/minute"
 
 # Tracking endpoint (by API key project)
 TRACK = "100/minute"

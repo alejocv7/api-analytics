@@ -160,7 +160,7 @@ async def test_new_access_token_from_refresh_is_usable(client: AsyncClient, test
 
 
 async def test_failed_login_increments_counter(
-    client: AsyncClient, test_user, fake_redis
+    client: AsyncClient, test_user, async_redis_client
 ):
     """Each failed login attempt increments the Redis counter."""
     await client.post(
@@ -168,7 +168,7 @@ async def test_failed_login_increments_counter(
         data={"username": test_user.email, "password": "WrongPassword"},
     )
     key = f"login_attempts:{test_user.email}"
-    assert fake_redis._data.get(key, 0) == 1
+    assert await async_redis_client.get(key) == "1"
 
 
 async def test_account_locked_after_max_attempts(client: AsyncClient, test_user):
@@ -191,7 +191,7 @@ async def test_account_locked_after_max_attempts(client: AsyncClient, test_user)
 
 
 async def test_successful_login_resets_counter(
-    client: AsyncClient, test_user, fake_redis
+    client: AsyncClient, test_user, async_redis_client
 ):
     """A successful login clears the failed-attempt counter."""
     for _ in range(2):
@@ -201,11 +201,11 @@ async def test_successful_login_resets_counter(
         )
 
     key = f"login_attempts:{test_user.email}"
-    assert fake_redis._data.get(key, 0) == 2
+    assert await async_redis_client.get(key) == "2"
 
     response = await client.post(
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "Password123!"},
     )
     assert response.status_code == 200
-    assert fake_redis._data.get(key, 0) == 0
+    assert await async_redis_client.get(key) is None

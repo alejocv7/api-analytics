@@ -1,21 +1,19 @@
 import asyncio
-import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
+import redis.asyncio as async_redis
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event, pool
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
+from testcontainers.redis import RedisContainer
 
 from alembic import command
 from app.core.config import settings
-from tests.fakes import FakeAsyncRedis
-
-os.environ["ENVIRONMENT"] = "test"
 
 
 @pytest.fixture(scope="session")
@@ -34,6 +32,21 @@ def async_db_url(postgres_container) -> str:
     settings.model_rebuild()
 
     return settings.SQLALCHEMY_DATABASE_URI
+
+
+@pytest.fixture(scope="session")
+def redis_container():
+    with RedisContainer("redis:7-alpine") as redis_tc:
+        yield redis_tc
+
+
+@pytest.fixture(scope="session")
+def redis_url(redis_container) -> str:
+    settings.REDIS_HOST = redis_container.get_container_host_ip()
+    settings.REDIS_PORT = redis_container.get_exposed_port(6379)
+    settings.model_rebuild()
+
+    return settings.REDIS_URL
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -70,28 +83,42 @@ async def db_session(engine):
             await transaction.rollback()
 
 
-@pytest_asyncio.fixture
-async def fake_redis() -> FakeAsyncRedis:
-    """Fresh in-memory Redis substitute per test."""
-    return FakeAsyncRedis()
+@pytest_asyncio.fixture(scope="session")
+async def async_redis_client(redis_url: str):
+    client = async_redis.Redis.from_url(redis_url, decode_responses=True)
+    try:
+        yield client
+    finally:
+        await client.aclose()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def reset_rate_limiter(redis_url: str, async_redis_client: async_redis.Redis):
+    """Reset limiter and Redis state for integration tests."""
+    from app.core.rate_limiter import limiter
+    from tests.support.rate_limiter import configure_test_limiter_storage
+
+    configure_test_limiter_storage(redis_url)
+
+    await async_redis_client.flushdb()
+    limiter.reset()
+    yield
 
 
 @pytest_asyncio.fixture
 async def client(
-    db_session: AsyncSession, fake_redis: FakeAsyncRedis
+    db_session: AsyncSession,
+    async_redis_client: async_redis.Redis,
 ) -> AsyncGenerator[AsyncClient]:
-    """Create a test client that uses the test database and fake Redis."""
-    from app.core.redis import redis_manager
+    """Create a test client that uses testcontainers database and Redis."""
     from app.dependencies import get_db, get_redis
     from app.main import app
-
-    redis_manager.client = fake_redis  # type: ignore[assignment]
 
     async def override_get_db():
         yield db_session
 
     async def override_get_redis():
-        yield fake_redis
+        yield async_redis_client
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
@@ -104,20 +131,6 @@ async def client(
             yield ac
     finally:
         app.dependency_overrides.clear()
-        redis_manager.client = None
-
-
-@pytest.fixture(autouse=True)
-def reset_rate_limiter():
-    """Reset slowapi's in-memory rate limit counters before each test.
-
-    Prevents rate limit state from bleeding across tests when the same IP
-    hits the same endpoint in multiple tests within the same process.
-    """
-    from app.core.rate_limiter import limiter
-
-    limiter.reset()
-    yield
 
 
 @pytest_asyncio.fixture

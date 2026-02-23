@@ -33,7 +33,7 @@ def async_db_url(postgres_container) -> str:
     settings.POSTGRES_PASSWORD = postgres_container.password
     settings.model_rebuild()
 
-    return str(settings.ASYNC_SQLALCHEMY_DATABASE_URI)
+    return settings.SQLALCHEMY_DATABASE_URI
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -81,8 +81,11 @@ async def client(
     db_session: AsyncSession, fake_redis: FakeAsyncRedis
 ) -> AsyncGenerator[AsyncClient]:
     """Create a test client that uses the test database and fake Redis."""
+    from app.core.redis import redis_manager
     from app.dependencies import get_db, get_redis
     from app.main import app
+
+    redis_manager.client = fake_redis  # type: ignore[assignment]
 
     async def override_get_db():
         yield db_session
@@ -101,6 +104,7 @@ async def client(
             yield ac
     finally:
         app.dependency_overrides.clear()
+        redis_manager.client = None
 
 
 @pytest.fixture(autouse=True)

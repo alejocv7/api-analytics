@@ -16,6 +16,7 @@ from app.core.exceptions import (
     ForbiddenError,
     NotFoundError,
 )
+from app.core.redis import redis_manager
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -34,13 +35,9 @@ SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 async def get_redis() -> AsyncGenerator[redis.Redis]:
-    client: redis.Redis = redis.from_url(
-        config.settings.REDIS_URL, decode_responses=True
-    )
-    try:
-        yield client
-    finally:
-        await client.aclose()
+    if redis_manager.client is None:
+        raise RuntimeError("Redis is not initialized")
+    yield redis_manager.client
 
 
 RedisDep = Annotated[redis.Redis, Depends(get_redis)]

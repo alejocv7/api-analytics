@@ -8,7 +8,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 async_engine = create_async_engine(
-    str(settings.ASYNC_SQLALCHEMY_DATABASE_URI),
+    settings.SQLALCHEMY_DATABASE_URI,
     pool_pre_ping=True,
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,

@@ -9,6 +9,7 @@ from pydantic import (
     EmailStr,
     Field,
     PostgresDsn,
+    RedisDsn,
     computed_field,
     model_validator,
 )
@@ -26,12 +27,6 @@ def parse_list(v: Any) -> list[str] | str:
     elif isinstance(v, list | str):
         return v
     raise ValueError(v)
-
-
-def validate_redis_url(v: str) -> str:
-    if not any(v.startswith(p) for p in ["redis://", "rediss://", "memory://"]):
-        raise ValueError("REDIS_URL must start with redis://, rediss://, or memory://")
-    return v
 
 
 def get_env_file() -> Path:
@@ -89,7 +84,13 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
-    REDIS_URL: Annotated[str, BeforeValidator(validate_redis_url)]
+    # Redis
+    REDIS_DB: str = "0"
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str = ""
+    REDIS_POOL_SIZE: int = 20
+    REDIS_HEALTH_CHECK_INTERVAL: int = 30
 
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
@@ -97,14 +98,29 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def ASYNC_SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        return PostgresDsn.build(
-            scheme="postgresql+asyncpg",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
-            port=self.POSTGRES_PORT,
-            path=self.POSTGRES_DB,
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        return str(
+            PostgresDsn.build(
+                scheme="postgresql+asyncpg",
+                username=self.POSTGRES_USER,
+                password=self.POSTGRES_PASSWORD,
+                host=self.POSTGRES_SERVER,
+                port=self.POSTGRES_PORT,
+                path=self.POSTGRES_DB,
+            )
+        )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def REDIS_URL(self) -> str:
+        return str(
+            RedisDsn.build(
+                scheme="redis",
+                host=self.REDIS_HOST,
+                port=self.REDIS_PORT,
+                password=self.REDIS_PASSWORD,
+                path=self.REDIS_DB,
+            )
         )
 
     # Security

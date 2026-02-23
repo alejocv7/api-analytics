@@ -25,5 +25,8 @@ class FakeAsyncRedis:
     async def delete(self, key: str) -> int:
         return 1 if self._data.pop(key, None) is not None else 0
 
+    async def ping(self) -> bool:
+        return True
+
     async def aclose(self) -> None:
         pass

@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.exceptions import register_exceptions
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
+from app.core.redis import redis_manager
 from app.core.scheduler import MetricCleanupScheduler
 from app.health import router as health_router
 from app.middleware import (
@@ -31,6 +32,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     if not await db.is_db_connected():
         raise RuntimeError("Database connection failed during startup")
+
+    redis_manager.init()
+    if not await redis_manager.is_connected():
+        raise RuntimeError("Redis connection failed during startup")
 
     cleanup_scheduler = MetricCleanupScheduler()
     cleanup_scheduler.start()
@@ -54,6 +59,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     logger.info("Shutdown: disposing database engine")
     await db.async_engine.dispose()
+
+    logger.info("Shutdown: closing redis client")
+    await redis_manager.close()
 
 
 app = FastAPI(

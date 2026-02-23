@@ -2,6 +2,7 @@ import asyncio
 import logging
 import re
 import time
+import uuid
 from http import HTTPMethod
 from typing import Any
 
@@ -26,7 +27,7 @@ class MetricMiddleware:
     def __init__(self, app: ASGIApp, app_state: Any = None) -> None:
         self.app = app
         self._background_tasks: set[asyncio.Task[None]] = set()
-        self._project_id: int | None = None
+        self._project_id: uuid.UUID | None = None
         self._project_id_lock: asyncio.Lock = asyncio.Lock()
 
         if app_state is not None:

@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, status
 
 from app import models, schemas
@@ -99,7 +101,7 @@ async def list_members(
     },
 )
 async def update_member_role(
-    user_id: int,
+    user_id: uuid.UUID,
     role_update: schemas.MemberUpdate,
     project: OwnerProjectDep,
     session: SessionDep,
@@ -135,7 +137,7 @@ async def update_member_role(
     },
 )
 async def remove_member(
-    user_id: int,
+    user_id: uuid.UUID,
     project: OwnerProjectDep,
     session: SessionDep,
 ) -> None:

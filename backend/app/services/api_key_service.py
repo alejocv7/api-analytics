@@ -1,4 +1,5 @@
 import logging
+import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import func, select, true
@@ -40,7 +41,7 @@ async def create_api_key(
 
 
 async def list_api_keys(
-    project_id: int,
+    project_id: uuid.UUID,
     session: AsyncSession,
     active_only: bool = False,
     offset: int = 0,
@@ -60,7 +61,7 @@ async def list_api_keys(
 
 
 async def count_api_keys(
-    project_id: int,
+    project_id: uuid.UUID,
     session: AsyncSession,
     active_only: bool = False,
 ) -> int:
@@ -72,7 +73,7 @@ async def count_api_keys(
 
 
 async def get_api_key(
-    api_key_id: int, project_id: int, session: AsyncSession
+    api_key_id: uuid.UUID, project_id: uuid.UUID, session: AsyncSession
 ) -> models.APIKey:
     stmt = select(models.APIKey).where(
         models.APIKey.id == api_key_id,
@@ -85,9 +86,9 @@ async def get_api_key(
 
 
 async def update_api_key(
-    api_key_id: int,
+    api_key_id: uuid.UUID,
     update_data: schemas.APIKeyUpdate,
-    project_id: int,
+    project_id: uuid.UUID,
     session: AsyncSession,
 ) -> models.APIKey:
     api_key = await get_api_key(api_key_id, project_id, session)
@@ -101,7 +102,7 @@ async def update_api_key(
 
 
 async def rotate_api_key(
-    api_key_id: int, project_id: int, session: AsyncSession
+    api_key_id: uuid.UUID, project_id: uuid.UUID, session: AsyncSession
 ) -> tuple[models.APIKey, str]:
     old_key = await get_api_key(api_key_id, project_id, session)
     if not old_key.is_active or old_key.is_expired:
@@ -134,7 +135,7 @@ async def rotate_api_key(
 
 
 async def delete_api_key(
-    api_key_id: int, project_id: int, session: AsyncSession
+    api_key_id: uuid.UUID, project_id: uuid.UUID, session: AsyncSession
 ) -> None:
     api_key = await get_api_key(api_key_id, project_id, session)
 

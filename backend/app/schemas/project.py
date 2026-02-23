@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import (
     AwareDatetime,
     BaseModel,
@@ -61,9 +63,9 @@ class ProjectUpdate(BaseModel):
 class ProjectResponse(ProjectBase):
     """Schema for project in responses."""
 
-    id: int
+    id: uuid.UUID
     project_key: str
-    user_id: int
+    user_id: uuid.UUID
     is_active: bool
     created_at: AwareDatetime
     updated_at: AwareDatetime | None

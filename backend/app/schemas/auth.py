@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -30,7 +32,7 @@ class RefreshTokenRequest(BaseModel):
 class TokenData(BaseModel):
     """Application identity extracted from a validated JWT token."""
 
-    user_id: int
+    user_id: uuid.UUID
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -46,5 +48,5 @@ class TokenData(BaseModel):
 class RefreshTokenData(BaseModel):
     """Claims extracted from a validated refresh token."""
 
-    user_id: int
+    user_id: uuid.UUID
     token_version: int

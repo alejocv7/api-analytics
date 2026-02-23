@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -95,13 +96,14 @@ async def test_authenticate_user_rehashes_password_when_needed():
 
 async def test_refresh_user_token_rotates_refresh_version():
     """refresh_user_token increments token version and returns a new token pair."""
+    uid = uuid.uuid4()
     session = AsyncMock()
-    user = models.User(id=1, is_active=True, refresh_token_version=2)
+    user = models.User(id=uid, is_active=True, refresh_token_version=2)
     session.scalar.return_value = user
 
     with patch(
         "app.core.security.decode_refresh_token",
-        return_value=schemas.RefreshTokenData(user_id=1, token_version=2),
+        return_value=schemas.RefreshTokenData(user_id=uid, token_version=2),
     ):
         result = await auth_service.refresh_user_token("valid.refresh.token", session)
 
@@ -115,14 +117,15 @@ async def test_refresh_user_token_rotates_refresh_version():
 
 async def test_refresh_user_token_rejects_replayed_token():
     """refresh_user_token rejects old refresh tokens after rotation."""
+    uid = uuid.uuid4()
     session = AsyncMock()
-    user = models.User(id=1, is_active=True, refresh_token_version=3)
+    user = models.User(id=uid, is_active=True, refresh_token_version=3)
     session.scalar.return_value = user
 
     with (
         patch(
             "app.core.security.decode_refresh_token",
-            return_value=schemas.RefreshTokenData(user_id=1, token_version=2),
+            return_value=schemas.RefreshTokenData(user_id=uid, token_version=2),
         ),
         pytest.raises(BearerAuthenticationError),
     ):

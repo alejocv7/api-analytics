@@ -57,7 +57,7 @@ To run the test suite, you can use `uv` in the backend directory:
 
 ```bash
 cd backend
-uv run pytest
+uv run pytest --maxfail=1
 ```
 
 ### 4. Database Migration Workflow

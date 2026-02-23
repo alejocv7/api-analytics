@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, timedelta
 from enum import StrEnum
 from http import HTTPMethod
@@ -44,7 +45,7 @@ class MetricCreate(MetricBase):
                 {
                     "url_path": "/v1/users",
                     "method": "GET",
-                    "status_code": 200,
+                    "response_status_code": 200,
                     "response_time_ms": 45.3,
                     "user_agent": "Mozilla/5.0...",
                 }
@@ -54,7 +55,7 @@ class MetricCreate(MetricBase):
 
 
 class MetricResponse(MetricBase):
-    id: int
+    id: uuid.UUID
     timestamp: AwareDatetime
     ip_hash: str | None = Field(None, description="Hashed IP address")
     model_config = ConfigDict(

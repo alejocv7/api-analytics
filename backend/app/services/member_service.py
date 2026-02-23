@@ -1,4 +1,5 @@
 import logging
+import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import func, select
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 async def add_member(
     project: models.Project,
-    user_id: int,
+    user_id: uuid.UUID,
     role: ProjectRole,
     session: AsyncSession,
 ) -> models.UserProject:
@@ -46,7 +47,7 @@ async def add_member(
 
 
 async def list_members(
-    project_id: int,
+    project_id: uuid.UUID,
     session: AsyncSession,
     offset: int = 0,
     limit: int = 20,
@@ -61,7 +62,7 @@ async def list_members(
     return result.all()
 
 
-async def count_members(project_id: int, session: AsyncSession) -> int:
+async def count_members(project_id: uuid.UUID, session: AsyncSession) -> int:
     """Return the total number of members in a project."""
     result = await session.scalar(
         select(func.count()).where(models.UserProject.project_id == project_id)
@@ -71,7 +72,7 @@ async def count_members(project_id: int, session: AsyncSession) -> int:
 
 async def remove_member(
     project: models.Project,
-    user_id: int,
+    user_id: uuid.UUID,
     session: AsyncSession,
 ) -> None:
     """Remove a member from a project. The owner cannot be removed."""
@@ -89,7 +90,7 @@ async def remove_member(
 
 async def update_member_role(
     project: models.Project,
-    user_id: int,
+    user_id: uuid.UUID,
     role: ProjectRole,
     session: AsyncSession,
 ) -> models.UserProject:

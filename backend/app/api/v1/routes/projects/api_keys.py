@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Request, status
 
 from app import models, schemas
@@ -94,7 +96,7 @@ async def list_api_keys(
     },
 )
 async def get_api_key(
-    api_key_id: int, project: ProjectDep, session: SessionDep
+    api_key_id: uuid.UUID, project: ProjectDep, session: SessionDep
 ) -> models.APIKey:
     return await api_key_service.get_api_key(api_key_id, project.id, session)
 
@@ -104,7 +106,6 @@ async def get_api_key(
     response_model=schemas.APIKeyResponse,
     summary="Update an API key",
     description="""
-    Updates the metadata or status of an existing API key.
     """,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
@@ -120,7 +121,7 @@ async def get_api_key(
     },
 )
 async def update_api_key(
-    api_key_id: int,
+    api_key_id: uuid.UUID,
     update_data: schemas.APIKeyUpdate,
     project: OwnerProjectDep,
     session: SessionDep,
@@ -157,7 +158,7 @@ async def update_api_key(
 @limiter.limit(rate_limits.KEY_ROTATE, key_func=get_user_key)
 async def rotate_api_key(
     request: Request,  # noqa: ARG001
-    api_key_id: int,
+    api_key_id: uuid.UUID,
     project: OwnerProjectDep,
     session: SessionDep,
 ) -> schemas.APIKeyCreateResponse:
@@ -190,7 +191,7 @@ async def rotate_api_key(
 @limiter.limit(rate_limits.DATA_DELETE, key_func=get_user_key)
 async def delete_api_key(
     request: Request,  # noqa: ARG001
-    api_key_id: int,
+    api_key_id: uuid.UUID,
     project: OwnerProjectDep,
     session: SessionDep,
 ) -> None:

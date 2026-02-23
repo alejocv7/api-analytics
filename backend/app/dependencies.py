@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
@@ -47,7 +48,7 @@ async def get_project_id_by_api_key(
     request: Request,
     session: SessionDep,
     api_key: str = Security(api_key_header),
-) -> int:
+) -> uuid.UUID:
     """Validates API key and returns the Project id."""
     if not api_key:
         raise AuthenticationError("API key required")
@@ -88,7 +89,7 @@ async def get_project_id_by_api_key(
     return api_key_obj.project_id
 
 
-ProjectIdDep = Annotated[int, Depends(get_project_id_by_api_key)]
+ProjectIdDep = Annotated[uuid.UUID, Depends(get_project_id_by_api_key)]
 
 
 async def get_current_user(

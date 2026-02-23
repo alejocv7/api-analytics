@@ -1,4 +1,5 @@
 import enum
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
@@ -24,10 +25,10 @@ class UserProject(Base, TimestampMixin):
 
     __tablename__ = "user_projects"
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    project_id: Mapped[int] = mapped_column(
+    project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
     )
     role: Mapped[ProjectRole] = mapped_column(

@@ -1,3 +1,4 @@
+import uuid
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -11,7 +12,7 @@ AssignableRole = Literal[ProjectRole.member, ProjectRole.viewer]
 class MemberAdd(BaseModel):
     """Schema for adding a member to a project."""
 
-    user_id: int
+    user_id: uuid.UUID
     role: AssignableRole = ProjectRole.viewer
 
     model_config = ConfigDict(
@@ -45,8 +46,8 @@ class MemberUpdate(BaseModel):
 class MemberResponse(BaseModel):
     """Schema for a project member in responses."""
 
-    user_id: int
-    project_id: int
+    user_id: uuid.UUID
+    project_id: uuid.UUID
     role: ProjectRole
 
     model_config = ConfigDict(from_attributes=True)

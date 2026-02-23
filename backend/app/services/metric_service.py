@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -18,7 +19,7 @@ from app.core.security import hash_ip
     reraise=True,
 )
 async def add_metric(
-    metric_in: schemas.MetricCreate, project_id: int, session: AsyncSession
+    metric_in: schemas.MetricCreate, project_id: uuid.UUID, session: AsyncSession
 ) -> models.Metric:
     """Create a new metric entry."""
 
@@ -42,7 +43,7 @@ async def add_metric(
 
 
 async def get_metrics(
-    params: schemas.MetricParams, project_id: int, session: AsyncSession
+    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
 ) -> Sequence[models.Metric]:
     query = select(models.Metric).order_by(models.Metric.timestamp.desc())
     query = _apply_time_range_filter(query, project_id, params)
@@ -51,7 +52,7 @@ async def get_metrics(
 
 
 async def count_metrics(
-    params: schemas.MetricParams, project_id: int, session: AsyncSession
+    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
 ) -> int:
     """Count raw metrics matching params."""
     query = select(func.count(models.Metric.id))
@@ -60,7 +61,7 @@ async def count_metrics(
 
 
 async def get_metrics_summary(
-    params: schemas.MetricParams, project_id: int, session: AsyncSession
+    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
 ) -> schemas.MetricSummaryResponse:
     query = select(
         func.count(models.Metric.id).label("request_count"),
@@ -106,7 +107,7 @@ async def get_metrics_summary(
 
 async def get_metrics_time_series(
     params: schemas.MetricTimeSeriesQuery,
-    project_id: int,
+    project_id: uuid.UUID,
     session: AsyncSession,
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
     # Group by granularity. Handling different dialects.
@@ -146,7 +147,7 @@ async def get_metrics_time_series(
 
 async def count_metrics_time_series(
     params: schemas.MetricTimeSeriesQuery,
-    project_id: int,
+    project_id: uuid.UUID,
     session: AsyncSession,
 ) -> int:
     """Count time-series points matching params."""
@@ -161,7 +162,7 @@ async def count_metrics_time_series(
 
 
 async def get_metrics_endpoints_stats(
-    params: schemas.MetricParams, project_id: int, session: AsyncSession
+    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
 ) -> list[schemas.MetricEndpointStatsResponse]:
     query = select(
         models.Metric.url_path,
@@ -200,7 +201,7 @@ async def get_metrics_endpoints_stats(
 
 
 async def count_metrics_endpoints_stats(
-    params: schemas.MetricParams, project_id: int, session: AsyncSession
+    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
 ) -> int:
     """Count distinct endpoints matching params."""
     query = select(models.Metric.url_path, models.Metric.method)
@@ -221,7 +222,7 @@ async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -
 
 
 def _apply_time_range_filter[T: tuple[Any, ...]](
-    query: Select[T], project_id: int, params: schemas.MetricParams
+    query: Select[T], project_id: uuid.UUID, params: schemas.MetricParams
 ) -> Select[T]:
     """Apply common project_id and time range filters."""
     return query.where(

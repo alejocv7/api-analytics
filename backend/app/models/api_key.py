@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -22,7 +23,7 @@ class APIKey(Base, TimestampMixin):
 
     __tablename__ = "api_keys"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
     key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     key_prefix: Mapped[str] = mapped_column(
@@ -30,7 +31,7 @@ class APIKey(Base, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(255))
 
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"), index=True)
     project: Mapped[Project] = relationship(back_populates="api_keys")
 
     expires_at: Mapped[datetime] = mapped_column(
@@ -52,7 +53,7 @@ class APIKey(Base, TimestampMixin):
 
     @classmethod
     def new_key(
-        cls, name: str, project_id: int, expires_at: datetime | None = None
+        cls, name: str, project_id: uuid.UUID, expires_at: datetime | None = None
     ) -> tuple[APIKey, str]:
         """
         Create a new API key.

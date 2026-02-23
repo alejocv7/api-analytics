@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -49,14 +50,15 @@ def test_password_hashing():
 
 def test_create_access_token_payload():
     """JWT payload uses 'sub' for user identity — no redundant 'user_id' field."""
-    token_data = TokenData(user_id=42)
+    uid = uuid.uuid4()
+    token_data = TokenData(user_id=uid)
     token = security.create_access_token(token_data)
 
     payload = jwt.decode(
         token, settings.SECURITY_KEY, algorithms=[settings.SECURITY_ALGORITHM]
     )
 
-    assert payload["sub"] == "42"
+    assert payload["sub"] == str(uid)
     assert "user_id" not in payload
     assert "iat" in payload
     assert "exp" in payload
@@ -65,12 +67,13 @@ def test_create_access_token_payload():
 
 def test_decode_token_round_trip():
     """decode_token reconstructs TokenData correctly from 'sub'."""
-    original = TokenData(user_id=99)
+    uid = uuid.uuid4()
+    original = TokenData(user_id=uid)
     token = security.create_access_token(original)
 
     decoded = security.decode_token(token)
 
-    assert decoded.user_id == 99
+    assert decoded.user_id == uid
 
 
 def test_decode_token_rejects_expired():
@@ -101,7 +104,7 @@ def test_decode_token_rejects_wrong_signature():
 
 def test_decode_token_rejects_refresh_token():
     """Access-token decoder must not accept refresh tokens."""
-    refresh = security.create_refresh_token(user_id=7, token_version=0)
+    refresh = security.create_refresh_token(user_id=uuid.uuid4(), token_version=0)
 
     with pytest.raises(BearerAuthenticationError):
         security.decode_token(refresh)
@@ -126,13 +129,14 @@ def test_decode_token_rejects_missing_claims():
 
 def test_create_refresh_token_payload():
     """Refresh token payload uses 'sub' and 'type: refresh'."""
-    token = security.create_refresh_token(user_id=5, token_version=3)
+    uid = uuid.uuid4()
+    token = security.create_refresh_token(user_id=uid, token_version=3)
 
     payload = jwt.decode(
         token, settings.SECURITY_KEY, algorithms=[settings.SECURITY_ALGORITHM]
     )
 
-    assert payload["sub"] == "5"
+    assert payload["sub"] == str(uid)
     assert payload["type"] == "refresh"
     assert payload["rtv"] == 3
     assert "iat" in payload
@@ -141,16 +145,17 @@ def test_create_refresh_token_payload():
 
 def test_decode_refresh_token_round_trip():
     """decode_refresh_token returns the original user_id."""
-    token = security.create_refresh_token(user_id=17, token_version=9)
+    uid = uuid.uuid4()
+    token = security.create_refresh_token(user_id=uid, token_version=9)
 
     decoded = security.decode_refresh_token(token)
-    assert decoded.user_id == 17
+    assert decoded.user_id == uid
     assert decoded.token_version == 9
 
 
 def test_decode_refresh_token_rejects_access_token():
     """Refresh-token decoder must not accept access tokens."""
-    token_data = TokenData(user_id=3)
+    token_data = TokenData(user_id=uuid.uuid4())
     access_token = security.create_access_token(token_data)
 
     with pytest.raises(BearerAuthenticationError):

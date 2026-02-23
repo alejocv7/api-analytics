@@ -1,4 +1,5 @@
 import logging
+import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import exists, func, select, true
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 async def create_user_project(
-    user_id: int,
+    user_id: uuid.UUID,
     project_in: schemas.ProjectCreate,
     session: AsyncSession,
 ) -> models.Project:
@@ -54,7 +55,7 @@ async def get_project_by_key(
 
 
 async def get_user_project_by_key(
-    user_id: int, project_key: str, session: AsyncSession
+    user_id: uuid.UUID, project_key: str, session: AsyncSession
 ) -> models.Project | None:
     result = await session.scalars(
         select(models.Project)
@@ -68,7 +69,7 @@ async def get_user_project_by_key(
 
 
 async def get_user_projects(
-    user_id: int,
+    user_id: uuid.UUID,
     session: AsyncSession,
     active_only: bool = False,
     offset: int = 0,
@@ -89,7 +90,7 @@ async def get_user_projects(
 
 
 async def count_user_projects(
-    user_id: int,
+    user_id: uuid.UUID,
     session: AsyncSession,
     active_only: bool = False,
 ) -> int:

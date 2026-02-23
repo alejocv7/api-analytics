@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import (
     AwareDatetime,
     BaseModel,
@@ -39,8 +41,8 @@ class APIKeyUpdate(BaseModel):
 class APIKeyResponse(APIKeyBase):
     """Schema for API key in responses (without the actual key)."""
 
-    id: int
-    project_id: int
+    id: uuid.UUID
+    project_id: uuid.UUID
     is_active: bool
     created_at: AwareDatetime
     last_used_at: AwareDatetime | None

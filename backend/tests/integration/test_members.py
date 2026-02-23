@@ -1,5 +1,7 @@
 """Integration tests for project member management."""
 
+import uuid
+
 import pytest
 from httpx import AsyncClient, Response
 
@@ -19,13 +21,13 @@ async def _add_member(
     client: AsyncClient,
     auth_headers: dict[str, str],
     project_key: str,
-    user_id: int,
+    user_id: uuid.UUID,
     role: str = "viewer",
 ) -> Response:
     return await client.post(
         f"/api/v1/projects/{project_key}/members/",
         headers=auth_headers,
-        json={"user_id": user_id, "role": role},
+        json={"user_id": str(user_id), "role": role},
     )
 
 
@@ -54,7 +56,7 @@ async def test_list_members_includes_owner(
     assert data["page"] == 1
     assert data["page_size"] == 20
     owner = data["items"][0]
-    assert owner["user_id"] == test_user.id
+    assert owner["user_id"] == str(test_user.id)
     assert owner["role"] == "owner"
 
 
@@ -92,8 +94,8 @@ async def test_add_member(
     )
     assert response.status_code == 201
     data = response.json()
-    assert data["user_id"] == new_user.id
-    assert data["project_id"] == project.id
+    assert data["user_id"] == str(new_user.id)
+    assert data["project_id"] == str(project.id)
     assert data["role"] == "viewer"
 
 
@@ -161,7 +163,9 @@ async def test_add_member_nonexistent_user_fails(
     client: AsyncClient, auth_headers, project
 ):
     """Adding a non-existent user returns 404."""
-    response = await _add_member(client, auth_headers, project.project_key, 99999)
+    response = await _add_member(
+        client, auth_headers, project.project_key, uuid.uuid4()
+    )
     assert response.status_code == 404
 
 
@@ -198,7 +202,7 @@ async def test_remove_nonexistent_member_fails(
 ):
     """Removing a user who is not a member returns 404."""
     response = await client.delete(
-        f"/api/v1/projects/{project.project_key}/members/99999",
+        f"/api/v1/projects/{project.project_key}/members/{uuid.uuid4()}",
         headers=auth_headers,
     )
     assert response.status_code == 404
@@ -261,7 +265,7 @@ async def test_update_nonexistent_member_role_fails(
 ):
     """Updating a role for a non-member returns 404."""
     response = await client.patch(
-        f"/api/v1/projects/{project.project_key}/members/99999",
+        f"/api/v1/projects/{project.project_key}/members/{uuid.uuid4()}",
         headers=auth_headers,
         json={"role": "member"},
     )

@@ -1,4 +1,5 @@
 import secrets
+import uuid
 from typing import TYPE_CHECKING, Any
 
 from slugify import slugify
@@ -24,7 +25,7 @@ class Project(Base, TimestampMixin):
 
     __tablename__ = "projects"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     project_key: Mapped[str] = mapped_column(
@@ -32,7 +33,7 @@ class Project(Base, TimestampMixin):
     )
     description: Mapped[str | None] = mapped_column(String(1000))
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
     )

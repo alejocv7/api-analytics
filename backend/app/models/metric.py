@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from http import HTTPMethod
 from typing import TYPE_CHECKING
@@ -18,9 +19,9 @@ class Metric(Base):
 
     __tablename__ = "metrics"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
     project: Mapped[Project] = relationship(back_populates="metrics")
 
     url_path: Mapped[str] = mapped_column()

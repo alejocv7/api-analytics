@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import logging
 import secrets
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -109,14 +110,14 @@ def decode_token(token: str) -> TokenData:
         if payload.get("type") == "refresh":
             raise BearerAuthenticationError("Invalid token type")
 
-        return TokenData(user_id=int(payload["sub"]))
+        return TokenData(user_id=uuid.UUID(payload["sub"]))
 
     except (InvalidTokenError, ValidationError, KeyError, ValueError) as e:
         logger.warning("Invalid token: %s", e)
         raise BearerAuthenticationError("Invalid authentication credentials") from None
 
 
-def create_refresh_token(user_id: int, token_version: int) -> str:
+def create_refresh_token(user_id: uuid.UUID, token_version: int) -> str:
     """Create a long-lived JWT refresh token.
 
     Refresh tokens carry only the user identity and a 'type: refresh' claim
@@ -146,7 +147,7 @@ def decode_refresh_token(token: str) -> RefreshTokenData:
             raise BearerAuthenticationError("Invalid token type")
 
         return RefreshTokenData(
-            user_id=int(payload["sub"]),
+            user_id=uuid.UUID(payload["sub"]),
             token_version=int(payload["rtv"]),
         )
 

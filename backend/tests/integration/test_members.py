@@ -21,13 +21,13 @@ async def _add_member(
     client: AsyncClient,
     auth_headers: dict[str, str],
     project_key: str,
-    user_id: uuid.UUID,
+    email: str,
     role: str = "viewer",
 ) -> Response:
     return await client.post(
         f"/api/v1/projects/{project_key}/members/",
         headers=auth_headers,
-        json={"user_id": str(user_id), "role": role},
+        json={"email": email, "role": role},
     )
 
 
@@ -58,6 +58,28 @@ async def test_list_members_includes_owner(
     owner = data["items"][0]
     assert owner["user_id"] == str(test_user.id)
     assert owner["role"] == "owner"
+    assert owner["email"] == test_user.email
+    assert owner["full_name"] == test_user.full_name
+
+
+async def test_list_members_total_reflects_all_members(
+    client: AsyncClient, auth_headers, project, db_session
+):
+    """Pagination total matches actual member count.
+
+    Regression test for count_members bug.
+    """
+    user_a = await create_user(db_session, email="count-a@example.com")
+    user_b = await create_user(db_session, email="count-b@example.com")
+    await _add_member(client, auth_headers, project.project_key, user_a.email)
+    await _add_member(client, auth_headers, project.project_key, user_b.email)
+
+    response = await client.get(
+        f"/api/v1/projects/{project.project_key}/members/",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["total"] == 3  # owner + 2 members
 
 
 async def test_list_members_non_member_cannot_access(
@@ -90,13 +112,15 @@ async def test_add_member(
     new_user = await create_user(db_session, email="member@example.com")
 
     response = await _add_member(
-        client, auth_headers, project.project_key, new_user.id, role="viewer"
+        client, auth_headers, project.project_key, new_user.email, role="viewer"
     )
     assert response.status_code == 201
     data = response.json()
     assert data["user_id"] == str(new_user.id)
     assert data["project_id"] == str(project.id)
     assert data["role"] == "viewer"
+    assert data["email"] == new_user.email
+    assert data["full_name"] == new_user.full_name
 
 
 async def test_add_member_with_member_role(
@@ -105,7 +129,7 @@ async def test_add_member_with_member_role(
     """Owner can add a user with the 'member' role."""
     new_user = await create_user(db_session, email="collab@example.com")
     response = await _add_member(
-        client, auth_headers, project.project_key, new_user.id, role="member"
+        client, auth_headers, project.project_key, new_user.email, role="member"
     )
     assert response.status_code == 201
     assert response.json()["role"] == "member"
@@ -122,7 +146,7 @@ async def test_add_member_non_owner_forbidden(client: AsyncClient, project, db_s
 
     another = await create_user(db_session, email="another@example.com")
     response = await _add_member(
-        client, _auth_headers_for(viewer), project.project_key, another.id
+        client, _auth_headers_for(viewer), project.project_key, another.email
     )
     assert response.status_code == 403
 
@@ -132,7 +156,7 @@ async def test_add_owner_as_member_fails(
 ):
     """Cannot add the project owner as a member (they already are)."""
     response = await _add_member(
-        client, auth_headers, project.project_key, test_user.id
+        client, auth_headers, project.project_key, test_user.email
     )
     assert response.status_code == 409
 
@@ -142,9 +166,11 @@ async def test_add_duplicate_member_fails(
 ):
     """Adding an already-existing member is a conflict."""
     new_user = await create_user(db_session, email="dup@example.com")
-    await _add_member(client, auth_headers, project.project_key, new_user.id)
+    await _add_member(client, auth_headers, project.project_key, new_user.email)
 
-    response = await _add_member(client, auth_headers, project.project_key, new_user.id)
+    response = await _add_member(
+        client, auth_headers, project.project_key, new_user.email
+    )
     assert response.status_code == 409
 
 
@@ -154,7 +180,7 @@ async def test_add_member_with_owner_role_fails(
     """The 'owner' role cannot be assigned via this endpoint."""
     new_user = await create_user(db_session, email="noowner@example.com")
     response = await _add_member(
-        client, auth_headers, project.project_key, new_user.id, role="owner"
+        client, auth_headers, project.project_key, new_user.email, role="owner"
     )
     assert response.status_code == 422
 
@@ -162,11 +188,23 @@ async def test_add_member_with_owner_role_fails(
 async def test_add_member_nonexistent_user_fails(
     client: AsyncClient, auth_headers, project
 ):
-    """Adding a non-existent user returns 404."""
+    """Adding a non-existent email returns 404."""
     response = await _add_member(
-        client, auth_headers, project.project_key, uuid.uuid4()
+        client, auth_headers, project.project_key, "nonexistent@example.com"
     )
     assert response.status_code == 404
+
+
+async def test_add_member_invalid_email_format(
+    client: AsyncClient, auth_headers, project
+):
+    """Invalid email format returns 422."""
+    response = await client.post(
+        f"/api/v1/projects/{project.project_key}/members/",
+        headers=auth_headers,
+        json={"email": "not-an-email", "role": "viewer"},
+    )
+    assert response.status_code == 422
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +215,7 @@ async def test_add_member_nonexistent_user_fails(
 async def test_remove_member(client: AsyncClient, auth_headers, project, db_session):
     """Owner can remove an existing member."""
     new_user = await create_user(db_session, email="todelete@example.com")
-    await _add_member(client, auth_headers, project.project_key, new_user.id)
+    await _add_member(client, auth_headers, project.project_key, new_user.email)
 
     response = await client.delete(
         f"/api/v1/projects/{project.project_key}/members/{new_user.id}",
@@ -219,7 +257,7 @@ async def test_update_member_role(
     """Owner can change an existing member's role."""
     new_user = await create_user(db_session, email="upgrade@example.com")
     await _add_member(
-        client, auth_headers, project.project_key, new_user.id, role="viewer"
+        client, auth_headers, project.project_key, new_user.email, role="viewer"
     )
 
     response = await client.patch(
@@ -249,7 +287,7 @@ async def test_update_member_role_to_owner_fails(
     """Cannot promote a member to the 'owner' role via this endpoint."""
     new_user = await create_user(db_session, email="promote@example.com")
     await _add_member(
-        client, auth_headers, project.project_key, new_user.id, role="viewer"
+        client, auth_headers, project.project_key, new_user.email, role="viewer"
     )
 
     response = await client.patch(
@@ -307,7 +345,7 @@ async def test_member_can_read_project(
     """A user added as a member can access the project."""
     member_user = await create_user(db_session, email="reader@example.com")
     await _add_member(
-        client, auth_headers, project.project_key, member_user.id, role="viewer"
+        client, auth_headers, project.project_key, member_user.email, role="viewer"
     )
 
     response = await client.get(
@@ -324,7 +362,7 @@ async def test_member_cannot_delete_project(
     """A non-owner member cannot delete the project."""
     member_user = await create_user(db_session, email="nodelete@example.com")
     await _add_member(
-        client, auth_headers, project.project_key, member_user.id, role="member"
+        client, auth_headers, project.project_key, member_user.email, role="member"
     )
 
     response = await client.delete(
@@ -349,7 +387,7 @@ async def _make_member_headers(
     """Create a user with member role and return (user, auth_headers)."""
     member_user = await create_user(db_session, email=email)
     await _add_member(
-        client, auth_headers, project.project_key, member_user.id, role="member"
+        client, auth_headers, project.project_key, member_user.email, role="member"
     )
     return member_user, _auth_headers_for(member_user)
 
@@ -363,7 +401,7 @@ async def test_member_role_user_cannot_add_member(
     )
     another = await create_user(db_session, email="another-add@example.com")
     response = await _add_member(
-        client, member_headers, project.project_key, another.id
+        client, member_headers, project.project_key, another.email
     )
     assert response.status_code == 403
 
@@ -376,7 +414,7 @@ async def test_member_role_user_cannot_remove_member(
         client, auth_headers, project, db_session, "member-rem@example.com"
     )
     another = await create_user(db_session, email="another-rem@example.com")
-    await _add_member(client, auth_headers, project.project_key, another.id)
+    await _add_member(client, auth_headers, project.project_key, another.email)
     response = await client.delete(
         f"/api/v1/projects/{project.project_key}/members/{another.id}",
         headers=member_headers,
@@ -392,7 +430,7 @@ async def test_member_role_user_cannot_update_role(
         client, auth_headers, project, db_session, "member-upd@example.com"
     )
     another = await create_user(db_session, email="another-upd@example.com")
-    await _add_member(client, auth_headers, project.project_key, another.id)
+    await _add_member(client, auth_headers, project.project_key, another.email)
     response = await client.patch(
         f"/api/v1/projects/{project.project_key}/members/{another.id}",
         headers=member_headers,

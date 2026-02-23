@@ -21,7 +21,7 @@ router = APIRouter()
     The `owner` role cannot be assigned via this endpoint.
     """,
     responses={
-        400: {
+        409: {
             "model": schemas.ErrorResponse,
             "description": "User already a member or owner",
         },
@@ -42,7 +42,7 @@ async def add_member(
     session: SessionDep,
 ) -> models.UserProject:
     return await member_service.add_member(
-        project, member_in.user_id, member_in.role, session
+        project, member_in.email, member_in.role, session
     )
 
 

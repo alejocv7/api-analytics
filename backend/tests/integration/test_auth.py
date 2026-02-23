@@ -19,9 +19,7 @@ async def test_register_user(client: AsyncClient, db_session):
     assert response.status_code == 201
     data = response.json()
     assert data["email"] == "newuser@example.com"
-    assert (
-        "id" not in data
-    )  # UserResponse shouldn't have id usually, but let's check what it has
+    assert "id" in data  # UserResponse includes id as UUID
 
     # Verify in DB
     result = await db_session.execute(

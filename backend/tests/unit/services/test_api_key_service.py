@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
@@ -13,7 +14,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_create_api_key_limit(monkeypatch):
     session = AsyncMock()
-    project = models.Project(id=1, name="Test Project")
+    project = models.Project(id=uuid.uuid4(), name="Test Project")
     key_in = schemas.APIKeyCreate(name="Limit Key")
 
     monkeypatch.setattr(settings, "API_KEY_PROJECT_LIMIT", 5)
@@ -28,8 +29,8 @@ async def test_create_api_key_limit(monkeypatch):
 
 async def test_delete_last_active_key_fails():
     session = AsyncMock()
-    project_id = 1
-    api_key_id = 10
+    project_id = uuid.uuid4()
+    api_key_id = uuid.uuid4()
     api_key = models.APIKey(id=api_key_id, project_id=project_id, is_active=True)
 
     with patch(

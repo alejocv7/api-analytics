@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr
 
 from app.core.types import SecurePassword
@@ -26,6 +28,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     """Schema for user data in responses."""
 
+    id: uuid.UUID
     email: str
     full_name: str | None
     is_active: bool
@@ -36,6 +39,7 @@ class UserResponse(BaseModel):
         json_schema_extra={
             "examples": [
                 {
+                    "id": "123e4567-e89b-12d3-a456-426614174000",
                     "email": "user@example.com",
                     "full_name": "John Doe",
                     "is_active": True,

@@ -1,5 +1,6 @@
 """Unit tests for seed.py idempotency."""
 
+import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -36,7 +37,7 @@ async def test_seed_creates_user_and_project_on_first_run(monkeypatch):
     async def _fake_refresh(obj: object) -> None:
         # Simulate the DB assigning a primary key on commit+refresh.
         if isinstance(obj, models.User):
-            obj.id = 99
+            obj.id = uuid.uuid4()
 
     session.refresh.side_effect = _fake_refresh
 
@@ -65,9 +66,12 @@ async def test_seed_is_idempotent_when_both_exist(monkeypatch):
     monkeypatch.setattr(settings, "PROJECT_USER", "system@example.com")
 
     session = AsyncMock()
-    existing_user = models.User(id=1, email="system@example.com", hashed_password="x")
+    user_id = uuid.uuid4()
+    existing_user = models.User(
+        id=user_id, email="system@example.com", hashed_password="x"
+    )
     existing_project = models.Project(
-        name="Test Self-Monitoring", user_id=1, project_key="test-self-key"
+        name="Test Self-Monitoring", user_id=user_id, project_key="test-self-key"
     )
 
     with (

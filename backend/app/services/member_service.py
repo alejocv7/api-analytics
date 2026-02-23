@@ -4,17 +4,19 @@ from collections.abc import Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app import models
 from app.core.enums import ProjectRole
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
+from app.services import user_service
 
 logger = logging.getLogger(__name__)
 
 
 async def add_member(
     project: models.Project,
-    user_id: uuid.UUID,
+    email: str,
     role: ProjectRole,
     session: AsyncSession,
 ) -> models.UserProject:
@@ -22,28 +24,38 @@ async def add_member(
     if role == ProjectRole.owner:
         raise ForbiddenError("The owner role cannot be assigned via member management")
 
-    user = await session.get(models.User, user_id)
+    user = await user_service.get_user_by_email(email, session)
     if not user:
         raise NotFoundError("User not found")
 
-    if project.user_id == user_id:
+    if project.user_id == user.id:
         raise ConflictError("User is already the owner of this project")
 
-    existing = await session.get(models.UserProject, (user_id, project.id))
+    existing = await session.get(models.UserProject, (user.id, project.id))
     if existing:
         raise ConflictError("User is already a member of this project")
 
-    membership = models.UserProject(user_id=user_id, project_id=project.id, role=role)
+    membership = models.UserProject(user_id=user.id, project_id=project.id, role=role)
     session.add(membership)
     await session.commit()
-    await session.refresh(membership)
+
+    result = await session.scalars(
+        select(models.UserProject)
+        .where(
+            models.UserProject.user_id == user.id,
+            models.UserProject.project_id == project.id,
+        )
+        .options(selectinload(models.UserProject.user))
+    )
+    loaded_membership = result.one()
+
     logger.info(
         "Member added (user_id: %s, project_id: %s, role: %s)",
-        user_id,
+        user.id,
         project.id,
         role,
     )
-    return membership
+    return loaded_membership
 
 
 async def list_members(
@@ -56,6 +68,7 @@ async def list_members(
     result = await session.scalars(
         select(models.UserProject)
         .where(models.UserProject.project_id == project_id)
+        .options(selectinload(models.UserProject.user))
         .offset(offset)
         .limit(limit)
     )
@@ -65,7 +78,9 @@ async def list_members(
 async def count_members(project_id: uuid.UUID, session: AsyncSession) -> int:
     """Return the total number of members in a project."""
     result = await session.scalar(
-        select(func.count()).where(models.UserProject.project_id == project_id)
+        select(func.count(models.UserProject.user_id)).where(
+            models.UserProject.project_id == project_id
+        )
     )
     return result or 0
 
@@ -106,11 +121,21 @@ async def update_member_role(
 
     membership.role = role
     await session.commit()
-    await session.refresh(membership)
+
+    result = await session.scalars(
+        select(models.UserProject)
+        .where(
+            models.UserProject.user_id == user_id,
+            models.UserProject.project_id == project.id,
+        )
+        .options(selectinload(models.UserProject.user))
+    )
+    loaded_membership = result.one()
+
     logger.info(
         "Member role updated (user_id: %s, project_id: %s, role: %s)",
         user_id,
         project.id,
         role,
     )
-    return membership
+    return loaded_membership

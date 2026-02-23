@@ -40,7 +40,7 @@ async def create_project(
     is_active: bool = True,
 ):
     from app import models
-    from app.models.user_project import ProjectRole
+    from app.core.enums import ProjectRole
 
     project = models.Project(
         name=name,

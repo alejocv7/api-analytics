@@ -1,6 +1,5 @@
 import uuid
 from datetime import UTC, timedelta
-from enum import StrEnum
 from http import HTTPMethod
 from typing import Annotated, Self
 
@@ -13,11 +12,9 @@ from pydantic import (
     model_validator,
 )
 
-from app.core.types import (
-    NormalizedUrlPath,
-    get_default_end_date,
-    get_default_start_date,
-)
+from app.core.enums import TimeGranularity as TimeGranularity
+from app.core.types import NormalizedUrlPath
+from app.core.utils import get_default_end_date, get_default_start_date
 from app.schemas.pagination import PaginatedResponse, PaginationParams
 
 
@@ -199,12 +196,6 @@ class MetricParams(PaginationParams):
 
 
 MetricQuery = Annotated[MetricParams, Query()]
-
-
-class TimeGranularity(StrEnum):
-    MINUTE = "minute"
-    HOUR = "hour"
-    DAY = "day"
 
 
 class MetricTimeSeriesParams(MetricParams):

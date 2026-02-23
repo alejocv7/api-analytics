@@ -32,7 +32,6 @@ from app.schemas.metric import (
     MetricTimeSeriesParams,
     MetricTimeSeriesPointResponse,
     MetricTimeSeriesQuery,
-    TimeGranularity,
 )
 from app.schemas.pagination import PaginatedResponse, PaginationParams, PaginationQuery
 from app.schemas.project import (
@@ -76,7 +75,6 @@ __all__ = [
     "ProjectUpdate",
     "RefreshTokenData",
     "RefreshTokenRequest",
-    "TimeGranularity",
     "TokenData",
     "TokenResponse",
     "UserCreate",

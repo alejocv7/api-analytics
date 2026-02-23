@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.user_project import ProjectRole
+from app.core.enums import ProjectRole
 from app.schemas.pagination import PaginatedResponse
 
 AssignableRole = Literal[ProjectRole.member, ProjectRole.viewer]

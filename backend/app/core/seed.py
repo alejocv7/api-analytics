@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import models
 from app.core import db, security
 from app.core.config import settings
-from app.models.user_project import ProjectRole
+from app.core.enums import ProjectRole
 from app.services import project_service, user_service
 
 logging.basicConfig(level=logging.INFO)

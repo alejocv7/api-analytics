@@ -1,4 +1,3 @@
-import enum
 import uuid
 from typing import TYPE_CHECKING
 
@@ -6,17 +5,12 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.enums import ProjectRole as ProjectRole
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.project import Project
     from app.models.user import User
-
-
-class ProjectRole(enum.StrEnum):
-    owner = "owner"
-    member = "member"
-    viewer = "viewer"
 
 
 class UserProject(Base, TimestampMixin):

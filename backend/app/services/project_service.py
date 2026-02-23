@@ -7,9 +7,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
+from app.core.enums import ProjectRole
 from app.core.exceptions import ConflictError
 from app.core.utils import apply_update
-from app.models.user_project import ProjectRole
 
 logger = logging.getLogger(__name__)
 

@@ -6,8 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
+from app.core.enums import ProjectRole
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
-from app.models.user_project import ProjectRole
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,15 @@
-from pydantic import BaseModel
+from datetime import UTC, datetime
+
+from pydantic import AwareDatetime, BaseModel
 from sqlalchemy.orm import DeclarativeBase
+
+
+def get_default_start_date() -> AwareDatetime:
+    return datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def get_default_end_date() -> AwareDatetime:
+    return datetime.now(UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
 
 
 def apply_update(model: DeclarativeBase, update: BaseModel) -> None:

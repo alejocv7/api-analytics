@@ -1,6 +1,5 @@
 import logging
 import uuid
-from collections.abc import Sequence
 
 from sqlalchemy import exists, func, select, true
 from sqlalchemy.exc import IntegrityError
@@ -71,37 +70,37 @@ async def get_user_project_by_key(
 async def get_user_projects(
     user_id: uuid.UUID,
     session: AsyncSession,
+    pagination: schemas.PaginationParams,
     active_only: bool = False,
-    offset: int = 0,
-    limit: int = 20,
-) -> Sequence[models.Project]:
-    """Get a list of projects for a user."""
+) -> schemas.PaginatedResult[models.Project]:
+    """Get a list of projects for a user with total count."""
 
-    stmt = (
-        select(models.Project)
-        .join(models.UserProject, models.UserProject.project_id == models.Project.id)
-        .where(models.UserProject.user_id == user_id)
-        .where(models.Project.is_active.is_(True) if active_only else true())
-        .offset(offset)
-        .limit(limit)
-    )
-
-    return (await session.scalars(stmt)).all()
-
-
-async def count_user_projects(
-    user_id: uuid.UUID,
-    session: AsyncSession,
-    active_only: bool = False,
-) -> int:
-    """Count projects for a user."""
-    stmt = (
+    total = await session.scalar(
         select(func.count(models.Project.id))
         .join(models.UserProject, models.UserProject.project_id == models.Project.id)
         .where(models.UserProject.user_id == user_id)
         .where(models.Project.is_active.is_(True) if active_only else true())
     )
-    return (await session.scalar(stmt)) or 0
+
+    items = (
+        await session.scalars(
+            select(models.Project)
+            .join(
+                models.UserProject, models.UserProject.project_id == models.Project.id
+            )
+            .where(models.UserProject.user_id == user_id)
+            .where(models.Project.is_active.is_(True) if active_only else true())
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+        )
+    ).all()
+
+    return schemas.PaginatedResult(
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 async def update_user_project(

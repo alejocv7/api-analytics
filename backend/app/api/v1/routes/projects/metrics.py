@@ -13,9 +13,7 @@ router = APIRouter()
     "/",
     response_model=schemas.MetricListResponse,
     summary="List raw metrics",
-    description="""
-    Retrieves a list of individual metrics recorded for the project.
-    """,
+    description="Retrieves a list of individual metrics recorded for the project.",
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
         403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
@@ -24,20 +22,15 @@ router = APIRouter()
     },
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
-async def read_metrics(
-    request: Request,  # noqa: ARG001
+async def get_metrics(
     params: schemas.MetricQuery,
     project: ProjectDep,
     session: SessionDep,
+    request: Request,  # noqa: ARG001
 ) -> schemas.MetricListResponse:
-    items = await metric_service.get_metrics(params, project.id, session)
-    total = await metric_service.count_metrics(params, project.id, session)
-    return schemas.MetricListResponse(
-        items=items,
-        total=total,
-        page=params.page,
-        page_size=params.page_size,
-    )
+    """Get raw metrics for a project."""
+    result = await metric_service.get_metrics(params, project.id, session)
+    return schemas.MetricListResponse.from_result(result)
 
 
 @router.get(
@@ -56,10 +49,10 @@ async def read_metrics(
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_summary(
-    request: Request,  # noqa: ARG001
     params: schemas.MetricQuery,
     project: ProjectDep,
     session: SessionDep,
+    request: Request,  # noqa: ARG001
 ) -> schemas.MetricSummaryResponse:
     return await metric_service.get_metrics_summary(params, project.id, session)
 
@@ -67,10 +60,6 @@ async def read_metrics_summary(
 @router.get(
     "/time-series",
     response_model=schemas.MetricTimeSeriesListResponse,
-    summary="Get metrics time series",
-    description="""
-    Retrieves aggregated metrics grouped by a specified time granularity.
-    """,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
         403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
@@ -79,29 +68,20 @@ async def read_metrics_summary(
     },
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
-async def read_metrics_time_series(
-    request: Request,  # noqa: ARG001
+async def get_metrics_time_series(
     params: schemas.MetricTimeSeriesQuery,
     project: ProjectDep,
     session: SessionDep,
+    request: Request,  # noqa: ARG001
 ) -> schemas.MetricTimeSeriesListResponse:
-    items = await metric_service.get_metrics_time_series(params, project.id, session)
-    total = await metric_service.count_metrics_time_series(params, project.id, session)
-    return schemas.MetricTimeSeriesListResponse(
-        items=items,
-        total=total,
-        page=params.page,
-        page_size=params.page_size,
-    )
+    """Get metric time series (aggregated requests by granularity)."""
+    result = await metric_service.get_metrics_time_series(params, project.id, session)
+    return schemas.MetricTimeSeriesListResponse.from_result(result)
 
 
 @router.get(
     "/endpoints",
     response_model=schemas.MetricEndpointStatsListResponse,
-    summary="Get endpoint statistics",
-    description="""
-    Retrieves performance statistics grouped by endpoint (URL path and method).
-    """,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
         403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
@@ -110,21 +90,14 @@ async def read_metrics_time_series(
     },
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
-async def read_metrics_endpoints_stats(
-    request: Request,  # noqa: ARG001
+async def get_metrics_endpoints_stats(
     params: schemas.MetricQuery,
     project: ProjectDep,
     session: SessionDep,
+    request: Request,  # noqa: ARG001
 ) -> schemas.MetricEndpointStatsListResponse:
-    items = await metric_service.get_metrics_endpoints_stats(
+    """Get metrics grouped by endpoint (path and method)."""
+    result = await metric_service.get_metrics_endpoints_stats(
         params, project.id, session
     )
-    total = await metric_service.count_metrics_endpoints_stats(
-        params, project.id, session
-    )
-    return schemas.MetricEndpointStatsListResponse(
-        items=items,
-        total=total,
-        page=params.page,
-        page_size=params.page_size,
-    )
+    return schemas.MetricEndpointStatsListResponse.from_result(result)

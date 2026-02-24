@@ -63,20 +63,13 @@ async def list_api_keys(
     pagination: PaginationQuery,
     active_only: bool = False,
 ) -> schemas.APIKeyListResponse:
-    items = await api_key_service.list_api_keys(
+    result = await api_key_service.list_api_keys(
         project.id,
         session,
+        pagination,
         active_only,
-        offset=pagination.offset,
-        limit=pagination.page_size,
     )
-    total = await api_key_service.count_api_keys(project.id, session, active_only)
-    return schemas.APIKeyListResponse(
-        items=items,
-        total=total,
-        page=pagination.page,
-        page_size=pagination.page_size,
-    )
+    return schemas.APIKeyListResponse.from_result(result)
 
 
 @router.get(

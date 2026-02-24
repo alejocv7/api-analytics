@@ -1,6 +1,5 @@
 import logging
 import uuid
-from collections.abc import Sequence
 
 from sqlalchemy import func, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,33 +42,37 @@ async def create_api_key(
 async def list_api_keys(
     project_id: uuid.UUID,
     session: AsyncSession,
+    pagination: schemas.PaginationParams,
     active_only: bool = False,
-    offset: int = 0,
-    limit: int = 20,
-) -> Sequence[models.APIKey]:
-    stmt = (
-        select(models.APIKey)
-        .where(
+) -> schemas.PaginatedResult[models.APIKey]:
+    """List API keys for a project with total count."""
+
+    total = await session.scalar(
+        select(func.count(models.APIKey.id)).where(
             models.APIKey.project_id == project_id,
             models.APIKey.is_active.is_(True) if active_only else true(),
         )
-        .order_by(models.APIKey.created_at.desc())
-        .offset(offset)
-        .limit(limit)
     )
-    return (await session.scalars(stmt)).all()
 
+    items = (
+        await session.scalars(
+            select(models.APIKey)
+            .where(
+                models.APIKey.project_id == project_id,
+                models.APIKey.is_active.is_(True) if active_only else true(),
+            )
+            .order_by(models.APIKey.created_at.desc())
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+        )
+    ).all()
 
-async def count_api_keys(
-    project_id: uuid.UUID,
-    session: AsyncSession,
-    active_only: bool = False,
-) -> int:
-    stmt = select(func.count(models.APIKey.id)).where(
-        models.APIKey.project_id == project_id,
-        models.APIKey.is_active.is_(True) if active_only else true(),
+    return schemas.PaginatedResult(
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
-    return (await session.scalar(stmt)) or 0
 
 
 async def get_api_key(

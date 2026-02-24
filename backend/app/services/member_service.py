@@ -1,12 +1,11 @@
 import logging
 import uuid
-from collections.abc import Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app import models
+from app import models, schemas
 from app.core.enums import ProjectRole
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.services import user_service
@@ -54,28 +53,32 @@ async def add_member(
 async def list_members(
     project_id: uuid.UUID,
     session: AsyncSession,
-    offset: int = 0,
-    limit: int = 20,
-) -> Sequence[models.UserProject]:
-    """Return members of a project (all roles including owner) with pagination."""
-    result = await session.scalars(
-        select(models.UserProject)
-        .where(models.UserProject.project_id == project_id)
-        .options(selectinload(models.UserProject.user))
-        .offset(offset)
-        .limit(limit)
-    )
-    return result.all()
+    pagination: schemas.PaginationParams,
+) -> schemas.PaginatedResult[models.UserProject]:
+    """Return members of a project with total count."""
 
-
-async def count_members(project_id: uuid.UUID, session: AsyncSession) -> int:
-    """Return the total number of members in a project."""
-    result = await session.scalar(
+    total = await session.scalar(
         select(func.count(models.UserProject.user_id)).where(
             models.UserProject.project_id == project_id
         )
     )
-    return result or 0
+
+    items = (
+        await session.scalars(
+            select(models.UserProject)
+            .where(models.UserProject.project_id == project_id)
+            .options(selectinload(models.UserProject.user))
+            .offset(pagination.offset)
+            .limit(pagination.page_size)
+        )
+    ).all()
+
+    return schemas.PaginatedResult(
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 async def remove_member(

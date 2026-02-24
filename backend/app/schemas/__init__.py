@@ -33,7 +33,12 @@ from app.schemas.metric import (
     MetricTimeSeriesPointResponse,
     MetricTimeSeriesQuery,
 )
-from app.schemas.pagination import PaginatedResponse, PaginationParams, PaginationQuery
+from app.schemas.pagination import (
+    PaginatedResponse,
+    PaginatedResult,
+    PaginationParams,
+    PaginationQuery,
+)
 from app.schemas.project import (
     ProjectCreate,
     ProjectListResponse,
@@ -67,6 +72,7 @@ __all__ = [
     "MetricTimeSeriesPointResponse",
     "MetricTimeSeriesQuery",
     "PaginatedResponse",
+    "PaginatedResult",
     "PaginationParams",
     "PaginationQuery",
     "ProjectCreate",

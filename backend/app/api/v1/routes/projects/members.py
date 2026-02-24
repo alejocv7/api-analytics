@@ -64,16 +64,8 @@ async def list_members(
     session: SessionDep,
     pagination: PaginationQuery,
 ) -> schemas.MemberListResponse:
-    items = await member_service.list_members(
-        project.id, session, offset=pagination.offset, limit=pagination.page_size
-    )
-    total = await member_service.count_members(project.id, session)
-    return schemas.MemberListResponse(
-        items=items,
-        total=total,
-        page=pagination.page,
-        page_size=pagination.page_size,
-    )
+    result = await member_service.list_members(project.id, session, pagination)
+    return schemas.MemberListResponse.from_result(result)
 
 
 @router.patch(

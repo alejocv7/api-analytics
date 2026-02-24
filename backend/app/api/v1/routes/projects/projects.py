@@ -33,22 +33,13 @@ async def get_projects(
     pagination: PaginationQuery,
     active_only: bool = False,
 ) -> schemas.ProjectListResponse:
-    items = await project_service.get_user_projects(
+    result = await project_service.get_user_projects(
         user.id,
         session,
+        pagination,
         active_only=active_only,
-        offset=pagination.offset,
-        limit=pagination.page_size,
     )
-    total = await project_service.count_user_projects(
-        user.id, session, active_only=active_only
-    )
-    return schemas.ProjectListResponse(
-        items=items,
-        total=total,
-        page=pagination.page,
-        page_size=pagination.page_size,
-    )
+    return schemas.ProjectListResponse.from_result(result)
 
 
 @router.post(

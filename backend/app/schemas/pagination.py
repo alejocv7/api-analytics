@@ -1,13 +1,26 @@
-from typing import Annotated
+from collections.abc import Sequence
+from typing import Annotated, Any
 
 from fastapi import Depends
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
+class PaginatedResult[T](BaseModel):
+    """
+    Internal bucket for service results that include a count.
+    Used to pass items and total from service to route.
+    """
+
+    items: list[T] | Sequence[T]
+    total: int
+    page: int
+    page_size: int
+
+
 class PaginatedResponse[T](BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    items: list[T]
+    items: list[T] | Sequence[T]
     total: int = Field(..., description="Total number of items available")
     page: int = Field(..., ge=1, description="Current page number")
     page_size: int = Field(..., ge=1, description="Number of items per page")
@@ -21,6 +34,15 @@ class PaginatedResponse[T](BaseModel):
     @property
     def has_previous(self) -> bool:
         return self.page > 1
+
+    @classmethod
+    def from_result(cls, result: PaginatedResult[Any]) -> PaginatedResponse[T]:
+        return cls(
+            items=result.items,
+            total=result.total,
+            page=result.page,
+            page_size=result.page_size,
+        )
 
 
 class PaginationParams(BaseModel):

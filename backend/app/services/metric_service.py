@@ -1,5 +1,4 @@
 import uuid
-from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -44,20 +43,26 @@ async def add_metric(
 
 async def get_metrics(
     params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> Sequence[models.Metric]:
-    query = select(models.Metric).order_by(models.Metric.timestamp.desc())
-    query = _apply_time_range_filter(query, project_id, params)
-    query = _apply_pagination(query, params)
-    return (await session.scalars(query)).all()
+) -> schemas.PaginatedResult[models.Metric]:
+    """Get raw metrics with total count."""
 
+    # Count query
+    count_query = select(func.count(models.Metric.id))
+    count_query = _apply_time_range_filter(count_query, project_id, params)
+    total = await session.scalar(count_query)
 
-async def count_metrics(
-    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> int:
-    """Count raw metrics matching params."""
-    query = select(func.count(models.Metric.id))
-    query = _apply_time_range_filter(query, project_id, params)
-    return (await session.scalar(query)) or 0
+    # Items query
+    items_query = select(models.Metric).order_by(models.Metric.timestamp.desc())
+    items_query = _apply_time_range_filter(items_query, project_id, params)
+    items_query = _apply_pagination(items_query, params)
+    items = (await session.scalars(items_query)).all()
+
+    return schemas.PaginatedResult(
+        items=items,
+        total=total,
+        page=params.page,
+        page_size=params.page_size,
+    )
 
 
 async def get_metrics_summary(
@@ -109,24 +114,32 @@ async def get_metrics_time_series(
     params: schemas.MetricTimeSeriesQuery,
     project_id: uuid.UUID,
     session: AsyncSession,
-) -> list[schemas.MetricTimeSeriesPointResponse]:
-    # Group by granularity. Handling different dialects.
-
+) -> schemas.PaginatedResult[schemas.MetricTimeSeriesPointResponse]:
+    """Get metric time series with total count."""
     timestamp: ColumnElement[datetime] = func.date_trunc(
         params.granularity.value, models.Metric.timestamp
     )
 
-    query = select(
+    # Count distinct time buckets
+    count_query = select(timestamp)
+    count_query = _apply_time_range_filter(count_query, project_id, params)
+    count_query = count_query.group_by(timestamp)
+    total = await session.scalar(
+        select(func.count()).select_from(count_query.subquery())
+    )
+
+    # Items query
+    items_query = select(
         timestamp.label("timestamp"),
         func.count(models.Metric.id).label("request_count"),
         func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
         _error_count_expr().label("error_count"),
     )
-    query = _apply_time_range_filter(query, project_id, params)
-    query = query.group_by(timestamp).order_by(timestamp)
-    query = _apply_pagination(query, params)
+    items_query = _apply_time_range_filter(items_query, project_id, params)
+    items_query = items_query.group_by(timestamp).order_by(timestamp)
+    items_query = _apply_pagination(items_query, params)
 
-    results = (await session.execute(query)).all()
+    results = (await session.execute(items_query)).all()
 
     metrics_time_series = []
     for row in results:
@@ -145,31 +158,29 @@ async def get_metrics_time_series(
             )
         )
 
-    return metrics_time_series
-
-
-async def count_metrics_time_series(
-    params: schemas.MetricTimeSeriesQuery,
-    project_id: uuid.UUID,
-    session: AsyncSession,
-) -> int:
-    """Count time-series points matching params."""
-    timestamp: ColumnElement[datetime] = func.date_trunc(
-        params.granularity.value, models.Metric.timestamp
+    return schemas.PaginatedResult(
+        items=metrics_time_series,
+        total=total,
+        page=params.page,
+        page_size=params.page_size,
     )
-    query = select(timestamp)
-    query = _apply_time_range_filter(query, project_id, params)
-    query = query.group_by(timestamp)
-
-    # Count the number of distinct time buckets
-    count_stmt = select(func.count()).select_from(query.subquery())
-    return (await session.scalar(count_stmt)) or 0
 
 
 async def get_metrics_endpoints_stats(
     params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> list[schemas.MetricEndpointStatsResponse]:
-    query = select(
+) -> schemas.PaginatedResult[schemas.MetricEndpointStatsResponse]:
+    """Get metrics grouped by endpoint with total count."""
+
+    # Count distinct endpoints
+    count_query = select(models.Metric.url_path, models.Metric.method)
+    count_query = _apply_time_range_filter(count_query, project_id, params)
+    count_query = count_query.group_by(models.Metric.url_path, models.Metric.method)
+    total = await session.scalar(
+        select(func.count()).select_from(count_query.subquery())
+    )
+
+    # Items query
+    items_query = select(
         models.Metric.url_path,
         models.Metric.method,
         func.count(models.Metric.id).label("request_count"),
@@ -178,11 +189,11 @@ async def get_metrics_endpoints_stats(
         func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
         func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
-    query = _apply_time_range_filter(query, project_id, params)
-    query = query.group_by(models.Metric.url_path, models.Metric.method)
-    query = _apply_pagination(query, params)
+    items_query = _apply_time_range_filter(items_query, project_id, params)
+    items_query = items_query.group_by(models.Metric.url_path, models.Metric.method)
+    items_query = _apply_pagination(items_query, params)
 
-    results = (await session.execute(query)).all()
+    results = (await session.execute(items_query)).all()
 
     metrics_endpoint_stats = []
     for row in results:
@@ -202,19 +213,12 @@ async def get_metrics_endpoints_stats(
             )
         )
 
-    return metrics_endpoint_stats
-
-
-async def count_metrics_endpoints_stats(
-    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> int:
-    """Count distinct endpoints matching params."""
-    query = select(models.Metric.url_path, models.Metric.method)
-    query = _apply_time_range_filter(query, project_id, params)
-    query = query.group_by(models.Metric.url_path, models.Metric.method)
-
-    count_stmt = select(func.count()).select_from(query.subquery())
-    return (await session.scalar(count_stmt)) or 0
+    return schemas.PaginatedResult(
+        items=metrics_endpoint_stats,
+        total=total,
+        page=params.page,
+        page_size=params.page_size,
+    )
 
 
 async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -> int:

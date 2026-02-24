@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+env:
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  quality:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install backend dependencies
+        run: uv sync --all-packages
+
+      - name: Run prek - pre-commit
+        run: uvx prek run --from-ref origin/${GITHUB_BASE_REF} --to-ref HEAD --show-diff-on-failure
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install backend dependencies
+        run: uv sync --all-packages
+
+      - name: Run tests
+        run: uv run pytest --cov=app --cov-report=html
+        working-directory: backend
+
+      - name: Store coverage files
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-html
+          path: backend/htmlcov
+          include-hidden-files: true
+
+      - name: Coverage report
+        run: uv run coverage report --fail-under=85
+        working-directory: backend

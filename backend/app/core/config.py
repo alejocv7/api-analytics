@@ -1,15 +1,24 @@
 import os
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     AnyUrl,
     BeforeValidator,
+    EmailStr,
+    Field,
     PostgresDsn,
+    RedisDsn,
     computed_field,
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+try:
+    __VERSION__ = version("app")
+except PackageNotFoundError:
+    __VERSION__ = "1.0.0"
 
 
 def parse_list(v: Any) -> list[str] | str:
@@ -38,14 +47,31 @@ class Settings(BaseSettings):
     )
 
     # Project
-    PROJECT_ID: int = 0
+    PROJECT_USER: EmailStr
+    PROJECT_PASSWORD: str
+    PROJECT_KEY: str
     PROJECT_NAME: str = "API Analytics Service"
     PROJECT_DESCRIPTION: str = "Track and analyze API performance metrics"
     PROJECT_SUFFIX_LENGTH: int = 4
     PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
 
+    VERSION: str = __VERSION__
+
+    REQUEST_ID_HEADER: str = "X-Request-ID"
+
     # Environment
     ENVIRONMENT: Literal["local", "staging", "test", "prod"] = "local"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def IS_PRODUCTION(self) -> bool:
+        return self.ENVIRONMENT == "prod"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SHOW_DOCS(self) -> bool:
+        return not self.IS_PRODUCTION
+
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     # API
@@ -58,24 +84,68 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
-    REDIS_URL: str
+    # Redis
+    REDIS_DB: str = "0"
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str = ""
+    REDIS_POOL_SIZE: int = 20
+    REDIS_HEALTH_CHECK_INTERVAL: int = 30
+
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 20
+    DB_POOL_RECYCLE: int = 3600
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def ASYNC_SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        return PostgresDsn.build(
-            scheme="postgresql+asyncpg",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
-            port=self.POSTGRES_PORT,
-            path=self.POSTGRES_DB,
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        return str(
+            PostgresDsn.build(
+                scheme="postgresql+asyncpg",
+                username=self.POSTGRES_USER,
+                password=self.POSTGRES_PASSWORD,
+                host=self.POSTGRES_SERVER,
+                port=self.POSTGRES_PORT,
+                path=self.POSTGRES_DB,
+            )
+        )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def REDIS_URL(self) -> str:
+        return str(
+            RedisDsn.build(
+                scheme="redis",
+                host=self.REDIS_HOST,
+                port=self.REDIS_PORT,
+                password=self.REDIS_PASSWORD,
+                path=self.REDIS_DB,
+            )
         )
 
     # Security
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def security_headers(self) -> dict[str, str]:
+        headers = {
+            # Basic security headers suitable for an API
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "frame-ancestors 'none';",
+        }
+
+        if self.IS_PRODUCTION:
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+        return headers
+
     SECURITY_KEY: str
     SECURITY_ALGORITHM: str = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    SECURITY_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    LOGIN_MAX_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_WINDOW_SECONDS: int = 900  # 15 minutes
+
     # Dummy hash to use for timing attack prevention when user is not found.
     # This is an Argon2 hash of a random password,
     # used to ensure constant-time comparison
@@ -102,18 +172,24 @@ class Settings(BaseSettings):
     API_KEY_PROJECT_LIMIT: int = 10
     API_KEY_DEFAULT_EXPIRY_DAYS: int = 60
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def IS_PRODUCTION(self) -> bool:
-        return self.ENVIRONMENT == "prod"
+    # Metric cleanup scheduler
+    METRIC_CLEANUP_INTERVAL_HOURS: int = Field(default=24, ge=1)
+    METRIC_RETENTION_DAYS: int = Field(default=90, ge=30, le=365)
+
+    SHUTDOWN_TASKS_CANCEL_TIMEOUT_SECONDS: int = Field(default=5, ge=1, le=60)
 
     @model_validator(mode="after")
     def validate_security_key(self) -> Self:
         key = self.SECURITY_KEY.strip()
-        if self.IS_PRODUCTION and (not key or key == "change_this"):
-            raise ValueError(
-                "SECURITY_KEY must be set to a secure value in production!"
-            )
+        if self.IS_PRODUCTION:
+            if len(key) < 32:
+                raise ValueError(
+                    "SECURITY_KEY must be at least 32 characters in production"
+                )
+            if key.lower() in ("changethis", "change_this", "secret", "password"):
+                raise ValueError(
+                    "SECURITY_KEY must be set to a secure value in production"
+                )
         self.SECURITY_KEY = key
         return self
 

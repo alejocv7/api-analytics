@@ -1,17 +1,6 @@
-from datetime import UTC, datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, AwareDatetime, BeforeValidator, SecretStr
-
-
-def get_default_start_date() -> AwareDatetime:
-    return datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-
-
-def get_default_end_date() -> AwareDatetime:
-    return datetime.now(UTC).replace(
-        hour=23, minute=59, second=59, microsecond=999999
-    )
+from pydantic import AfterValidator, BeforeValidator, SecretStr
 
 
 def normalize_url_path(url_path: str) -> str:

@@ -13,6 +13,9 @@ router = APIRouter()
     description="""
     Retrieves the information of the currently authenticated user.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+    },
 )
 async def read_user_me(user: CurrentUserDep) -> models.User:
     return user

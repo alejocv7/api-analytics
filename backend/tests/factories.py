@@ -40,6 +40,7 @@ async def create_project(
     is_active: bool = True,
 ):
     from app import models
+    from app.core.enums import ProjectRole
 
     project = models.Project(
         name=name,
@@ -49,6 +50,14 @@ async def create_project(
         is_active=is_active,
     )
     session.add(project)
+    await session.flush()  # obtain project.id before commit
+
+    membership = models.UserProject(
+        user_id=user.id,
+        project_id=project.id,
+        role=ProjectRole.owner,
+    )
+    session.add(membership)
     await session.commit()
     await session.refresh(project)
     return project

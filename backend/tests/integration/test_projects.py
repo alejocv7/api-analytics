@@ -12,7 +12,7 @@ async def test_create_project(client: AsyncClient, auth_headers):
         headers=auth_headers,
         json={"name": "Test Project", "description": "Project Description"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Test Project"
     assert "project_key" in data
@@ -36,8 +36,8 @@ async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_se
     response = await client.get("/api/v1/projects/", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
-    assert len(data) >= 2
-    names = [p["name"] for p in data]
+    assert data["total"] >= 2
+    names = [p["name"] for p in data["items"]]
     assert "P1" in names
     assert "P2" in names
 
@@ -59,6 +59,11 @@ async def test_get_project_by_key(
     assert response.json()["name"] == "Single"
 
 
+async def test_get_nonexistent_project(client: AsyncClient, auth_headers):
+    response = await client.get("/api/v1/projects/nonexistent", headers=auth_headers)
+    assert response.status_code == 404
+
+
 async def test_update_project(client: AsyncClient, auth_headers, test_user, db_session):
     p = await create_project(
         db_session,
@@ -74,6 +79,31 @@ async def test_update_project(client: AsyncClient, auth_headers, test_user, db_s
     )
     assert response.status_code == 200
     assert response.json()["name"] == "New Name"
+
+
+async def test_update_project_duplicate_name(
+    client: AsyncClient, auth_headers, test_user, db_session
+):
+    await create_project(
+        db_session,
+        user=test_user,
+        name="Project A",
+        project_key="a-key",
+    )
+    p2 = await create_project(
+        db_session,
+        user=test_user,
+        name="Project B",
+        project_key="b-key",
+    )
+
+    response = await client.patch(
+        f"/api/v1/projects/{p2.project_key}",
+        headers=auth_headers,
+        json={"name": "Project A"},
+    )
+    assert response.status_code == 409
+    assert "Project name already in use" in response.json()["error"]
 
 
 async def test_delete_project(client: AsyncClient, auth_headers, test_user, db_session):

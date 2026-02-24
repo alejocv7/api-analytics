@@ -1,10 +1,13 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+import uuid
+
+from pydantic import BaseModel, ConfigDict
 
 
 class TokenResponse(BaseModel):
-    """JWT token."""
+    """JWT access + refresh token pair."""
 
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
     model_config = ConfigDict(
@@ -12,6 +15,7 @@ class TokenResponse(BaseModel):
             "examples": [
                 {
                     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                     "token_type": "bearer",
                 }
             ]
@@ -19,39 +23,30 @@ class TokenResponse(BaseModel):
     )
 
 
-class TokenData(BaseModel):
-    """Data stored in JWT token."""
+class RefreshTokenRequest(BaseModel):
+    """Request body for the token refresh endpoint."""
 
-    user_id: int
-    email: str
-    exp: int | None = None
+    refresh_token: str
+
+
+class TokenData(BaseModel):
+    """Application identity extracted from a validated JWT token."""
+
+    user_id: uuid.UUID
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
                     "user_id": 1,
-                    "email": "[EMAIL_ADDRESS]",
-                    "exp": 1738198800,
                 }
             ]
         }
     )
 
 
-class LoginRequest(BaseModel):
-    """Schema for user login."""
+class RefreshTokenData(BaseModel):
+    """Claims extracted from a validated refresh token."""
 
-    email: EmailStr
-    password: str
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "email": "[EMAIL_ADDRESS]",
-                    "password": "[PASSWORD]",
-                }
-            ]
-        }
-    )
+    user_id: uuid.UUID
+    token_version: int

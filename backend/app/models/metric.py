@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from http import HTTPMethod
 from typing import TYPE_CHECKING
@@ -18,17 +19,17 @@ class Metric(Base):
 
     __tablename__ = "metrics"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
     project: Mapped[Project] = relationship(back_populates="metrics")
 
-    url_path: Mapped[str] = mapped_column(index=True)
+    url_path: Mapped[str] = mapped_column()
     method: Mapped[HTTPMethod] = mapped_column(
-        Enum(HTTPMethod, name="http_method_enum"), index=True
+        Enum(HTTPMethod, name="http_method_enum")
     )
 
-    response_status_code: Mapped[int] = mapped_column(index=True)
+    response_status_code: Mapped[int] = mapped_column()
 
     response_time_ms: Mapped[float]
     timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
@@ -38,10 +39,6 @@ class Metric(Base):
 
     __table_args__ = (
         Index("idx_project_timestamp", "project_id", "timestamp"),
-        Index("idx_project_url_path", "project_id", "url_path"),
-        Index("idx_project_method", "project_id", "method"),
-        Index("idx_project_status_code", "project_id", "response_status_code"),
-        Index("idx_status_timestamp", "response_status_code", "timestamp"),
         Index("idx_project_url_method", "project_id", "url_path", "method"),
     )
 

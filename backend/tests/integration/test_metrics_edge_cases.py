@@ -58,7 +58,7 @@ async def test_pagination_edge_cases(
     # Note: time-series groups by time, so we might get fewer points than raw metrics if
     # they are in same minute. But let's check basic response structure.
     data = response.json()
-    assert isinstance(data, list)
+    assert isinstance(data["items"], list)
 
     # Test invalid page size
     response = await client.get(

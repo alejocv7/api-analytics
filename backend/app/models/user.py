@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -6,6 +7,7 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.models.user_project import UserProject
 
 
 class User(Base, TimestampMixin):
@@ -13,7 +15,9 @@ class User(Base, TimestampMixin):
 
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True, default=uuid.uuid4, index=True
+    )
 
     email: Mapped[str] = mapped_column(unique=True, index=True)
 
@@ -22,7 +26,12 @@ class User(Base, TimestampMixin):
     full_name: Mapped[str | None]
 
     is_active: Mapped[bool] = mapped_column(default=True)
+    refresh_token_version: Mapped[int] = mapped_column(default=0, server_default="0")
 
-    projects: Mapped[list[Project]] = relationship(
+    owned_projects: Mapped[list[Project]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
+    )
+
+    shared_projects: Mapped[list[UserProject]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )

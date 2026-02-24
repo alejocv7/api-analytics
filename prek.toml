@@ -1,0 +1,25 @@
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.1"
+
+[[repos.hooks]]
+id = "ruff-check"
+files = "^backend/"
+types = ["python"]
+
+[[repos.hooks]]
+id = "ruff-format"
+files = "^backend/"
+types = ["python"]
+
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "local-mypy"
+name = "mypy"
+entry = "uv run --directory backend mypy app"
+language = "system"
+pass_filenames = false
+require_serial = true

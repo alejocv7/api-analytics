@@ -5,6 +5,7 @@ A production-ready, high-performance API analytics backend built with Python 3.1
 ## 🚀 Key Features
 
 - **Multi-tenant Architecture**: Support for multiple users and projects.
+  Projects have a single owner (enforced via FK) plus optional members/viewers managed through a `user_projects` junction table. Roles: `owner`, `member`, `viewer`. Project-to-api-key relationship is one-to-many.
 - **Secure API Key Management**: Hash-based API key storage with rotation support.
 - **High-Performance Tracking**: Asynchronous metric recording using FastAPIs background tasks.
 - **Advanced Analytics**: Aggregated statistics for response times, error rates, and throughput.
@@ -56,7 +57,7 @@ To run the test suite, you can use `uv` in the backend directory:
 
 ```bash
 cd backend
-uv run pytest
+uv run pytest --maxfail=1
 ```
 
 ### 4. Database Migration Workflow
@@ -100,15 +101,16 @@ Detailed OpenAPI documentation is available at `/docs` or `/redoc`.
 
 ### Core Endpoints
 
-| Category     | Endpoint                                             | Method            | Description                          |
-| :----------- | :--------------------------------------------------- | :---------------- | :----------------------------------- |
-| **Auth**     | `/api/v1/auth/register`                              | `POST`            | Create a new user account            |
-| **Auth**     | `/api/v1/auth/login`                                 | `POST`            | Get JWT access token                 |
-| **Projects** | `/api/v1/projects/`                                  | `GET/POST`        | Manage projects                      |
-| **API Keys** | `/api/v1/projects/{project-key}/api-keys/`           | `GET/POST/DELETE` | Manage API keys for a project        |
-| **Metrics**  | `/api/v1/projects/{project-key}/metrics/summary`     | `GET`             | Overall project statistics           |
-| **Metrics**  | `/api/v1/projects/{project-key}/metrics/time-series` | `GET`             | Aggregated data for charts           |
-| **Tracking** | `/api/v1/track`                                      | `POST`            | Record a metric (requires X-API-Key) |
+| Category     | Endpoint                                             | Method                  | Description                          |
+| :----------- | :--------------------------------------------------- | :---------------------- | :----------------------------------- |
+| **Auth**     | `/api/v1/auth/register`                              | `POST`                  | Create a new user account            |
+| **Auth**     | `/api/v1/auth/login`                                 | `POST`                  | Get JWT access token                 |
+| **Projects** | `/api/v1/projects/`                                  | `GET/POST`              | Manage projects                      |
+| **API Keys** | `/api/v1/projects/{project-key}/api-keys/`           | `GET/POST/DELETE`       | Manage API keys for a project        |
+| **Metrics**  | `/api/v1/projects/{project-key}/metrics/summary`     | `GET`                   | Overall project statistics           |
+| **Metrics**  | `/api/v1/projects/{project-key}/metrics/time-series` | `GET`                   | Aggregated data for charts           |
+| **Members**  | `/api/v1/projects/{project-key}/members/`            | `GET/POST/PATCH/DELETE` | Manage project membership and roles  |
+| **Tracking** | `/api/v1/track`                                      | `POST`                  | Record a metric (requires X-API-Key) |
 
 ---
 

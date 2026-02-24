@@ -1,8 +1,8 @@
-from collections.abc import Sequence
+from fastapi import APIRouter, Request
 
-from fastapi import APIRouter
-
-from app import models, schemas
+from app import schemas
+from app.core import rate_limits
+from app.core.rate_limiter import get_user_key, limiter
 from app.dependencies import ProjectDep, SessionDep
 from app.services import metric_service
 
@@ -11,16 +11,33 @@ router = APIRouter()
 
 @router.get(
     "/",
-    response_model=list[schemas.MetricResponse],
+    response_model=schemas.MetricListResponse,
     summary="List raw metrics",
     description="""
     Retrieves a list of individual metrics recorded for the project.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
-) -> Sequence[models.Metric]:
-    return await metric_service.get_metrics(session, project.id, params)
+    request: Request,  # noqa: ARG001
+    params: schemas.MetricQuery,
+    project: ProjectDep,
+    session: SessionDep,
+) -> schemas.MetricListResponse:
+    items = await metric_service.get_metrics(params, project.id, session)
+    total = await metric_service.count_metrics(params, project.id, session)
+    return schemas.MetricListResponse(
+        items=items,
+        total=total,
+        page=params.page,
+        page_size=params.page_size,
+    )
 
 
 @router.get(
@@ -30,38 +47,84 @@ async def read_metrics(
     description="""
     Calculates overall performance statistics for the project.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_summary(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
+    request: Request,  # noqa: ARG001
+    params: schemas.MetricQuery,
+    project: ProjectDep,
+    session: SessionDep,
 ) -> schemas.MetricSummaryResponse:
-    return await metric_service.get_metrics_summary(session, project.id, params)
+    return await metric_service.get_metrics_summary(params, project.id, session)
 
 
 @router.get(
     "/time-series",
-    response_model=list[schemas.MetricTimeSeriesPointResponse],
+    response_model=schemas.MetricTimeSeriesListResponse,
     summary="Get metrics time series",
     description="""
     Retrieves aggregated metrics grouped by a specified time granularity.
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_time_series(
+    request: Request,  # noqa: ARG001
+    params: schemas.MetricTimeSeriesQuery,
     project: ProjectDep,
     session: SessionDep,
-    params: schemas.MetricTimeSeriesQuery,
-) -> list[schemas.MetricTimeSeriesPointResponse]:
-    return await metric_service.get_metrics_time_series(session, project.id, params)
+) -> schemas.MetricTimeSeriesListResponse:
+    items = await metric_service.get_metrics_time_series(params, project.id, session)
+    total = await metric_service.count_metrics_time_series(params, project.id, session)
+    return schemas.MetricTimeSeriesListResponse(
+        items=items,
+        total=total,
+        page=params.page,
+        page_size=params.page_size,
+    )
 
 
 @router.get(
     "/endpoints",
-    response_model=list[schemas.MetricEndpointStatsResponse],
+    response_model=schemas.MetricEndpointStatsListResponse,
     summary="Get endpoint statistics",
     description="""
     Retrieves performance statistics grouped by endpoint (URL path and method).
     """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+        403: {"model": schemas.ErrorResponse, "description": "Not enough permissions"},
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
+@limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def read_metrics_endpoints_stats(
-    project: ProjectDep, session: SessionDep, params: schemas.MetricQuery
-) -> list[schemas.MetricEndpointStatsResponse]:
-    return await metric_service.get_metrics_endpoints_stats(session, project.id, params)
+    request: Request,  # noqa: ARG001
+    params: schemas.MetricQuery,
+    project: ProjectDep,
+    session: SessionDep,
+) -> schemas.MetricEndpointStatsListResponse:
+    items = await metric_service.get_metrics_endpoints_stats(
+        params, project.id, session
+    )
+    total = await metric_service.count_metrics_endpoints_stats(
+        params, project.id, session
+    )
+    return schemas.MetricEndpointStatsListResponse(
+        items=items,
+        total=total,
+        page=params.page,
+        page_size=params.page_size,
+    )

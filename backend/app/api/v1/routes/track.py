@@ -3,7 +3,8 @@ import logging
 from fastapi import APIRouter, Request
 
 from app import models, schemas
-from app.core.rate_limiter import limiter
+from app.core import rate_limits
+from app.core.rate_limiter import get_project_key, limiter
 from app.dependencies import ProjectIdDep, SessionDep
 from app.services import metric_service
 
@@ -23,16 +24,21 @@ logger = logging.getLogger(__name__)
 
     The API key must be sent in the `X-API-Key` header.
     """,
+    responses={
+        401: {
+            "model": schemas.ErrorResponse,
+            "description": "Invalid or missing API key",
+        },
+        404: {"model": schemas.ErrorResponse, "description": "Project not found"},
+        429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
+    },
 )
-@limiter.limit("100/minute")
+@limiter.limit(rate_limits.TRACK, key_func=get_project_key)
 async def track_metric(
     request: Request,  # noqa: ARG001
     metric: schemas.MetricCreate,
-    session: SessionDep,
     project_id: ProjectIdDep,
+    session: SessionDep,
 ) -> models.Metric:
-    """
-    Track an API metric.
-    """
-    logger.info("Tracking metric for project %s: %s", project_id, metric)
-    return await metric_service.add_metric(session, project_id, metric)
+    logger.info("Tracking metric for project %s", project_id)
+    return await metric_service.add_metric(metric, project_id, session)

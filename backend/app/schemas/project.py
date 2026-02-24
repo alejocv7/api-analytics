@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import (
     AwareDatetime,
     BaseModel,
@@ -6,6 +8,7 @@ from pydantic import (
 )
 
 from app.core.config import settings
+from app.schemas.pagination import PaginatedResponse
 
 
 class ProjectBase(BaseModel):
@@ -40,6 +43,7 @@ class ProjectUpdate(BaseModel):
     name: str | None = Field(
         None, min_length=1, max_length=100, pattern=settings.PROJECT_NAME_PATTERN
     )
+    description: str | None = Field(None, max_length=1000)
     is_active: bool | None = None
 
     model_config = ConfigDict(
@@ -59,9 +63,9 @@ class ProjectUpdate(BaseModel):
 class ProjectResponse(ProjectBase):
     """Schema for project in responses."""
 
-    id: int
+    id: uuid.UUID
     project_key: str
-    user_id: int
+    user_id: uuid.UUID
     is_active: bool
     created_at: AwareDatetime
     updated_at: AwareDatetime | None
@@ -85,51 +89,4 @@ class ProjectResponse(ProjectBase):
     )
 
 
-class ProjectDetailResponse(ProjectResponse):
-    """Detailed project response with statistics."""
-
-    total_api_keys: int = 0
-    active_api_keys: int = 0
-    total_metrics: int = 0
-    metrics_last_24h: int = 0
-    avg_response_time_ms: float = 0.0
-    error_rate_percent: float = 0.0
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 1,
-                    "name": "Production API",
-                    "description": "Main production API",
-                    "project_key": "production-api-a1b2",
-                    "user_id": 1,
-                    "is_active": True,
-                    "created_at": "2026-01-01T12:00:00Z",
-                    "updated_at": "2026-01-01T12:00:00Z",
-                    "total_api_keys": 5,
-                    "active_api_keys": 3,
-                    "total_metrics": 154020,
-                    "metrics_last_24h": 12500,
-                    "avg_response_time_ms": 145.5,
-                    "error_rate_percent": 0.45,
-                }
-            ]
-        },
-    )
-
-
-class ProjectListResponse(BaseModel):
-    """Response for list of projects."""
-
-    items: list[ProjectResponse]
-    total: int
-    page: int
-    page_size: int
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"items": [], "total": 0, "page": 1, "page_size": 20}]
-        }
-    )
+ProjectListResponse = PaginatedResponse[ProjectResponse]

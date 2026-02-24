@@ -1,6 +1,6 @@
+import uuid
 from datetime import UTC, timedelta
-from enum import StrEnum
-from http import HTTPMethod, HTTPStatus
+from http import HTTPMethod
 from typing import Annotated, Self
 
 from fastapi import Query
@@ -12,18 +12,19 @@ from pydantic import (
     model_validator,
 )
 
-from app.core.types import (
-    NormalizedUrlPath,
-    get_default_end_date,
-    get_default_start_date,
-)
+from app.core.enums import TimeGranularity as TimeGranularity
+from app.core.types import NormalizedUrlPath
+from app.core.utils import get_default_end_date, get_default_start_date
+from app.schemas.pagination import PaginatedResponse, PaginationParams
 
 
 class MetricBase(BaseModel):
     url_path: NormalizedUrlPath = Field(..., description="API endpoint path")
 
     method: HTTPMethod = Field(..., description="HTTP method")
-    response_status_code: HTTPStatus = Field(..., description="HTTP status code")
+    response_status_code: int = Field(
+        ..., ge=100, le=599, description="HTTP status code"
+    )
     response_time_ms: float = Field(
         ..., ge=0, le=120_000, description="Response time in milliseconds"
     )
@@ -41,7 +42,7 @@ class MetricCreate(MetricBase):
                 {
                     "url_path": "/v1/users",
                     "method": "GET",
-                    "status_code": 200,
+                    "response_status_code": 200,
                     "response_time_ms": 45.3,
                     "user_agent": "Mozilla/5.0...",
                 }
@@ -51,7 +52,7 @@ class MetricCreate(MetricBase):
 
 
 class MetricResponse(MetricBase):
-    id: int
+    id: uuid.UUID
     timestamp: AwareDatetime
     ip_hash: str | None = Field(None, description="Hashed IP address")
     model_config = ConfigDict(
@@ -158,7 +159,7 @@ class MetricEndpointStatsResponse(PerformanceStatsMixin):
     )
 
 
-class MetricParams(BaseModel):
+class MetricParams(PaginationParams):
     start_date: AwareDatetime = Field(
         default_factory=get_default_start_date,
         description="Start date (defaults to beginning of today)",
@@ -197,14 +198,13 @@ class MetricParams(BaseModel):
 MetricQuery = Annotated[MetricParams, Query()]
 
 
-class TimeGranularity(StrEnum):
-    MINUTE = "minute"
-    HOUR = "hour"
-    DAY = "day"
-
-
 class MetricTimeSeriesParams(MetricParams):
     granularity: TimeGranularity = TimeGranularity.MINUTE
 
 
 MetricTimeSeriesQuery = Annotated[MetricTimeSeriesParams, Query()]
+
+
+MetricListResponse = PaginatedResponse[MetricResponse]
+MetricTimeSeriesListResponse = PaginatedResponse[MetricTimeSeriesPointResponse]
+MetricEndpointStatsListResponse = PaginatedResponse[MetricEndpointStatsResponse]

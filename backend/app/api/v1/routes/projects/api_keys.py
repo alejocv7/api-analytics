@@ -24,12 +24,12 @@ router = APIRouter()
     will be shown, so make sure to save it safely.
     """,
     responses={
-        400: {"model": schemas.ErrorResponse, "description": "API key limit reached"},
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
         403: {
             "model": schemas.ErrorResponse,
             "description": "Not owner of the project",
         },
+        409: {"model": schemas.ErrorResponse, "description": "API key limit reached"},
         429: {"model": schemas.ErrorResponse, "description": "Rate limit exceeded"},
     },
 )
@@ -106,6 +106,7 @@ async def get_api_key(
     response_model=schemas.APIKeyResponse,
     summary="Update an API key",
     description="""
+    Updates the metadata of an API key, such as its name or expiration date.
     """,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},

@@ -85,14 +85,10 @@ async def list_members(
     roles. The owner's role cannot be changed, and the `owner` role cannot be assigned.
     """,
     responses={
-        400: {
-            "model": schemas.ErrorResponse,
-            "description": "Cannot change owner role",
-        },
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
         403: {
             "model": schemas.ErrorResponse,
-            "description": "Not owner of the project",
+            "description": "Not owner of the project or cannot change owner role",
         },
         404: {
             "model": schemas.ErrorResponse,
@@ -121,14 +117,10 @@ async def update_member_role(
     The project owner cannot be removed.
     """,
     responses={
-        400: {
-            "model": schemas.ErrorResponse,
-            "description": "Cannot remove project owner",
-        },
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
         403: {
             "model": schemas.ErrorResponse,
-            "description": "Not owner of the project",
+            "description": "Not owner of the project or cannot remove project owner",
         },
         404: {
             "model": schemas.ErrorResponse,

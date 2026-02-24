@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Select, case, delete, func, select
+from sqlalchemy import ColumnElement, Select, case, delete, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -112,7 +112,10 @@ async def get_metrics_time_series(
 ) -> list[schemas.MetricTimeSeriesPointResponse]:
     # Group by granularity. Handling different dialects.
 
-    timestamp: Any = func.date_trunc(params.granularity.value, models.Metric.timestamp)
+    timestamp: ColumnElement[datetime] = func.date_trunc(
+        params.granularity.value, models.Metric.timestamp
+    )
+
     query = select(
         timestamp.label("timestamp"),
         func.count(models.Metric.id).label("request_count"),
@@ -151,7 +154,9 @@ async def count_metrics_time_series(
     session: AsyncSession,
 ) -> int:
     """Count time-series points matching params."""
-    timestamp: Any = func.date_trunc(params.granularity.value, models.Metric.timestamp)
+    timestamp: ColumnElement[datetime] = func.date_trunc(
+        params.granularity.value, models.Metric.timestamp
+    )
     query = select(timestamp)
     query = _apply_time_range_filter(query, project_id, params)
     query = query.group_by(timestamp)
@@ -240,6 +245,6 @@ def _apply_pagination[T: tuple[Any, ...]](
     return query.offset(offset).limit(params.page_size)
 
 
-def _error_count_expr() -> Any:
+def _error_count_expr() -> ColumnElement[int]:
     """Common expression for counting errors (status >= 400)."""
     return func.sum(case((models.Metric.response_status_code >= 400, 1), else_=0))

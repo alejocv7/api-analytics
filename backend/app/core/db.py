@@ -28,5 +28,6 @@ async def is_db_connected() -> bool:
         async with AsyncSessionLocal() as session:
             await session.execute(select(1))
         return True
-    except Exception:
+    except Exception as e:
+        logger.exception("Database connectivity check failed: %s", e)
         return False

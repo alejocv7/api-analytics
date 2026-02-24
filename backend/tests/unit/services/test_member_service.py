@@ -25,11 +25,11 @@ def _make_project(owner_id: uuid.UUID | None = None) -> models.Project:
 
 def _make_user(user_id: uuid.UUID | None = None) -> models.User:
     uid = user_id or uuid.uuid4()
-    user = MagicMock(spec=models.User)
-    user.id = uid
-    user.email = f"user-{uid}@example.com"
-    user.full_name = "Test User"
-    return user
+    return models.User(
+        id=uid,
+        email=f"user-{uid}@example.com",
+        full_name="Test User",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -110,11 +110,7 @@ async def test_add_member_happy_path():
     user = _make_user()
     session = AsyncMock()
 
-    expected_membership = MagicMock(spec=models.UserProject)
-    mock_scalars_result = MagicMock()
-    mock_scalars_result.one.return_value = expected_membership
     session.get.return_value = None
-    session.scalars.return_value = mock_scalars_result
 
     with patch(
         "app.services.member_service.user_service.get_user_by_email",
@@ -125,7 +121,7 @@ async def test_add_member_happy_path():
             project, user.email, ProjectRole.viewer, session
         )
 
-    assert result is expected_membership
+    assert result.user == user
     session.add.assert_called_once()
     session.commit.assert_called_once()
 
@@ -215,15 +211,10 @@ async def test_update_member_role_happy_path():
     membership = MagicMock(spec=models.UserProject)
     session.get.return_value = membership
 
-    expected_membership = MagicMock(spec=models.UserProject)
-    mock_scalars_result = MagicMock()
-    mock_scalars_result.one.return_value = expected_membership
-    session.scalars.return_value = mock_scalars_result
-
     result = await member_service.update_member_role(
         project, uuid.uuid4(), ProjectRole.member, session
     )
 
     assert membership.role == ProjectRole.member
     session.commit.assert_called_once()
-    assert result is expected_membership
+    assert result is membership

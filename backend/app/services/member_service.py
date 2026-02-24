@@ -35,19 +35,12 @@ async def add_member(
     if existing:
         raise ConflictError("User is already a member of this project")
 
-    membership = models.UserProject(user_id=user.id, project_id=project.id, role=role)
+    membership = models.UserProject(
+        user_id=user.id, project_id=project.id, role=role, user=user
+    )
     session.add(membership)
     await session.commit()
-
-    result = await session.scalars(
-        select(models.UserProject)
-        .where(
-            models.UserProject.user_id == user.id,
-            models.UserProject.project_id == project.id,
-        )
-        .options(selectinload(models.UserProject.user))
-    )
-    loaded_membership = result.one()
+    await session.refresh(membership)
 
     logger.info(
         "Member added (user_id: %s, project_id: %s, role: %s)",
@@ -55,7 +48,7 @@ async def add_member(
         project.id,
         role,
     )
-    return loaded_membership
+    return membership
 
 
 async def list_members(
@@ -121,16 +114,7 @@ async def update_member_role(
 
     membership.role = role
     await session.commit()
-
-    result = await session.scalars(
-        select(models.UserProject)
-        .where(
-            models.UserProject.user_id == user_id,
-            models.UserProject.project_id == project.id,
-        )
-        .options(selectinload(models.UserProject.user))
-    )
-    loaded_membership = result.one()
+    await session.refresh(membership, attribute_names=["user"])
 
     logger.info(
         "Member role updated (user_id: %s, project_id: %s, role: %s)",
@@ -138,4 +122,4 @@ async def update_member_role(
         project.id,
         role,
     )
-    return loaded_membership
+    return membership

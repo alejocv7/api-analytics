@@ -7,6 +7,7 @@ import pytest
 from app.core import security
 from app.core.config import settings
 from app.core.exceptions import BearerAuthenticationError
+from app.core.types import SecurePassword
 from app.schemas import TokenData
 
 
@@ -188,3 +189,13 @@ def test_decode_refresh_token_rejects_wrong_signature():
 
     with pytest.raises(BearerAuthenticationError):
         security.decode_refresh_token(token)
+
+
+def test_validate_password():
+    # Weak password
+    with pytest.raises(ValueError, match="too weak"):
+        security.validate_password(SecurePassword("password"))
+
+    # Strong password
+    p = SecurePassword("CorrectHorseBatteryStaple123!")
+    assert security.validate_password(p) == p

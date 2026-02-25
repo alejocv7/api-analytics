@@ -87,3 +87,51 @@ async def test_track_metric_missing_key(client: AsyncClient):
     )
     assert response.status_code == 401
     assert "API key required" in response.json()["error"]
+
+
+async def test_track_metric_expired_key(client: AsyncClient, db_session, project):
+    from datetime import UTC, datetime, timedelta
+
+    past = datetime.now(UTC) - timedelta(days=1)
+    _, plain_key = await create_api_key(
+        db_session,
+        project=project,
+        name="Expired Key",
+        expires_at=past,
+        is_active=True,
+    )
+
+    response = await client.post(
+        "/api/v1/track/",
+        headers={"X-API-Key": plain_key},
+        json={
+            "url_path": "/x",
+            "method": "GET",
+            "response_status_code": 200,
+            "response_time_ms": 1,
+        },
+    )
+    assert response.status_code == 401
+    assert "Invalid API key" in response.json()["error"]
+
+
+async def test_track_metric_inactive_key(client: AsyncClient, db_session, project):
+    _, plain_key = await create_api_key(
+        db_session,
+        project=project,
+        name="Inactive Key",
+        is_active=False,
+    )
+
+    response = await client.post(
+        "/api/v1/track/",
+        headers={"X-API-Key": plain_key},
+        json={
+            "url_path": "/x",
+            "method": "GET",
+            "response_status_code": 200,
+            "response_time_ms": 1,
+        },
+    )
+    assert response.status_code == 401
+    assert "Invalid API key" in response.json()["error"]

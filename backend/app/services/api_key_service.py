@@ -1,13 +1,13 @@
 import logging
 import uuid
 
-from sqlalchemy import func, select, true
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core.config import settings
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
-from app.core.utils import apply_update
+from app.core.utils import active_filter, apply_update
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ async def list_api_keys(
     total = await session.scalar(
         select(func.count(models.APIKey.id)).where(
             models.APIKey.project_id == project_id,
-            models.APIKey.is_active.is_(True) if active_only else true(),
+            active_filter(models.APIKey.is_active, active_only),
         )
     )
 
@@ -59,7 +59,7 @@ async def list_api_keys(
             select(models.APIKey)
             .where(
                 models.APIKey.project_id == project_id,
-                models.APIKey.is_active.is_(True) if active_only else true(),
+                active_filter(models.APIKey.is_active, active_only),
             )
             .order_by(models.APIKey.created_at.desc())
             .offset(pagination.offset)

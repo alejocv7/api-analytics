@@ -1,14 +1,14 @@
 import logging
 import uuid
 
-from sqlalchemy import exists, func, select, true
+from sqlalchemy import exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core.enums import ProjectRole
 from app.core.exceptions import ConflictError, NotFoundError
-from app.core.utils import apply_update
+from app.core.utils import active_filter, apply_update
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ async def get_user_projects(
         select(func.count(models.Project.id))
         .join(models.UserProject, models.UserProject.project_id == models.Project.id)
         .where(models.UserProject.user_id == user_id)
-        .where(models.Project.is_active.is_(True) if active_only else true())
+        .where(active_filter(models.Project.is_active, active_only))
     )
 
     items = (
@@ -109,7 +109,7 @@ async def get_user_projects(
                 models.UserProject, models.UserProject.project_id == models.Project.id
             )
             .where(models.UserProject.user_id == user_id)
-            .where(models.Project.is_active.is_(True) if active_only else true())
+            .where(active_filter(models.Project.is_active, active_only))
             .offset(pagination.offset)
             .limit(pagination.page_size)
         )

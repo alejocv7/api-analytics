@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import AwareDatetime, BaseModel
+from sqlalchemy import true
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -30,3 +32,10 @@ def mask_email(email: str) -> str:
         return f"{user[0]}***{user[-1]}@{domain}"
     except ValueError, IndexError:
         return "***"
+
+
+def active_filter(model_attr: Any, active_only: bool) -> Any:
+    """
+    Filter by is_active if active_only is True, otherwise return a true() expression.
+    """
+    return model_attr.is_(True) if active_only else true()

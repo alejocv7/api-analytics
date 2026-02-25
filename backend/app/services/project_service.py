@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, schemas
 from app.core.enums import ProjectRole
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.core.utils import apply_update
 
 logger = logging.getLogger(__name__)
@@ -44,18 +44,28 @@ async def create_user_project(
     return project
 
 
-async def get_project_by_key(
+async def find_project_by_key(
     project_key: str, session: AsyncSession
 ) -> models.Project | None:
+    """Find a project by key. Returns None if not found."""
     result = await session.scalars(
         select(models.Project).where(models.Project.project_key == project_key)
     )
     return result.one_or_none()
 
 
-async def get_user_project_by_key(
+async def get_project_by_key(project_key: str, session: AsyncSession) -> models.Project:
+    """Get a project by key. Raises NotFoundError if not found."""
+    project = await find_project_by_key(project_key, session)
+    if not project:
+        raise NotFoundError("Project not found")
+    return project
+
+
+async def find_user_project_by_key(
     user_id: uuid.UUID, project_key: str, session: AsyncSession
 ) -> models.Project | None:
+    """Find a project by key for a specific user. Returns None if not found."""
     result = await session.scalars(
         select(models.Project)
         .join(models.UserProject, models.UserProject.project_id == models.Project.id)
@@ -65,6 +75,16 @@ async def get_user_project_by_key(
         )
     )
     return result.one_or_none()
+
+
+async def get_user_project_by_key(
+    user_id: uuid.UUID, project_key: str, session: AsyncSession
+) -> models.Project:
+    """Get a project by key for a specific user. Raises NotFoundError if not found."""
+    project = await find_user_project_by_key(user_id, project_key, session)
+    if not project:
+        raise NotFoundError("Project not found")
+    return project
 
 
 async def get_user_projects(

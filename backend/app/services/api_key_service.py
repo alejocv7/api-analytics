@@ -73,11 +73,15 @@ async def list_api_keys(
 async def get_api_key(
     api_key_id: uuid.UUID, project_id: uuid.UUID, session: AsyncSession
 ) -> models.APIKey:
-    stmt = select(models.APIKey).where(
-        models.APIKey.id == api_key_id,
-        models.APIKey.project_id == project_id,
-    )
-    api_key = (await session.scalars(stmt)).one_or_none()
+    api_key = (
+        await session.scalars(
+            select(models.APIKey).where(
+                models.APIKey.id == api_key_id,
+                models.APIKey.project_id == project_id,
+            )
+        )
+    ).first()
+
     if api_key is None:
         raise NotFoundError("API key not found")
     return api_key

@@ -28,7 +28,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
 
     # Use a system email
     system_email = settings.PROJECT_USER
-    user = await user_service.get_user_by_email(system_email, session)
+    user = await user_service.find_user_by_email(system_email, session)
     if not user:
         logger.info("Creating system user for self-monitoring...")
         hashed_password = security.hash_password(settings.PROJECT_PASSWORD)
@@ -46,12 +46,12 @@ async def seed_initial_data(session: AsyncSession) -> None:
         except Exception:
             await session.rollback()
             # If it failed, maybe it was created by another worker
-            user = await user_service.get_user_by_email(system_email, session)
+            user = await user_service.find_user_by_email(system_email, session)
             if not user:
                 raise
 
     # 2. Check if the self-monitoring project exists
-    project = await project_service.get_user_project_by_key(
+    project = await project_service.find_user_project_by_key(
         user.id, settings.PROJECT_KEY, session
     )
     if not project:

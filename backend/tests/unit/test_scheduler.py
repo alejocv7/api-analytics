@@ -269,7 +269,7 @@ async def test_log_metric_adds_metric_when_project_found():
     with (
         patch("app.middleware.db.AsyncSessionLocal", mock_session_factory),
         patch(
-            "app.middleware.project_service.get_project_by_key",
+            "app.middleware.project_service.find_project_by_key",
             new=AsyncMock(return_value=mock_project),
         ),
         patch("app.middleware.metric_service.add_metric", new=AsyncMock()) as mock_add,
@@ -290,7 +290,7 @@ async def test_log_metric_warns_and_skips_when_project_not_found():
     with (
         patch("app.middleware.db.AsyncSessionLocal", mock_session_factory),
         patch(
-            "app.middleware.project_service.get_project_by_key",
+            "app.middleware.project_service.find_project_by_key",
             new=AsyncMock(return_value=None),
         ),
         patch("app.middleware.metric_service.add_metric", new=AsyncMock()) as mock_add,
@@ -316,7 +316,7 @@ async def test_log_metric_caches_project_id_after_first_lookup():
     with (
         patch("app.middleware.db.AsyncSessionLocal", mock_session_factory),
         patch(
-            "app.middleware.project_service.get_project_by_key",
+            "app.middleware.project_service.find_project_by_key",
             new=AsyncMock(return_value=mock_project),
         ) as mock_get_project,
         patch("app.middleware.metric_service.add_metric", new=AsyncMock()),

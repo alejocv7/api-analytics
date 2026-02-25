@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 async def register(user: schemas.UserCreate, session: AsyncSession) -> models.User:
     logger.info("Registration attempt")
-    if await user_service.get_user_by_email(user.email, session):
+    if await user_service.find_user_by_email(user.email, session):
         logger.warning(
             "Registration failed: Email already registered: %s",
             utils.mask_email(user.email),
@@ -79,7 +79,7 @@ async def authenticate_user(
     email: str, password: str, session: AsyncSession
 ) -> models.User:
     logger.info("Authentication attempt")
-    user = await user_service.get_user_by_email(email, session)
+    user = await user_service.find_user_by_email(email, session)
     if not user or not user.is_active:
         # Prevent timing attacks by verifying password even when user doesn't exist.
         # This ensures the response time is similar whether or not the email exists.

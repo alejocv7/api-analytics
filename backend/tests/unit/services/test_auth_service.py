@@ -24,7 +24,7 @@ async def test_register_duplicate_email():
     )
 
     with patch(
-        "app.services.user_service.get_user_by_email", new_callable=AsyncMock
+        "app.services.user_service.find_user_by_email", new_callable=AsyncMock
     ) as mock_get:
         mock_get.return_value = models.User(id=1, email="test@example.com")
 
@@ -36,7 +36,7 @@ async def test_register_duplicate_email():
 async def test_authenticate_user_not_found():
     session = AsyncMock()
     with patch(
-        "app.services.user_service.get_user_by_email", new_callable=AsyncMock
+        "app.services.user_service.find_user_by_email", new_callable=AsyncMock
     ) as mock_get:
         mock_get.return_value = None
 
@@ -49,7 +49,7 @@ async def test_authenticate_user_wrong_password():
     session = AsyncMock()
     user = models.User(id=1, email="test@example.com", hashed_password="hashed")
     with patch(
-        "app.services.user_service.get_user_by_email", new_callable=AsyncMock
+        "app.services.user_service.find_user_by_email", new_callable=AsyncMock
     ) as mock_get:
         mock_get.return_value = user
         with patch("app.core.security.verify_password") as mock_verify:
@@ -72,7 +72,7 @@ async def test_authenticate_user_rehashes_password_when_needed():
     )
     with (
         patch(
-            "app.services.user_service.get_user_by_email",
+            "app.services.user_service.find_user_by_email",
             new_callable=AsyncMock,
             return_value=user,
         ),

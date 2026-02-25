@@ -15,9 +15,9 @@ from app.core.exceptions import (
     AuthenticationError,
     BearerAuthenticationError,
     ForbiddenError,
-    NotFoundError,
 )
 from app.core.redis import redis_manager
+from app.services import project_service
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -114,15 +114,7 @@ async def get_user_project(
     session: SessionDep,
     project_key: str = Path(...),
 ) -> models.Project:
-    # Avoid circular import
-    from app.services import project_service
-
-    project = await project_service.get_user_project_by_key(
-        user.id, project_key, session
-    )
-    if not project:
-        raise NotFoundError("Project not found")
-    return project
+    return await project_service.get_user_project_by_key(user.id, project_key, session)
 
 
 ProjectDep = Annotated[models.Project, Depends(get_user_project)]

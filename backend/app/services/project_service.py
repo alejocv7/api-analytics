@@ -95,12 +95,7 @@ async def get_user_projects(
         )
     ).all()
 
-    return schemas.PaginatedResult(
-        items=items,
-        total=total,
-        page=pagination.page,
-        page_size=pagination.page_size,
-    )
+    return schemas.PaginatedResult(items=items, total=total, pagination=pagination)
 
 
 async def update_user_project(

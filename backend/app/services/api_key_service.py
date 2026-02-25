@@ -67,12 +67,7 @@ async def list_api_keys(
         )
     ).all()
 
-    return schemas.PaginatedResult(
-        items=items,
-        total=total,
-        page=pagination.page,
-        page_size=pagination.page_size,
-    )
+    return schemas.PaginatedResult(items=items, total=total, pagination=pagination)
 
 
 async def get_api_key(

@@ -14,7 +14,7 @@ from zxcvbn import zxcvbn
 from app.core.config import settings
 from app.core.exceptions import BearerAuthenticationError
 from app.core.types import SecurePassword
-from app.schemas import RefreshTokenData, TokenData
+from app.schemas.auth import RefreshTokenData, TokenData
 
 password_hash = PasswordHash.recommended()
 logger = logging.getLogger(__name__)

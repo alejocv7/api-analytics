@@ -154,3 +154,41 @@ async def test_metrics_pagination(client: AsyncClient, auth_headers, project_wit
     data = response.json()
     assert len(data["items"]) == 1
     assert data["total"] == 3
+
+
+async def test_metrics_range_too_long(client: AsyncClient, auth_headers, project):
+    start = datetime.now(UTC)
+    end = start + timedelta(days=61)
+    response = await client.get(
+        f"/api/v1/projects/{project.project_key}/metrics/",
+        headers=auth_headers,
+        params={"start_date": start.isoformat(), "end_date": end.isoformat()},
+    )
+    assert response.status_code == 422
+    assert "60 days or less" in response.text
+
+
+async def test_metrics_range_too_short(client: AsyncClient, auth_headers, project):
+    start = datetime.now(UTC)
+    end = start + timedelta(seconds=30)
+    response = await client.get(
+        f"/api/v1/projects/{project.project_key}/metrics/",
+        headers=auth_headers,
+        params={"start_date": start.isoformat(), "end_date": end.isoformat()},
+    )
+    assert response.status_code == 422
+    assert "at least 1 minute" in response.text
+
+
+async def test_metrics_empty_project_summary(
+    client: AsyncClient, auth_headers, project
+):
+    response = await client.get(
+        f"/api/v1/projects/{project.project_key}/metrics/summary",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["request_count"] == 0
+    assert data["error_count"] == 0
+    assert data["requests_per_minute"] == 0.0

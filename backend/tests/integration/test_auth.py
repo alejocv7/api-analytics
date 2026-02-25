@@ -207,3 +207,37 @@ async def test_successful_login_resets_counter(
     )
     assert response.status_code == 200
     assert await async_redis_client.get(key) is None
+
+
+async def test_inactive_user_cannot_login(client: AsyncClient, test_user, db_session):
+    test_user.is_active = False
+    db_session.add(test_user)
+    await db_session.commit()
+
+    response = await client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "Password123!"},
+    )
+    # The requirement says get_current_user raises Forbidden for inactive,
+    # but authenticate_user (login) also checks for active.
+    assert response.status_code == 401
+    assert "Incorrect email or password" in response.json()["error"]
+
+
+async def test_inactive_user_cannot_access_protected(
+    client: AsyncClient, test_user, db_session
+):
+    from app.services import auth_service
+
+    token = auth_service.create_user_token(test_user)
+
+    test_user.is_active = False
+    db_session.add(test_user)
+    await db_session.commit()
+
+    response = await client.get(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {token.access_token}"},
+    )
+    assert response.status_code == 403
+    assert "Inactive user" in response.json()["error"]

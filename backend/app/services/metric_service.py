@@ -57,12 +57,7 @@ async def get_metrics(
     items_query = _apply_pagination(items_query, params)
     items = (await session.scalars(items_query)).all()
 
-    return schemas.PaginatedResult(
-        items=items,
-        total=total,
-        page=params.page,
-        page_size=params.page_size,
-    )
+    return schemas.PaginatedResult(items=items, total=total, pagination=params)
 
 
 async def get_metrics_summary(
@@ -159,10 +154,7 @@ async def get_metrics_time_series(
         )
 
     return schemas.PaginatedResult(
-        items=metrics_time_series,
-        total=total,
-        page=params.page,
-        page_size=params.page_size,
+        items=metrics_time_series, total=total, pagination=params
     )
 
 
@@ -214,10 +206,7 @@ async def get_metrics_endpoints_stats(
         )
 
     return schemas.PaginatedResult(
-        items=metrics_endpoint_stats,
-        total=total,
-        page=params.page,
-        page_size=params.page_size,
+        items=metrics_endpoint_stats, total=total, pagination=params
     )
 
 

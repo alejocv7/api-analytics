@@ -13,8 +13,7 @@ class PaginatedResult[T](BaseModel):
 
     items: list[T] | Sequence[T]
     total: int
-    page: int
-    page_size: int
+    pagination: PaginationParams
 
 
 class PaginatedResponse[T](BaseModel):
@@ -40,8 +39,8 @@ class PaginatedResponse[T](BaseModel):
         return cls(
             items=result.items,
             total=result.total,
-            page=result.page,
-            page_size=result.page_size,
+            page=result.pagination.page,
+            page_size=result.pagination.page_size,
         )
 
 

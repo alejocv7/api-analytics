@@ -73,12 +73,7 @@ async def list_members(
         )
     ).all()
 
-    return schemas.PaginatedResult(
-        items=items,
-        total=total,
-        page=pagination.page,
-        page_size=pagination.page_size,
-    )
+    return schemas.PaginatedResult(items=items, total=total, pagination=pagination)
 
 
 async def remove_member(

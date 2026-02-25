@@ -53,8 +53,11 @@ async def get_metrics(
 
     # Items query
     items_query = select(models.Metric).order_by(models.Metric.timestamp.desc())
-    items_query = _apply_time_range_filter(items_query, project_id, params)
-    items_query = _apply_pagination(items_query, params)
+    items_query = (
+        _apply_time_range_filter(items_query, project_id, params)
+        .offset(params.offset)
+        .limit(params.page_size)
+    )
     items = (await session.scalars(items_query)).all()
 
     return schemas.PaginatedResult(items=items, total=total, pagination=params)
@@ -100,9 +103,13 @@ async def get_metrics_time_series(
         func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
         _error_count_expr().label("error_count"),
     )
-    items_query = _apply_time_range_filter(items_query, project_id, params)
-    items_query = items_query.group_by(timestamp).order_by(timestamp)
-    items_query = _apply_pagination(items_query, params)
+    items_query = (
+        _apply_time_range_filter(items_query, project_id, params)
+        .group_by(timestamp)
+        .order_by(timestamp)
+        .offset(params.offset)
+        .limit(params.page_size)
+    )
 
     results = (await session.execute(items_query)).all()
 
@@ -132,9 +139,12 @@ async def get_metrics_endpoints_stats(
         func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
         func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
-    items_query = _apply_time_range_filter(items_query, project_id, params)
-    items_query = items_query.group_by(models.Metric.url_path, models.Metric.method)
-    items_query = _apply_pagination(items_query, params)
+    items_query = (
+        _apply_time_range_filter(items_query, project_id, params)
+        .group_by(models.Metric.url_path, models.Metric.method)
+        .offset(params.offset)
+        .limit(params.page_size)
+    )
 
     results = (await session.execute(items_query)).all()
 
@@ -159,14 +169,6 @@ def _apply_time_range_filter[T: tuple[Any, ...]](
         models.Metric.timestamp >= params.start_date,
         models.Metric.timestamp <= params.end_date,
     )
-
-
-def _apply_pagination[T: tuple[Any, ...]](
-    query: Select[T], params: schemas.MetricParams
-) -> Select[T]:
-    """Apply common pagination (offset/limit) filters."""
-    offset = (params.page - 1) * params.page_size
-    return query.offset(offset).limit(params.page_size)
 
 
 def _error_count_expr() -> ColumnElement[int]:

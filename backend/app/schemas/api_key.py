@@ -7,6 +7,7 @@ from pydantic import (
     Field,
 )
 
+from app import models
 from app.schemas.pagination import PaginatedResponse
 
 
@@ -97,6 +98,12 @@ class APIKeyCreateResponse(APIKeyResponse):
             ]
         }
     )
+
+    @classmethod
+    def from_orm_and_key(cls, api_key: models.APIKey, key: str) -> APIKeyCreateResponse:
+        """Create a response from an ORM model and a plain-text key."""
+        base_data = APIKeyResponse.model_validate(api_key)
+        return cls(**base_data.model_dump(), key=key)
 
 
 APIKeyListResponse = PaginatedResponse[APIKeyResponse]

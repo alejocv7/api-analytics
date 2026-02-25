@@ -44,11 +44,11 @@ async def test_seed_creates_user_and_project_on_first_run(monkeypatch):
     with (
         patch("app.core.seed.security.hash_password", return_value="$hashed$"),
         patch(
-            "app.core.seed.user_service.get_user_by_email",
+            "app.core.seed.user_service.find_user_by_email",
             new=AsyncMock(return_value=None),
         ),
         patch(
-            "app.core.seed.project_service.get_user_project_by_key",
+            "app.core.seed.project_service.find_user_project_by_key",
             new=AsyncMock(return_value=None),
         ),
     ):
@@ -76,11 +76,11 @@ async def test_seed_is_idempotent_when_both_exist(monkeypatch):
 
     with (
         patch(
-            "app.core.seed.user_service.get_user_by_email",
+            "app.core.seed.user_service.find_user_by_email",
             new=AsyncMock(return_value=existing_user),
         ),
         patch(
-            "app.core.seed.project_service.get_user_project_by_key",
+            "app.core.seed.project_service.find_user_project_by_key",
             new=AsyncMock(return_value=existing_project),
         ),
     ):
@@ -102,11 +102,11 @@ async def test_seed_creates_project_when_user_already_exists(monkeypatch):
 
     with (
         patch(
-            "app.core.seed.user_service.get_user_by_email",
+            "app.core.seed.user_service.find_user_by_email",
             new=AsyncMock(return_value=existing_user),
         ),
         patch(
-            "app.core.seed.project_service.get_user_project_by_key",
+            "app.core.seed.project_service.find_user_project_by_key",
             new=AsyncMock(return_value=None),
         ),
     ):

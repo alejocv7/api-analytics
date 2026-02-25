@@ -24,8 +24,6 @@ async def add_member(
         raise ForbiddenError("The owner role cannot be assigned via member management")
 
     user = await user_service.get_user_by_email(email, session)
-    if not user:
-        raise NotFoundError("User not found")
 
     if project.user_id == user.id:
         raise ConflictError("User is already the owner of this project")

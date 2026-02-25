@@ -56,7 +56,7 @@ async def test_add_member_user_not_found():
         patch(
             "app.services.member_service.user_service.get_user_by_email",
             new_callable=AsyncMock,
-            return_value=None,
+            side_effect=NotFoundError("User not found"),
         ),
         pytest.raises(NotFoundError, match="User not found"),
     ):

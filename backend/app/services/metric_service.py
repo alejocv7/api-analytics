@@ -62,7 +62,7 @@ async def get_metrics(
 
 async def get_metrics_summary(
     params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> schemas.MetricSummaryResponse:
+) -> Any:
     query = select(
         func.count(models.Metric.id).label("request_count"),
         func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
@@ -70,46 +70,16 @@ async def get_metrics_summary(
         func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
         func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
     )
-    result = (
+    return (
         await session.execute(_apply_time_range_filter(query, project_id, params))
     ).first()
-
-    if not result or result.request_count == 0:
-        return schemas.MetricSummaryResponse(
-            request_count=0,
-            avg_response_time_ms=0,
-            error_count=0,
-            error_rate=0,
-            slowest_request_ms=0,
-            fastest_request_ms=0,
-            requests_per_minute=0,
-        )
-
-    duration_in_minutes = (params.end_date - params.start_date).total_seconds() / 60
-    duration_in_minutes = max(duration_in_minutes, 1)
-    error_count = int(result.error_count or 0)
-
-    return schemas.MetricSummaryResponse(
-        request_count=result.request_count,
-        avg_response_time_ms=round(result.avg_response_time_ms or 0, 2),
-        requests_per_minute=round(
-            result.request_count / duration_in_minutes
-            if duration_in_minutes > 0
-            else 0,
-            2,
-        ),
-        error_count=error_count,
-        error_rate=round(error_count / result.request_count * 100, 2),
-        slowest_request_ms=round(result.slowest_request_ms or 0, 2),
-        fastest_request_ms=round(result.fastest_request_ms or 0, 2),
-    )
 
 
 async def get_metrics_time_series(
     params: schemas.MetricTimeSeriesQuery,
     project_id: uuid.UUID,
     session: AsyncSession,
-) -> schemas.PaginatedResult[schemas.MetricTimeSeriesPointResponse]:
+) -> schemas.PaginatedResult[Any]:
     """Get metric time series with total count."""
     timestamp: ColumnElement[datetime] = func.date_trunc(
         params.granularity.value, models.Metric.timestamp
@@ -136,31 +106,12 @@ async def get_metrics_time_series(
 
     results = (await session.execute(items_query)).all()
 
-    metrics_time_series = []
-    for row in results:
-        ts = row.timestamp
-        if isinstance(ts, str):
-            ts = datetime.fromisoformat(ts)
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=UTC)
-
-        metrics_time_series.append(
-            schemas.MetricTimeSeriesPointResponse(
-                timestamp=ts,
-                request_count=row.request_count,
-                avg_response_time_ms=round(row.avg_response_time_ms or 0, 2),
-                error_count=int(row.error_count or 0),
-            )
-        )
-
-    return schemas.PaginatedResult(
-        items=metrics_time_series, total=total, pagination=params
-    )
+    return schemas.PaginatedResult(items=results, total=total, pagination=params)
 
 
 async def get_metrics_endpoints_stats(
     params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> schemas.PaginatedResult[schemas.MetricEndpointStatsResponse]:
+) -> schemas.PaginatedResult[Any]:
     """Get metrics grouped by endpoint with total count."""
 
     # Count distinct endpoints
@@ -187,27 +138,7 @@ async def get_metrics_endpoints_stats(
 
     results = (await session.execute(items_query)).all()
 
-    metrics_endpoint_stats = []
-    for row in results:
-        error_count = int(row.error_count or 0)
-        metrics_endpoint_stats.append(
-            schemas.MetricEndpointStatsResponse(
-                url_path=row.url_path,
-                method=row.method,
-                request_count=row.request_count,
-                avg_response_time_ms=round(row.avg_response_time_ms or 0, 2),
-                error_count=error_count,
-                error_rate=round(error_count / row.request_count * 100, 2)
-                if row.request_count > 0
-                else 0,
-                slowest_request_ms=round(row.slowest_request_ms or 0, 2),
-                fastest_request_ms=round(row.fastest_request_ms or 0, 2),
-            )
-        )
-
-    return schemas.PaginatedResult(
-        items=metrics_endpoint_stats, total=total, pagination=params
-    )
+    return schemas.PaginatedResult(items=results, total=total, pagination=params)
 
 
 async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -> int:

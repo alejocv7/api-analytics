@@ -56,7 +56,7 @@ async def test_pagination_edge_cases(
     )
     assert response.status_code == 200
     # Note: time-series groups by time, so we might get fewer points than raw metrics if
-    # they are in same minute. But let's check basic response structure.
+    # they are in same minute.
     data = response.json()
     assert isinstance(data["items"], list)
 

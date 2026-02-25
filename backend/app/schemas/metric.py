@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import uuid
 from datetime import UTC, timedelta
 from http import HTTPMethod
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
 from fastapi import Query
 from pydantic import (
@@ -78,11 +80,17 @@ class MetricTimeSeriesPointResponse(BaseModel):
     timestamp: AwareDatetime = Field(..., description="Timestamp")
     request_count: int = Field(..., description="Number of requests")
     avg_response_time_ms: float = Field(
-        ..., description="Average response time in milliseconds"
+        0.0, description="Average response time in milliseconds"
     )
-    error_count: int = Field(..., description="Number of errors")
+    error_count: int = Field(0, description="Number of errors")
+
+    @model_validator(mode="after")
+    def round_stats(self) -> Self:
+        self.avg_response_time_ms = round(self.avg_response_time_ms or 0, 2)
+        return self
 
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "examples": [
                 {
@@ -92,35 +100,61 @@ class MetricTimeSeriesPointResponse(BaseModel):
                     "error_count": 2,
                 }
             ]
-        }
+        },
     )
 
 
 class PerformanceStatsMixin(BaseModel):
     """Common performance statistics fields."""
 
-    request_count: int = Field(..., description="Number of requests")
+    request_count: int = Field(default=0, description="Number of requests")
     avg_response_time_ms: float = Field(
-        ..., description="Average response time in milliseconds"
+        default=0.0, description="Average response time in milliseconds"
     )
-    error_count: int = Field(..., description="Number of errors")
+    error_count: int = Field(default=0, description="Number of errors")
     error_rate: float = Field(
-        ..., description="Percentage of requests with status >= 400"
+        default=0.0, description="Percentage of requests with status >= 400"
     )
     slowest_request_ms: float = Field(
-        ..., description="Slowest request in milliseconds"
+        default=0.0, description="Slowest request in milliseconds"
     )
     fastest_request_ms: float = Field(
-        ..., description="Fastest request in milliseconds"
+        default=0.0, description="Fastest request in milliseconds"
     )
+
+    @model_validator(mode="after")
+    def finalize_stats(self) -> Self:
+        self.avg_response_time_ms = round(self.avg_response_time_ms or 0, 2)
+        self.slowest_request_ms = round(self.slowest_request_ms or 0, 2)
+        self.fastest_request_ms = round(self.fastest_request_ms or 0, 2)
+        if self.request_count > 0:
+            self.error_rate = round((self.error_count / self.request_count) * 100, 2)
+        else:
+            self.error_rate = 0.0
+        return self
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MetricSummaryResponse(PerformanceStatsMixin):
     """Schema for summary statistics."""
 
-    requests_per_minute: float = Field(..., description="Requests per minute")
+    requests_per_minute: float = Field(default=0.0, description="Requests per minute")
+
+    @classmethod
+    def from_raw(cls, row: Any, params: MetricParams) -> MetricSummaryResponse:
+        if not row or not row.request_count:
+            return cls()
+
+        duration_in_seconds = (params.end_date - params.start_date).total_seconds()
+        duration_in_minutes = max(duration_in_seconds / 60, 1)
+        requests_per_minute = round(row.request_count / duration_in_minutes, 2)
+
+        data = dict(row._mapping, requests_per_minute=requests_per_minute)
+        return cls.model_validate(data)
 
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "examples": [
                 {
@@ -133,7 +167,7 @@ class MetricSummaryResponse(PerformanceStatsMixin):
                     "fastest_request_ms": 12.1,
                 }
             ]
-        }
+        },
     )
 
 
@@ -142,6 +176,7 @@ class MetricEndpointStatsResponse(PerformanceStatsMixin):
     method: HTTPMethod = Field(..., description="HTTP method")
 
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "examples": [
                 {
@@ -155,7 +190,7 @@ class MetricEndpointStatsResponse(PerformanceStatsMixin):
                     "fastest_request_ms": 45.2,
                 }
             ]
-        }
+        },
     )
 
 

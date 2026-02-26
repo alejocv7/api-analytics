@@ -79,7 +79,6 @@ Monorepo with `uv` workspace. All app code in `backend/app/`:
 - Single-responsibility functions and modules.
 - Use explicit, descriptive names — no abbreviations, no comments to explain what a name should.
 - Do not duplicate logic; extract shared helpers or services.
-- No `Any` shortcuts.
 - When refactoring, preserve behavior unless explicitly instructed otherwise.
 
 **Testing:** Every change needs tests. Unit tests (`tests/unit/`) for logic and services. Integration tests (`tests/integration/`) for routes and DB. Bug fixes need a regression test that fails before the fix and passes after. Cover happy path, failure path, and auth/validation boundaries.
@@ -103,4 +102,4 @@ A task is not done until all four pass with no new failures.
 - Hardcoded environment-specific values
 - Dead code, commented-out production logic, or partial implementations
 - Changing public API or data contracts without explicit instruction
-- `Any` type shortcuts
+- `Any` type shortcuts unless all possible options are exhausted

@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, case, delete, func, select, tuple_
+from sqlalchemy import ColumnElement, Row, Select, case, delete, func, select, tuple_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -67,7 +67,7 @@ async def get_metrics(
 
 async def get_metrics_summary(
     params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> Any:
+) -> Row[Any] | None:
     query = _with_time_filter(
         select(
             func.count(models.Metric.id).label("request_count"),

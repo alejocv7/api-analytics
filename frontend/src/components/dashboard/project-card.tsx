@@ -23,21 +23,19 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Card className="flex flex-col hover:shadow-sm transition-shadow">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-base font-semibold truncate">
-              {project.name}
-            </CardTitle>
-            {project.description && (
-              <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                {project.description}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {project.role && <RoleBadge role={project.role} />}
             <StatusBadge active={project.is_active} />
           </div>
+          <CardTitle className="text-base font-semibold break-words">
+            {project.name}
+          </CardTitle>
+          {project.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {project.description}
+            </p>
+          )}
         </div>
       </CardHeader>
 

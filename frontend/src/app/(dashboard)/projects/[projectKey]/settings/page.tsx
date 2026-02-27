@@ -6,6 +6,7 @@ import { GeneralSettings } from "@/components/settings/general-settings";
 import { ApiKeysTab } from "@/components/settings/api-keys-tab";
 import { MembersTab } from "@/components/settings/members-tab";
 import { useProject } from "@/hooks/use-projects";
+import { useCurrentMemberRole } from "@/hooks/use-members";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage({
@@ -14,9 +15,11 @@ export default function SettingsPage({
   params: Promise<{ projectKey: string }>;
 }) {
   const { projectKey } = use(params);
-  const { data: project, isLoading } = useProject(projectKey);
+  const { data: project, isLoading: projectLoading } = useProject(projectKey);
+  const { role, isLoading: roleLoading } = useCurrentMemberRole(projectKey);
 
-  const isOwner = project?.role === "owner";
+  const isLoading = projectLoading || roleLoading;
+  const isOwner = role === "owner";
 
   if (isLoading) {
     return (

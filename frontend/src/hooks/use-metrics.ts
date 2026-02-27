@@ -6,7 +6,6 @@ import type {
   TimeSeriesPoint,
   EndpointStat,
   PaginatedResponse,
-  MetricsQueryParams,
   Granularity,
 } from "@/types/api";
 import { toISOString } from "@/lib/utils";
@@ -22,10 +21,13 @@ interface UseMetricsOptions {
   sortOrder?: "asc" | "desc";
 }
 
-function buildParams(opts: UseMetricsOptions): Partial<MetricsQueryParams> {
+// Backend query param names: start_date / end_date (not start_time / end_time)
+type BackendParams = Record<string, string | number | boolean | undefined | null>;
+
+function buildParams(opts: UseMetricsOptions): BackendParams {
   return {
-    start_time: toISOString(opts.startTime),
-    end_time: toISOString(opts.endTime),
+    start_date: toISOString(opts.startTime),
+    end_date: toISOString(opts.endTime),
     granularity: opts.granularity,
     page: opts.page,
     page_size: opts.pageSize,
@@ -41,21 +43,25 @@ export function useMetricsSummary(opts: UseMetricsOptions) {
     queryFn: () =>
       apiClient.get<MetricsSummary>(
         `/projects/${opts.projectKey}/metrics/summary`,
-        params as Record<string, string | number | boolean | undefined | null>,
+        params,
       ),
     enabled: Boolean(opts.projectKey),
   });
 }
 
+// Backend returns PaginatedResponse<TimeSeriesPoint>, not a plain array.
+// The hook exposes .data.items so callers get the array directly.
 export function useTimeSeries(opts: UseMetricsOptions) {
   const params = buildParams(opts);
   return useQuery({
     queryKey: queryKeys.metrics.timeSeries(opts.projectKey, params),
-    queryFn: () =>
-      apiClient.get<TimeSeriesPoint[]>(
+    queryFn: async () => {
+      const res = await apiClient.get<PaginatedResponse<TimeSeriesPoint>>(
         `/projects/${opts.projectKey}/metrics/time-series`,
-        params as Record<string, string | number | boolean | undefined | null>,
-      ),
+        params,
+      );
+      return res.items;
+    },
     enabled: Boolean(opts.projectKey),
   });
 }
@@ -67,7 +73,7 @@ export function useEndpointStats(opts: UseMetricsOptions) {
     queryFn: () =>
       apiClient.get<PaginatedResponse<EndpointStat>>(
         `/projects/${opts.projectKey}/metrics/endpoints`,
-        params as Record<string, string | number | boolean | undefined | null>,
+        params,
       ),
     enabled: Boolean(opts.projectKey),
   });

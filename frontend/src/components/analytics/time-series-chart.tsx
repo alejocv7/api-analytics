@@ -74,6 +74,9 @@ function CustomTooltip({
 export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
   const [mode, setMode] = useState<MetricMode>("requests");
 
+  // Recharts requires a plain array; guard against unexpected API response shapes
+  const chartData = Array.isArray(data) ? data : [];
+
   if (isLoading) {
     return (
       <Card>
@@ -87,7 +90,7 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
     );
   }
 
-  const isEmpty = !data || data.length === 0;
+  const isEmpty = chartData.length === 0;
 
   return (
     <Card>
@@ -118,7 +121,7 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
         ) : (
           <ResponsiveContainer width="100%" height={256}>
             <LineChart
-              data={data}
+              data={chartData}
               margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

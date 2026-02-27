@@ -42,8 +42,8 @@ interface MemberRowProps {
 
 function MemberRow({ member, projectKey, isOwner, currentUserId }: MemberRowProps) {
   const [removeOpen, setRemoveOpen] = useState(false);
-  const updateRole = useUpdateMemberRole(projectKey, member.id);
-  const removeMember = useRemoveMember(projectKey, member.id);
+  const updateRole = useUpdateMemberRole(projectKey, member.user_id);
+  const removeMember = useRemoveMember(projectKey, member.user_id);
 
   const isSelf = member.user_id === currentUserId;
   const isProjectOwner = member.role === "owner";
@@ -192,7 +192,7 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
         <div className="rounded-lg border border-border px-4">
           {members.map((member) => (
             <MemberRow
-              key={member.id}
+              key={member.user_id}
               member={member}
               projectKey={projectKey}
               isOwner={isOwner}

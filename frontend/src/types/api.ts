@@ -173,8 +173,8 @@ export interface EndpointStat {
 }
 
 export interface MetricsQueryParams {
-  start_time: string;
-  end_time: string;
+  start_date: string;
+  end_date: string;
   granularity?: Granularity;
   page?: number;
   page_size?: number;

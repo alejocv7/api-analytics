@@ -120,12 +120,7 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      {...field}
-                    />
+                    <Input type="email" autoComplete="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -175,7 +170,6 @@ export function RegisterForm() {
                   <FormControl>
                     <Input
                       type="password"
-                      placeholder="••••••••"
                       autoComplete="new-password"
                       {...field}
                     />

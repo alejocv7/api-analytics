@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import type {
@@ -76,5 +76,6 @@ export function useEndpointStats(opts: UseMetricsOptions) {
         params,
       ),
     enabled: Boolean(opts.projectKey),
+    placeholderData: keepPreviousData,
   });
 }

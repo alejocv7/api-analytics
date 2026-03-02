@@ -50,8 +50,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   function applyCalendarRange() {
     if (calendarRange?.from && calendarRange?.to) {
       const diffDays =
-        (calendarRange.to.getTime() - calendarRange.from.getTime()) /
-        86400000;
+        (calendarRange.to.getTime() - calendarRange.from.getTime()) / 86400000;
       if (diffDays > MAX_DATE_RANGE_DAYS) return;
       onChange({ startTime: calendarRange.from, endTime: calendarRange.to });
       setOpen(false);
@@ -73,8 +72,8 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
       <PopoverContent className="w-auto p-0" align="start">
         <div className="flex">
           {/* Preset sidebar */}
-          <div className="border-r border-border p-3 space-y-1 min-w-[140px]">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+          <div className="border-r border-border p-3 space-y-1 w-auto max-w-[140px]">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-tight mb-2">
               Presets
             </p>
             {DATE_PRESETS.map((preset) => (

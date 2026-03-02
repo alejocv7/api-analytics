@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, RefreshCw, Trash2, XCircle } from "lucide-react";
+import { Key, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,14 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
@@ -27,12 +21,11 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
   useApiKeys,
-  useDeactivateApiKey,
   useDeleteApiKey,
 } from "@/hooks/use-api-keys";
-import { formatDate, formatRelative, formatNumber, maskApiKey } from "@/lib/utils";
+import { useProject } from "@/hooks/use-projects";
+import { formatDate, formatNumber, maskApiKey } from "@/lib/utils";
 import type { ApiKey } from "@/types/api";
-import { Key } from "lucide-react";
 
 interface ApiKeysTabProps {
   projectKey: string;
@@ -71,24 +64,12 @@ function KeyStatusBadge({ apiKey }: { apiKey: ApiKey }) {
 interface ApiKeyRowActionsProps {
   projectKey: string;
   apiKey: ApiKey;
-  isOwner: boolean;
 }
 
-function ApiKeyRowActions({ projectKey, apiKey, isOwner }: ApiKeyRowActionsProps) {
+function ApiKeyRowActions({ projectKey, apiKey }: ApiKeyRowActionsProps) {
   const [rotateOpen, setRotateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const deactivate = useDeactivateApiKey(projectKey, apiKey.id);
   const deleteKey = useDeleteApiKey(projectKey, apiKey.id);
-
-  async function handleDeactivate() {
-    try {
-      await deactivate.mutateAsync();
-      toast.success("API key deactivated");
-    } catch {
-      toast.error("Failed to deactivate key");
-    }
-  }
 
   async function handleDelete() {
     try {
@@ -100,40 +81,28 @@ function ApiKeyRowActions({ projectKey, apiKey, isOwner }: ApiKeyRowActionsProps
     }
   }
 
-  if (!isOwner) return null;
-
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {apiKey.is_active && (
-            <DropdownMenuItem
-              onClick={handleDeactivate}
-              disabled={deactivate.isPending}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Deactivate
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={() => setRotateOpen(true)}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Rotate
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-1 justify-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={() => setRotateOpen(true)}
+          title="Rotate key"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          onClick={() => setDeleteOpen(true)}
+          title="Delete key"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
 
       <RotateKeyDialog
         projectKey={projectKey}
@@ -158,32 +127,56 @@ function ApiKeyRowActions({ projectKey, apiKey, isOwner }: ApiKeyRowActionsProps
 
 export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
   const { data, isLoading } = useApiKeys(projectKey);
+  const { data: project } = useProject(projectKey);
+  const [search, setSearch] = useState("");
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full" />
-        ))}
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  const keys = data?.items ?? [];
+  const allKeys = data?.items ?? [];
+  const keys = search
+    ? allKeys.filter(
+        (k) =>
+          k.name.toLowerCase().includes(search.toLowerCase()) ||
+          k.prefix.toLowerCase().includes(search.toLowerCase()),
+      )
+    : allKeys;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold">API Keys</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Keys used by your applications to send metrics.
+          <h2 className="text-lg font-semibold">API Keys</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage credentials for {project?.name ?? projectKey}
           </p>
         </div>
-        {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search keys…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 w-48 text-sm"
+            />
+          </div>
+          {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
+        </div>
       </div>
 
-      {keys.length === 0 ? (
+      {allKeys.length === 0 ? (
         <EmptyState
           icon={Key}
           title="No API keys"
@@ -194,52 +187,72 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
         <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs pl-4">Name</TableHead>
-                <TableHead className="text-xs">Prefix</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs">Requests</TableHead>
-                <TableHead className="text-xs">Last used</TableHead>
-                <TableHead className="text-xs">Expires</TableHead>
-                {isOwner && <TableHead className="w-10" />}
+              <TableRow className="hover:bg-transparent bg-muted/30">
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-4">
+                  Name
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Key Prefix
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Status
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Created
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Requests
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Expires
+                </TableHead>
+                {isOwner && <TableHead className="w-20" />}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {keys.map((key) => (
-                <TableRow key={key.id}>
-                  <TableCell className="pl-4 text-sm font-medium">
-                    {key.name}
+              {keys.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={isOwner ? 7 : 6}
+                    className="text-center text-sm text-muted-foreground py-8"
+                  >
+                    No keys match your search
                   </TableCell>
-                  <TableCell>
-                    <code className="text-xs font-mono text-muted-foreground">
-                      {maskApiKey(key.prefix)}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    <KeyStatusBadge apiKey={key} />
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatNumber(key.total_requests)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {key.last_used_at
-                      ? formatRelative(key.last_used_at)
-                      : "Never"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {key.expires_at ? formatDate(key.expires_at) : "No expiry"}
-                  </TableCell>
-                  {isOwner && (
-                    <TableCell>
-                      <ApiKeyRowActions
-                        projectKey={projectKey}
-                        apiKey={key}
-                        isOwner={isOwner}
-                      />
-                    </TableCell>
-                  )}
                 </TableRow>
-              ))}
+              ) : (
+                keys.map((key) => (
+                  <TableRow key={key.id}>
+                    <TableCell className="pl-4">
+                      <div className="flex items-center gap-2">
+                        <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-sm font-medium">{key.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
+                        {maskApiKey(key.prefix)}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <KeyStatusBadge apiKey={key} />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(key.created_at)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatNumber(key.total_requests)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {key.expires_at ? formatDate(key.expires_at) : "Never"}
+                    </TableCell>
+                    {isOwner && (
+                      <TableCell>
+                        <ApiKeyRowActions projectKey={projectKey} apiKey={key} />
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

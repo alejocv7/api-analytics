@@ -92,7 +92,7 @@ async def get_metrics_time_series(
 )
 @limiter.limit(rate_limits.DATA_READ, key_func=get_user_key)
 async def get_metrics_endpoints_stats(
-    params: schemas.MetricQuery,
+    params: schemas.MetricEndpointStatsQuery,
     project: ProjectDep,
     session: SessionDep,
     request: Request,  # noqa: ARG001

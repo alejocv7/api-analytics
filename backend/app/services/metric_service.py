@@ -2,7 +2,18 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, Row, Select, case, delete, func, select, tuple_
+from sqlalchemy import (
+    ColumnElement,
+    Row,
+    Select,
+    asc,
+    case,
+    delete,
+    desc,
+    func,
+    select,
+    tuple_,
+)
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -125,16 +136,34 @@ async def get_metrics_time_series(
 
 
 async def get_metrics_endpoints_stats(
-    params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
+    params: schemas.MetricEndpointStatsParams,
+    project_id: uuid.UUID,
+    session: AsyncSession,
 ) -> schemas.PaginatedResult[Any]:
     """Get metrics grouped by endpoint with total count."""
 
+    # ---- Aggregates ----
+    M = models.Metric
+
+    stats: dict[str, Any] = {
+        "request_count": func.count(M.id),
+        "avg_response_time_ms": func.avg(M.response_time_ms),
+        "slowest_request_ms": func.max(M.response_time_ms),
+        "fastest_request_ms": func.min(M.response_time_ms),
+        "error_count": _error_count_expr(),
+    }
+
+    safe_request_count = func.nullif(stats["request_count"] * 1.0, 0)
+    stats["error_rate"] = stats["error_count"] / safe_request_count * 100
+    stats = {k: v.label(k) for k, v in stats.items()}
+
+    # ---- Sort ----
+    sort_col = stats.get(params.sort_by.value, stats["request_count"])
+    order_by = desc(sort_col) if params.sort_order == "desc" else asc(sort_col)
+
     # Count distinct endpoints
-    distinct_endpoints = func.distinct(
-        tuple_(models.Metric.url_path, models.Metric.method)
-    )
     count_query = _with_time_filter(
-        select(func.count(distinct_endpoints)),
+        select(func.count(func.distinct(tuple_(M.url_path, M.method)))),
         project_id,
         params,
     )
@@ -143,19 +172,12 @@ async def get_metrics_endpoints_stats(
     # Items query
     items_query = (
         _with_time_filter(
-            select(
-                models.Metric.url_path,
-                models.Metric.method,
-                func.count(models.Metric.id).label("request_count"),
-                func.avg(models.Metric.response_time_ms).label("avg_response_time_ms"),
-                func.max(models.Metric.response_time_ms).label("slowest_request_ms"),
-                func.min(models.Metric.response_time_ms).label("fastest_request_ms"),
-                _error_count_expr().label("error_count"),
-            ),
+            select(M.url_path, M.method, *stats.values()),
             project_id,
             params,
         )
-        .group_by(models.Metric.url_path, models.Metric.method)
+        .group_by(M.url_path, M.method)
+        .order_by(order_by.nulls_last())
         .offset(params.offset)
         .limit(params.page_size)
     )

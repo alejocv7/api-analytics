@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
-  title: string;
+  title: React.ReactNode;
   description?: string;
+  badges?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
 }
@@ -10,15 +11,19 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   description,
+  badges,
   action,
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("flex items-start justify-between gap-4", className)}>
+    <div className={cn("flex items-center justify-between gap-4", className)}>
       <div className="space-y-1 min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground truncate">
-          {title}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground truncate">
+            {title}
+          </h1>
+          {badges}
+        </div>
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
         )}

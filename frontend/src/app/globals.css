@@ -1,3 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat&display=swap");
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -9,6 +13,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -45,14 +50,24 @@
 }
 
 :root {
-  --radius: 0.5rem;
+  --radius: 1rem;
 
-  /* Base */
-  --background: oklch(0.982 0.002 247.839); /* #fafafa warm white */
+  /* Fonts */
+  --font-sans:
+    Montserrat, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif:
+    "EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono:
+    "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  /* Base — light gray background to match reference */
+  --background: oklch(0.965 0.003 264); /* ~#f3f4f7 cool light gray */
   --foreground: oklch(0.129 0.042 264.695); /* slate-900 */
 
-  /* Card */
-  --card: oklch(1 0 0); /* pure white */
+  /* Card — pure white */
+  --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
 
   /* Popover */
@@ -79,26 +94,26 @@
   --destructive: oklch(0.637 0.237 25.331);
 
   /* Border / Input */
-  --border: oklch(0.929 0.013 255.508); /* slate-200 */
-  --input: oklch(0.929 0.013 255.508);
+  --border: oklch(0.918 0.013 255.508); /* slightly visible border */
+  --input: oklch(0.918 0.013 255.508);
   --ring: oklch(0.511 0.262 276.966);
 
   /* Chart palette */
   --chart-1: oklch(0.511 0.262 276.966); /* indigo-600 — requests */
-  --chart-2: oklch(0.600 0.178 184.704); /* teal-600 — response time */
-  --chart-3: oklch(0.637 0.237 25.331);  /* red-500 — errors */
+  --chart-2: oklch(0.6 0.178 184.704); /* teal-600 — response time */
+  --chart-3: oklch(0.637 0.237 25.331); /* red-500 — errors */
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
 
-  /* Sidebar */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.511 0.262 276.966);
+  /* Sidebar — dark */
+  --sidebar: oklch(0.13 0.04 265);
+  --sidebar-foreground: oklch(0.92 0.01 255);
+  --sidebar-primary: oklch(0.65 0.18 276);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.511 0.262 276.966);
+  --sidebar-accent: oklch(0.2 0.03 265);
+  --sidebar-accent-foreground: oklch(0.92 0.01 255);
+  --sidebar-border: oklch(0.22 0.03 265);
+  --sidebar-ring: oklch(0.65 0.18 276);
 }
 
 @layer base {
@@ -107,8 +122,12 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
   }
-  code, kbd, pre, .font-mono {
-    font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
   }
 }

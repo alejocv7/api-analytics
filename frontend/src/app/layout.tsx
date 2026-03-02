@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -26,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className="antialiased">
         <QueryProvider>
           <AuthProvider>
             {children}

@@ -69,9 +69,15 @@ export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
 
   async function onSubmit(values: CreateApiKeyFormValues) {
     try {
+      // Backend expects AwareDatetime (ISO 8601 with timezone).
+      // Convert the plain date string "yyyy-MM-dd" to end-of-day UTC ISO string.
+      let expiresAt: string | null = null;
+      if (values.expires_at) {
+        expiresAt = new Date(`${values.expires_at}T23:59:59Z`).toISOString();
+      }
       const key = await createApiKey.mutateAsync({
         name: values.name,
-        expires_at: values.expires_at ?? null,
+        expires_at: expiresAt,
       });
       setCreatedKey(key);
     } catch (err) {

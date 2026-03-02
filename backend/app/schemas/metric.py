@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, timedelta
 from http import HTTPMethod
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, Self
 
 from fastapi import Query
 from pydantic import (
@@ -14,7 +14,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.core.enums import TimeGranularity as TimeGranularity
+from app.core.enums import StatsFields, TimeGranularity
 from app.core.types import NormalizedUrlPath
 from app.core.utils import get_default_end_date, get_default_start_date
 from app.schemas.pagination import PaginatedResponse, PaginationParams
@@ -136,6 +136,13 @@ class PerformanceStatsMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class SortablePerformanceParams(BaseModel):
+    """Parameters for sorting performance statistics."""
+
+    sort_by: StatsFields = StatsFields.request_count
+    sort_order: Literal["asc", "desc"] = "desc"
+
+
 class MetricSummaryResponse(PerformanceStatsMixin):
     """Schema for summary statistics."""
 
@@ -237,6 +244,12 @@ class MetricTimeSeriesParams(MetricParams):
 
 MetricTimeSeriesQuery = Annotated[MetricTimeSeriesParams, Query()]
 
+
+class MetricEndpointStatsParams(MetricParams, SortablePerformanceParams):
+    pass
+
+
+MetricEndpointStatsQuery = Annotated[MetricEndpointStatsParams, Query()]
 
 MetricListResponse = PaginatedResponse[MetricResponse]
 MetricTimeSeriesListResponse = PaginatedResponse[MetricTimeSeriesPointResponse]

@@ -179,8 +179,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                   <Button
                     type="submit"
                     disabled={
-                      form.formState.isSubmitting ||
-                      !form.formState.isDirty
+                      form.formState.isSubmitting || !form.formState.isDirty
                     }
                   >
                     {form.formState.isSubmitting ? (

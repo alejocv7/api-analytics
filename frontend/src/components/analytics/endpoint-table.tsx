@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUpDown } from "lucide-react";
+import { useTransition } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,37 +10,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControls } from "@/components/shared/pagination-controls";
-import {
-  formatNumber,
-  formatDuration,
-  formatPercent,
-  cn,
-} from "@/lib/utils";
+import { formatNumber, formatDuration, formatPercent, cn } from "@/lib/utils";
 import type { EndpointStat, PaginatedResponse } from "@/types/api";
 
-const METHOD_COLORS: Record<string, string> = {
-  GET: "bg-blue-100 text-blue-700",
-  POST: "bg-green-100 text-green-700",
-  PUT: "bg-amber-100 text-amber-700",
-  PATCH: "bg-orange-100 text-orange-700",
-  DELETE: "bg-red-100 text-red-700",
+const METHOD_STYLES: Record<string, string> = {
+  GET: "bg-violet-100/70 text-violet-600/70",
+  POST: "bg-green-100/70 text-green-600/70",
+  PUT: "bg-slate-100/70 text-slate-600/70",
+  PATCH: "bg-amber-100/70 text-amber-600/70",
+  DELETE: "bg-red-100/70 text-red-600/70",
 };
 
 type SortField =
   | "request_count"
   | "avg_response_time_ms"
   | "error_rate"
-  | "slowest_request_ms";
-
-interface SortState {
-  field: SortField;
-  order: "asc" | "desc";
-}
+  | "slowest_request_ms"
+  | "fastest_request_ms";
 
 interface EndpointTableProps {
   data?: PaginatedResponse<EndpointStat>;
@@ -70,12 +59,20 @@ function SortButton({
     <button
       onClick={() => onSort(field)}
       className={cn(
-        "flex items-center gap-1 text-xs font-medium transition-colors",
-        isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+        "flex items-center gap-1 font-medium transition-colors group",
+        isActive ? "text-primary" : "text-muted-foreground hover:text-primary",
       )}
     >
+      {isActive ? (
+        currentOrder === "asc" ? (
+          <ArrowUp className="h-3 w-3 shrink-0" />
+        ) : (
+          <ArrowDown className="h-3 w-3 shrink-0" />
+        )
+      ) : (
+        <ArrowUpDown className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" />
+      )}
       {children}
-      <ArrowUpDown className="h-3 w-3" />
     </button>
   );
 }
@@ -83,27 +80,30 @@ function SortButton({
 export function EndpointTable({
   data,
   isLoading,
-  page,
+  page: _page,
   onPageChange,
   sortBy,
   sortOrder,
   onSortChange,
 }: EndpointTableProps) {
+  const [, startTransition] = useTransition();
+
   function handleSort(field: SortField) {
-    const newOrder =
-      sortBy === field && sortOrder === "desc" ? "asc" : "desc";
-    onSortChange(field, newOrder);
+    const newOrder = sortBy === field && sortOrder === "desc" ? "asc" : "desc";
+    startTransition(() => {
+      onSortChange(field, newOrder);
+    });
   }
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
+      <Card className="py-0 gap-0">
+        <CardHeader className="px-5 pt-5 pb-5 gap-0">
           <Skeleton className="h-5 w-40" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-5 pb-5 pt-0 space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full mb-2" />
+            <Skeleton key={i} className="h-12 w-full" />
           ))}
         </CardContent>
       </Card>
@@ -113,25 +113,32 @@ export function EndpointTable({
   const isEmpty = !data || data.items.length === 0;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">
+    <Card className="py-0 gap-0">
+      <CardHeader className="px-5 pt-5 pb-3 gap-0">
+        <CardTitle className="tracking-tight text-base font-medium text-foreground/80">
           Endpoint Performance
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        {isEmpty ? (
-          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-            No endpoint data available
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-6 text-xs">Endpoint</TableHead>
-                    <TableHead className="w-20">
+
+      {isEmpty ? (
+        <CardContent className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+          No endpoint data available
+        </CardContent>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-t border-border bg-muted">
+                  <TableHead className="pl-5 w-28 text-sm font-medium text-muted-foreground">
+                    Method
+                  </TableHead>
+                  <TableHead className="text-sm font-medium text-muted-foreground">
+                    Path
+                  </TableHead>
+                  {/* Right-aligned headers to match right-aligned values */}
+                  <TableHead className="w-32 text-sm font-medium text-muted-foreground">
+                    <div className="flex justify-end">
                       <SortButton
                         field="request_count"
                         currentField={sortBy}
@@ -140,28 +147,22 @@ export function EndpointTable({
                       >
                         Requests
                       </SortButton>
-                    </TableHead>
-                    <TableHead className="w-32">
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-28 text-sm font-medium text-muted-foreground">
+                    <div className="flex justify-end">
                       <SortButton
                         field="avg_response_time_ms"
                         currentField={sortBy}
                         currentOrder={sortOrder}
                         onSort={handleSort}
                       >
-                        Avg Response
+                        Avg
                       </SortButton>
-                    </TableHead>
-                    <TableHead className="w-24">
-                      <SortButton
-                        field="error_rate"
-                        currentField={sortBy}
-                        currentOrder={sortOrder}
-                        onSort={handleSort}
-                      >
-                        Error Rate
-                      </SortButton>
-                    </TableHead>
-                    <TableHead className="w-28">
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-28 text-sm font-medium text-muted-foreground">
+                    <div className="flex justify-end">
                       <SortButton
                         field="slowest_request_ms"
                         currentField={sortBy}
@@ -170,87 +171,106 @@ export function EndpointTable({
                       >
                         Slowest
                       </SortButton>
-                    </TableHead>
-                    <TableHead className="w-24 text-xs text-muted-foreground font-medium">
-                      Fastest
-                    </TableHead>
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-28 text-sm font-medium text-muted-foreground">
+                    <div className="flex justify-end">
+                      <SortButton
+                        field="fastest_request_ms"
+                        currentField={sortBy}
+                        currentOrder={sortOrder}
+                        onSort={handleSort}
+                      >
+                        Fastest
+                      </SortButton>
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-24 pr-5 text-sm font-medium text-muted-foreground">
+                    <div className="flex justify-end">
+                      <SortButton
+                        field="error_rate"
+                        currentField={sortBy}
+                        currentOrder={sortOrder}
+                        onSort={handleSort}
+                      >
+                        Error %
+                      </SortButton>
+                    </div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.items.map((endpoint, i) => (
+                  <TableRow key={i} className="hover:bg-muted/30">
+                    <TableCell className="pl-5">
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold",
+                          METHOD_STYLES[endpoint.method] ??
+                            "bg-slate-100 text-slate-500",
+                        )}
+                      >
+                        {endpoint.method}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-mono text-foreground/70">
+                        {endpoint.url_path}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-right tabular-nums text-foreground/70">
+                      {formatNumber(endpoint.request_count)}
+                    </TableCell>
+                    <TableCell className="text-sm text-right tabular-nums">
+                      <span
+                        className={cn(
+                          endpoint.avg_response_time_ms > 1000
+                            ? "text-destructive"
+                            : endpoint.avg_response_time_ms > 500
+                              ? "text-amber-500"
+                              : "text-foreground/70",
+                        )}
+                      >
+                        {formatDuration(endpoint.avg_response_time_ms)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-right tabular-nums text-foreground/70">
+                      {formatDuration(endpoint.slowest_request_ms)}
+                    </TableCell>
+                    <TableCell className="text-sm text-right tabular-nums text-foreground/70">
+                      {formatDuration(endpoint.fastest_request_ms)}
+                    </TableCell>
+                    <TableCell className="text-sm text-right tabular-nums pr-5">
+                      <span
+                        className={cn(
+                          endpoint.error_rate > 1
+                            ? "text-red-600/70"
+                            : "text-foreground/70",
+                        )}
+                      >
+                        {formatPercent(endpoint.error_rate)}
+                      </span>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.items.map((endpoint, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="pl-6">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-xs font-mono font-medium shrink-0",
-                              METHOD_COLORS[endpoint.method] ?? "bg-slate-100 text-slate-700",
-                            )}
-                          >
-                            {endpoint.method}
-                          </Badge>
-                          <span className="text-sm font-mono truncate text-foreground">
-                            {endpoint.url_path}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">
-                        {formatNumber(endpoint.request_count)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <span
-                          className={cn(
-                            endpoint.avg_response_time_ms > 1000
-                              ? "text-destructive"
-                              : endpoint.avg_response_time_ms > 500
-                                ? "text-amber-600"
-                                : "text-foreground",
-                          )}
-                        >
-                          {formatDuration(endpoint.avg_response_time_ms)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <span
-                          className={cn(
-                            endpoint.error_rate > 5
-                              ? "text-destructive font-medium"
-                              : endpoint.error_rate > 1
-                                ? "text-amber-600"
-                                : "text-muted-foreground",
-                          )}
-                        >
-                          {formatPercent(endpoint.error_rate)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDuration(endpoint.slowest_request_ms)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDuration(endpoint.fastest_request_ms)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-            {data.total > data.page_size && (
-              <div className="px-6 py-3 border-t border-border">
-                <PaginationControls
-                  page={data.page}
-                  total={data.total}
-                  pageSize={data.page_size}
-                  hasNext={data.has_next}
-                  hasPrevious={data.has_previous}
-                  onPageChange={onPageChange}
-                />
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
+          {data.total > data.page_size && (
+            <div className="px-5 py-3 border-t border-border">
+              <PaginationControls
+                page={data.page}
+                total={data.total}
+                pageSize={data.page_size}
+                hasNext={data.has_next}
+                hasPrevious={data.has_previous}
+                onPageChange={onPageChange}
+              />
+            </div>
+          )}
+        </>
+      )}
     </Card>
   );
 }

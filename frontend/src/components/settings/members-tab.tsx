@@ -2,15 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, Trash2, Users } from "lucide-react";
+import { Search, Trash2, Users } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -18,13 +11,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RoleBadge } from "@/components/shared/role-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { useMembers, useUpdateMemberRole, useRemoveMember } from "@/hooks/use-members";
+import { useProject } from "@/hooks/use-projects";
 import { formatDate } from "@/lib/utils";
 import type { Member, ProjectRole } from "@/types/api";
 import { useUser } from "@/hooks/use-user";
@@ -32,6 +35,12 @@ import { useUser } from "@/hooks/use-user";
 function getInitials(name: string): string {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 }
+
+const ROLE_LABELS: Record<ProjectRole, string> = {
+  owner: "Owner",
+  member: "Member",
+  viewer: "Viewer",
+};
 
 interface MemberRowProps {
   member: Member;
@@ -69,76 +78,95 @@ function MemberRow({ member, projectKey, isOwner, currentUserId }: MemberRowProp
   }
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-      <div className="flex items-center gap-3 min-w-0">
-        <Avatar className="h-8 w-8 shrink-0">
-          <AvatarFallback className="text-xs bg-primary/10 text-primary font-medium">
-            {getInitials(member.full_name)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium truncate">{member.full_name}</span>
-            {isSelf && (
-              <span className="text-xs text-muted-foreground">(you)</span>
-            )}
+    <>
+      <TableRow>
+        {/* Member */}
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 font-medium">
+                {getInitials(member.full_name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <span className="text-sm font-medium block truncate">
+                {member.full_name}
+                {isSelf && (
+                  <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                    (you)
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-        </div>
-      </div>
+        </TableCell>
 
-      <div className="flex items-center gap-3 shrink-0">
-        <span className="text-xs text-muted-foreground hidden sm:block">
-          Joined {formatDate(member.joined_at)}
-        </span>
+        {/* Email */}
+        <TableCell>
+          <span className="text-sm text-muted-foreground">{member.email}</span>
+        </TableCell>
 
-        {canManage ? (
-          <Select value={member.role} onValueChange={handleRoleChange}>
-            <SelectTrigger className="h-7 w-24 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="member">Member</SelectItem>
-              <SelectItem value="viewer">Viewer</SelectItem>
-            </SelectContent>
-          </Select>
-        ) : (
-          <RoleBadge role={member.role} />
-        )}
+        {/* Role */}
+        <TableCell>
+          {canManage ? (
+            <Select value={member.role} onValueChange={handleRoleChange}>
+              <SelectTrigger className="h-7 w-28 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="viewer">Viewer</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="outline" className="text-xs font-medium">
+              {ROLE_LABELS[member.role]}
+            </Badge>
+          )}
+        </TableCell>
 
-        {canManage && (
-          <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setRemoveOpen(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Remove member
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        {/* Status */}
+        <TableCell>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+            <span className="text-sm text-muted-foreground">Active</span>
+          </div>
+        </TableCell>
 
-            <ConfirmDialog
-              open={removeOpen}
-              onOpenChange={setRemoveOpen}
+        {/* Joined */}
+        <TableCell>
+          <span className="text-sm text-muted-foreground">
+            {formatDate(member.joined_at)}
+          </span>
+        </TableCell>
+
+        {/* Actions */}
+        <TableCell>
+          {canManage && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              onClick={() => setRemoveOpen(true)}
               title="Remove member"
-              description={`Remove ${member.full_name} from this project? They will lose access immediately.`}
-              confirmLabel="Remove"
-              isDestructive
-              isLoading={removeMember.isPending}
-              onConfirm={handleRemove}
-            />
-          </>
-        )}
-      </div>
-    </div>
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </TableCell>
+      </TableRow>
+
+      <ConfirmDialog
+        open={removeOpen}
+        onOpenChange={setRemoveOpen}
+        title="Remove member"
+        description={`Remove ${member.full_name} from this project? They will lose access immediately.`}
+        confirmLabel="Remove"
+        isDestructive
+        isLoading={removeMember.isPending}
+        onConfirm={handleRemove}
+      />
+    </>
   );
 }
 
@@ -149,39 +177,63 @@ interface MembersTabProps {
 
 export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
   const { data, isLoading } = useMembers(projectKey);
+  const { data: project } = useProject(projectKey);
   const { user } = useUser();
+  const [search, setSearch] = useState("");
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div className="space-y-1 flex-1">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-3 w-48" />
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-8 w-8 rounded-full" />
+              <div className="space-y-1 flex-1">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
 
-  const members = data?.items ?? [];
+  const allMembers = data?.items ?? [];
+  const members = search
+    ? allMembers.filter(
+        (m) =>
+          m.full_name.toLowerCase().includes(search.toLowerCase()) ||
+          m.email.toLowerCase().includes(search.toLowerCase()),
+      )
+    : allMembers;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold">Team members</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {members.length} {members.length === 1 ? "member" : "members"}
+          <h2 className="text-lg font-semibold">Team Members</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage who has access to {project?.name ?? projectKey}
           </p>
         </div>
-        {isOwner && <InviteMemberDialog projectKey={projectKey} />}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search members…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 w-48 text-sm"
+            />
+          </div>
+          {isOwner && <InviteMemberDialog projectKey={projectKey} />}
+        </div>
       </div>
 
-      {members.length === 0 ? (
+      {allMembers.length === 0 ? (
         <EmptyState
           icon={Users}
           title="No team members"
@@ -189,16 +241,51 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
           action={isOwner ? <InviteMemberDialog projectKey={projectKey} /> : undefined}
         />
       ) : (
-        <div className="rounded-lg border border-border px-4">
-          {members.map((member) => (
-            <MemberRow
-              key={member.user_id}
-              member={member}
-              projectKey={projectKey}
-              isOwner={isOwner}
-              currentUserId={user?.id}
-            />
-          ))}
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent bg-muted/30">
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-4">
+                  Member
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Email
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Role
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Status
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Joined
+                </TableHead>
+                <TableHead className="w-16" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {members.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-center text-sm text-muted-foreground py-8"
+                  >
+                    No members match your search
+                  </TableCell>
+                </TableRow>
+              ) : (
+                members.map((member) => (
+                  <MemberRow
+                    key={member.user_id}
+                    member={member}
+                    projectKey={projectKey}
+                    isOwner={isOwner}
+                    currentUserId={user?.id}
+                  />
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

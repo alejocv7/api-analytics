@@ -55,6 +55,8 @@ function SortButton({
   children: React.ReactNode;
 }) {
   const isActive = currentField === field;
+  const ArrowIcon = currentOrder === "asc" ? ArrowUp : ArrowDown;
+
   return (
     <button
       onClick={() => onSort(field)}
@@ -63,15 +65,12 @@ function SortButton({
         isActive ? "text-primary" : "text-muted-foreground hover:text-primary",
       )}
     >
-      {isActive ? (
-        currentOrder === "asc" ? (
-          <ArrowUp className="h-3 w-3 shrink-0" />
-        ) : (
-          <ArrowDown className="h-3 w-3 shrink-0" />
-        )
-      ) : (
-        <ArrowUpDown className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" />
-      )}
+      <ArrowIcon
+        className={cn(
+          "h-3 w-3 shrink-0 transition-opacity",
+          !isActive && "opacity-0 group-hover:opacity-40",
+        )}
+      />
       {children}
     </button>
   );

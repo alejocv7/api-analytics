@@ -42,16 +42,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useProjects, useProject } from "@/hooks/use-projects";
-import { cn } from "@/lib/utils";
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+import { cn, getInitials } from "@/lib/utils";
 
 export function AppSidebar() {
   const pathname = usePathname();

@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useProjects, useProject } from "@/hooks/use-projects";
 import { cn } from "@/lib/utils";
@@ -266,19 +267,24 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </PopoverTrigger>
               <PopoverContent
-                className="w-56 p-1"
+                className="w-56 p-1.5"
                 align="start"
                 side="top"
                 sideOffset={4}
               >
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                  className="w-full justify-start text-sm font-normal"
+                    asChild
                   onClick={() => setUserMenuOpen(false)}
                 >
-                  <User className="h-4 w-4" />
+<Link href="/profile">
+                  <User className="mr-2 h-4 w-4" />
                   Profile
                 </Link>
+</Button>
 
                 <div className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-accent transition-colors cursor-pointer">
                   {darkMode ? (
@@ -296,13 +302,16 @@ export function AppSidebar() {
 
                 <div className="my-1 h-px bg-border" />
 
-                <button
-                  className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-accent w-full text-left transition-colors text-destructive"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-sm font-normal text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={handleLogout}
                 >
-                  <LogOut className="h-4 w-4" />
+                    <LogOut className="mr-2 h-4 w-4" />
                   Log out
-                </button>
+                  </Button>
+                </div>
               </PopoverContent>
             </Popover>
           </SidebarMenuItem>

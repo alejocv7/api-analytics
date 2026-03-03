@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { formatDuration, formatNumber } from "@/lib/utils";
 import type { TimeSeriesPoint } from "@/types/api";
@@ -36,16 +37,16 @@ function formatXAxis(timestamp: string): string {
 
 const CHART_COLORS = {
   requests: {
-    stroke: "#6366f1",
-    fill: "#6366f1",
+    stroke: "var(--chart-1)",
+    fill: "var(--chart-1)",
   },
   errors: {
-    stroke: "#f87171",
-    fill: "#f87171",
+    stroke: "var(--chart-3)",
+    fill: "var(--chart-3)",
   },
   response_time: {
-    stroke: "#0d9488",
-    fill: "#0d9488",
+    stroke: "var(--chart-2)",
+    fill: "var(--chart-2)",
   },
 };
 
@@ -117,28 +118,23 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
 
         <CardAction>
           {/* Connected pill toggle with border all the way around */}
-          <div className="flex items-center rounded-md border border-border overflow-hidden">
-            <button
+          <div className="flex items-center rounded-lg border border-border p-1 bg-muted/30">
+            <Button
+              variant={mode === "requests" ? "default" : "ghost"}
+              size="sm"
               onClick={() => setMode("requests")}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                mode === "requests"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
+              className="h-7 px-3 text-xs shadow-none"
             >
               Requests
-            </button>
-            <div className="w-px h-full bg-border self-stretch" />
-            <button
+            </Button>
+            <Button
+              variant={mode === "response_time" ? "default" : "ghost"}
+              size="sm"
               onClick={() => setMode("response_time")}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                mode === "response_time"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
+              className="h-7 px-3 text-xs shadow-none"
             >
               Response Time
-            </button>
+            </Button>
           </div>
         </CardAction>
       </CardHeader>
@@ -196,9 +192,9 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
 
               <CartesianGrid
                 strokeDasharray="4 4"
-                stroke="#e2e8f0"
+                stroke="var(--border)"
                 horizontal
-                vertical
+                vertical={false}
               />
 
               <XAxis
@@ -206,7 +202,7 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
                 tickFormatter={formatXAxis}
                 tick={{
                   fontSize: 11,
-                  fill: "#94a3b8",
+                  fill: "var(--muted-foreground)",
                   fontFamily: "var(--font-mono)",
                 }}
                 tickLine={false}
@@ -222,7 +218,7 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
                 }
                 tick={{
                   fontSize: 11,
-                  fill: "#94a3b8",
+                  fill: "var(--muted-foreground)",
                   fontFamily: "var(--font-mono)",
                 }}
                 tickLine={false}

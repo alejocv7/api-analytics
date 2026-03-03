@@ -77,13 +77,15 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               Presets
             </p>
             {DATE_PRESETS.map((preset) => (
-              <button
+              <Button
                 key={preset.label}
+                variant="ghost"
+                size="sm"
                 onClick={() => applyPreset(preset.hours)}
-                className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted transition-colors"
+                className="w-full justify-start font-normal"
               >
                 {preset.label}
-              </button>
+              </Button>
             ))}
           </div>
 

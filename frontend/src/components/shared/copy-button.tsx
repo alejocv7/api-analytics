@@ -29,7 +29,7 @@ export function CopyButton({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="ghost"
       size={size}
       onClick={handleCopy}
       className={cn("gap-1.5", className)}

@@ -8,11 +8,16 @@ import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -20,7 +25,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { CopyButton } from "@/components/shared/copy-button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useUpdateProject, useDeleteProject } from "@/hooks/use-projects";
@@ -90,14 +94,17 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Project info form */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Project details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Project details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Project details</CardTitle>
+              <CardDescription>
+                Basic information about your project.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -136,17 +143,15 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
 
               {/* Project key (read-only) */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Project key</label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 rounded-md bg-muted border border-border">
-                    <code className="text-sm font-mono text-muted-foreground">
-                      {project.project_key}
-                    </code>
-                  </div>
+                <label className="text-sm font-medium">Key</label>
+                <div className="flex-1 flex items-center justify-between px-3 py-1 rounded-md bg-muted border border-border">
+                  <code className="text-sm font-mono text-muted-foreground">
+                    {project.project_key}
+                  </code>
                   <CopyButton value={project.project_key} />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Immutable identifier used in SDK configuration.
+                  This key is auto-generated and used to identify your project.
                 </p>
               </div>
 
@@ -154,14 +159,12 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                 control={form.control}
                 name="is_active"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <FormItem className="flex items-center justify-between pt-1">
                     <div>
-                      <FormLabel className="text-sm font-medium">
-                        Active
-                      </FormLabel>
-                      <FormDescription>
+                      <FormLabel>Active</FormLabel>
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         Inactive projects stop accepting new metrics.
-                      </FormDescription>
+                      </p>
                     </div>
                     <FormControl>
                       <Switch
@@ -173,38 +176,36 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
 
-              {isOwner && (
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    disabled={
-                      form.formState.isSubmitting || !form.formState.isDirty
-                    }
-                  >
-                    {form.formState.isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving…
-                      </>
-                    ) : (
-                      "Save changes"
-                    )}
-                  </Button>
-                </div>
-              )}
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+          {isOwner && (
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={
+                  form.formState.isSubmitting || !form.formState.isDirty
+                }
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  "Save changes"
+                )}
+              </Button>
+            </div>
+          )}
+        </form>
+      </Form>
 
       {/* Danger zone */}
       {isOwner && (
         <Card className="border-destructive/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base text-destructive">
-              Danger zone
-            </CardTitle>
+          <CardHeader>
+            <CardTitle className="text-destructive">Danger zone</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">

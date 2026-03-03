@@ -43,7 +43,9 @@ interface CreateApiKeyDialogProps {
 
 export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
   const [open, setOpen] = useState(false);
-  const [createdKey, setCreatedKey] = useState<ApiKeyCreateResponse | null>(null);
+  const [createdKey, setCreatedKey] = useState<ApiKeyCreateResponse | null>(
+    null,
+  );
   const [acknowledged, setAcknowledged] = useState(false);
 
   const createApiKey = useCreateApiKey(projectKey);
@@ -52,7 +54,10 @@ export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
     resolver: zodResolver(createApiKeySchema),
     defaultValues: {
       name: "",
-      expires_at: format(addDays(new Date(), API_KEY_DEFAULT_EXPIRY_DAYS), "yyyy-MM-dd"),
+      expires_at: format(
+        addDays(new Date(), API_KEY_DEFAULT_EXPIRY_DAYS),
+        "yyyy-MM-dd",
+      ),
     },
   });
 
@@ -102,7 +107,7 @@ export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          <Plus className="h-3.5 w-3.5" />
           Generate key
         </Button>
       </DialogTrigger>

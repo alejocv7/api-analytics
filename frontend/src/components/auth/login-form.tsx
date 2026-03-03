@@ -67,9 +67,6 @@ export function LoginForm() {
     <Card className="border-border shadow-sm">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-semibold">Sign in</CardTitle>
-        <CardDescription>
-          Enter your email and password to access your dashboard
-        </CardDescription>
       </CardHeader>
 
       <CardContent>

@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GeneralSettings } from "@/components/settings/general-settings";
+import { GeneralSettings } from "@/components/settings/project-tab";
 import { ApiKeysTab } from "@/components/settings/api-keys-tab";
 import { MembersTab } from "@/components/settings/members-tab";
 import { PageHeader } from "@/components/layouts/page-header";
@@ -23,10 +23,7 @@ export default function SettingsPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Project Settings"
-        description={project?.name}
-      />
+      <PageHeader title="Project Settings" description={project?.name} />
 
       {projectLoading || roleLoading ? (
         <Skeleton className="h-64 w-full" />

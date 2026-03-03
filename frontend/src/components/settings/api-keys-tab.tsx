@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Key, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Key, RefreshCw, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
@@ -20,6 +19,7 @@ import { RotateKeyDialog } from "./rotate-key-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/layouts/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useApiKeys, useDeleteApiKey } from "@/hooks/use-api-keys";
 import { useProject } from "@/hooks/use-projects";
@@ -131,15 +131,12 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
         description="Manage your API keys"
         action={
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search keys…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-9 w-48 text-sm"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search keys…"
+              value={search}
+              onChange={setSearch}
+              className="w-48"
+            />
             {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
           </div>
         }

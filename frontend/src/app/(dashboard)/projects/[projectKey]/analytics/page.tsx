@@ -166,7 +166,7 @@ export default function AnalyticsPage({
         badges={
           project && (
             <>
-              <StatusBadge active={project.is_active} />
+              <StatusBadge status={project.is_active ? "active" : "inactive"} />
               {project.role && <RoleBadge role={project.role} />}
             </>
           )

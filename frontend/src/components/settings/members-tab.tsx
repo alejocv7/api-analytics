@@ -26,14 +26,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { InviteMemberDialog } from "./invite-member-dialog";
-import { useMembers, useUpdateMemberRole, useRemoveMember } from "@/hooks/use-members";
+import { PageHeader } from "@/components/layouts/page-header";
+import {
+  useMembers,
+  useUpdateMemberRole,
+  useRemoveMember,
+} from "@/hooks/use-members";
 import { useProject } from "@/hooks/use-projects";
 import { formatDate } from "@/lib/utils";
 import type { Member, ProjectRole } from "@/types/api";
 import { useUser } from "@/hooks/use-user";
 
 function getInitials(name: string): string {
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 const ROLE_LABELS: Record<ProjectRole, string> = {
@@ -49,7 +59,12 @@ interface MemberRowProps {
   currentUserId?: string;
 }
 
-function MemberRow({ member, projectKey, isOwner, currentUserId }: MemberRowProps) {
+function MemberRow({
+  member,
+  projectKey,
+  isOwner,
+  currentUserId,
+}: MemberRowProps) {
   const [removeOpen, setRemoveOpen] = useState(false);
   const updateRole = useUpdateMemberRole(projectKey, member.user_id);
   const removeMember = useRemoveMember(projectKey, member.user_id);
@@ -211,34 +226,33 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Team Members</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Manage who has access to {project?.name ?? projectKey}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search members…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 w-48 text-sm"
-            />
+      <PageHeader
+        title="Team Members"
+        description="Manage project access"
+        action={
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search members…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-9 w-48 text-sm"
+              />
+            </div>
+            {isOwner && <InviteMemberDialog projectKey={projectKey} />}
           </div>
-          {isOwner && <InviteMemberDialog projectKey={projectKey} />}
-        </div>
-      </div>
+        }
+      />
 
       {allMembers.length === 0 ? (
         <EmptyState
           icon={Users}
           title="No team members"
           description="Invite colleagues to collaborate on this project."
-          action={isOwner ? <InviteMemberDialog projectKey={projectKey} /> : undefined}
+          action={
+            isOwner ? <InviteMemberDialog projectKey={projectKey} /> : undefined
+          }
         />
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">

@@ -18,11 +18,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
 import { RotateKeyDialog } from "./rotate-key-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { PageHeader } from "@/components/layouts/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import {
-  useApiKeys,
-  useDeleteApiKey,
-} from "@/hooks/use-api-keys";
+import { useApiKeys, useDeleteApiKey } from "@/hooks/use-api-keys";
 import { useProject } from "@/hooks/use-projects";
 import { formatDate, formatNumber, maskApiKey } from "@/lib/utils";
 import type { ApiKey } from "@/types/api";
@@ -41,20 +39,29 @@ function KeyStatusBadge({ apiKey }: { apiKey: ApiKey }) {
 
   if (isExpired) {
     return (
-      <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs">
+      <Badge
+        variant="outline"
+        className="bg-red-50 text-red-600 border-red-200 text-xs"
+      >
         Expired
       </Badge>
     );
   }
   if (!apiKey.is_active) {
     return (
-      <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 text-xs">
+      <Badge
+        variant="outline"
+        className="bg-slate-100 text-slate-500 border-slate-200 text-xs"
+      >
         Inactive
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+    <Badge
+      variant="outline"
+      className="bg-green-50 text-green-700 border-green-200 text-xs"
+    >
       <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
       Active
     </Badge>
@@ -154,34 +161,33 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">API Keys</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Manage credentials for {project?.name ?? projectKey}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search keys…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 w-48 text-sm"
-            />
+      <PageHeader
+        title="API Keys"
+        description="Manage your API keys"
+        action={
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search keys…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-9 w-48 text-sm"
+              />
+            </div>
+            {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
           </div>
-          {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
-        </div>
-      </div>
+        }
+      />
 
       {allKeys.length === 0 ? (
         <EmptyState
           icon={Key}
           title="No API keys"
           description="Generate an API key to start sending metrics from your applications."
-          action={isOwner ? <CreateApiKeyDialog projectKey={projectKey} /> : undefined}
+          action={
+            isOwner ? <CreateApiKeyDialog projectKey={projectKey} /> : undefined
+          }
         />
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
@@ -247,7 +253,10 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
                     </TableCell>
                     {isOwner && (
                       <TableCell>
-                        <ApiKeyRowActions projectKey={projectKey} apiKey={key} />
+                        <ApiKeyRowActions
+                          projectKey={projectKey}
+                          apiKey={key}
+                        />
                       </TableCell>
                     )}
                   </TableRow>

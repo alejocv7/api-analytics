@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Copy, Key, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { formatDate } from "@/lib/utils";
 import type { Project } from "@/types/api";
 
@@ -21,12 +22,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Link href={`/projects/${project.project_key}/analytics`}>
       <Card className="flex flex-col hover:shadow-md transition-shadow cursor-pointer">
         <CardContent className="px-5 space-y-2.5">
-          {/* Header: status dot + name */}
+          {/* Header: status badge + name */}
           <div className="flex items-center gap-2.5">
-            <span
-              className={`inline-block h-2.5 w-2.5 rounded-full shrink-0 ${project.is_active ? "bg-green-500" : "bg-slate-300"}`}
+            <StatusBadge
+              status={project.is_active ? "active" : "inactive"}
+              className="px-1 py-0 h-4"
             />
-            <h3 className="text-base font-semibold leading-tight break-words">
+            <h3 className="text-base font-semibold leading-tight break-all">
               {project.name}
             </h3>
           </div>

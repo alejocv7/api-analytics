@@ -20,6 +20,7 @@ import { RotateKeyDialog } from "./rotate-key-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/layouts/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { useApiKeys, useDeleteApiKey } from "@/hooks/use-api-keys";
 import { useProject } from "@/hooks/use-projects";
 import { formatDate, formatNumber, maskApiKey } from "@/lib/utils";
@@ -28,44 +29,6 @@ import type { ApiKey } from "@/types/api";
 interface ApiKeysTabProps {
   projectKey: string;
   isOwner: boolean;
-}
-
-function KeyStatusBadge({ apiKey }: { apiKey: ApiKey }) {
-  const now = new Date();
-  const isExpired =
-    apiKey.expires_at !== null &&
-    apiKey.expires_at !== undefined &&
-    new Date(apiKey.expires_at) < now;
-
-  if (isExpired) {
-    return (
-      <Badge
-        variant="outline"
-        className="bg-red-50 text-red-600 border-red-200 text-xs"
-      >
-        Expired
-      </Badge>
-    );
-  }
-  if (!apiKey.is_active) {
-    return (
-      <Badge
-        variant="outline"
-        className="bg-slate-100 text-slate-500 border-slate-200 text-xs"
-      >
-        Inactive
-      </Badge>
-    );
-  }
-  return (
-    <Badge
-      variant="outline"
-      className="bg-green-50 text-green-700 border-green-200 text-xs"
-    >
-      <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
-      Active
-    </Badge>
-  );
 }
 
 interface ApiKeyRowActionsProps {
@@ -195,12 +158,12 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
         <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent bg-muted/30">
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-4">
+              <TableRow className="bg-muted/50">
+                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
                   Name
                 </TableHead>
                 <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Key Prefix
+                  Key
                 </TableHead>
                 <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Status
@@ -214,7 +177,7 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
                 <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Expires
                 </TableHead>
-                {isOwner && <TableHead className="w-20" />}
+                {isOwner && <TableHead className="pr-5" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -242,7 +205,19 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
                       </code>
                     </TableCell>
                     <TableCell>
-                      <KeyStatusBadge apiKey={key} />
+                      {(() => {
+                        const now = new Date();
+                        const isExpired =
+                          key.expires_at !== null &&
+                          key.expires_at !== undefined &&
+                          new Date(key.expires_at) < now;
+                        if (isExpired) return <StatusBadge status="expired" />;
+                        return (
+                          <StatusBadge
+                            status={key.is_active ? "active" : "inactive"}
+                          />
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(key.created_at)}

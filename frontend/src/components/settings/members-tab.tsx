@@ -99,7 +99,7 @@ function MemberRow({
         <TableCell>
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 font-medium">
+              <AvatarFallback className="text-xs bg-sidebar-primary/30 text-sidebar-primary-foreground font-medium">
                 {getInitials(member.full_name)}
               </AvatarFallback>
             </Avatar>
@@ -134,18 +134,13 @@ function MemberRow({
               </SelectContent>
             </Select>
           ) : (
-            <Badge variant="outline" className="text-xs font-medium">
-              {ROLE_LABELS[member.role]}
-            </Badge>
+            <RoleBadge role={member.role} />
           )}
         </TableCell>
 
         {/* Status */}
         <TableCell>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
-            <span className="text-sm text-muted-foreground">Active</span>
-          </div>
+          <StatusBadge status="active" className="h-5" />
         </TableCell>
 
         {/* Joined */}

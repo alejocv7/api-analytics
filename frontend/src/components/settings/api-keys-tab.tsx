@@ -83,8 +83,10 @@ function ApiKeyRowActions({ projectKey, apiKey }: ApiKeyRowActionsProps) {
       await deleteKey.mutateAsync();
       toast.success("API key deleted");
       setDeleteOpen(false);
-    } catch {
-      toast.error("Failed to delete key");
+    } catch (error) {
+      toast.error("Failed to delete key", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 
@@ -155,7 +157,7 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
     ? allKeys.filter(
         (k) =>
           k.name.toLowerCase().includes(search.toLowerCase()) ||
-          k.prefix.toLowerCase().includes(search.toLowerCase()),
+          k.key_prefix.toLowerCase().includes(search.toLowerCase()),
       )
     : allKeys;
 
@@ -236,7 +238,7 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
                     </TableCell>
                     <TableCell>
                       <code className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
-                        {maskApiKey(key.prefix)}
+                        {maskApiKey(key.key_prefix)}
                       </code>
                     </TableCell>
                     <TableCell>

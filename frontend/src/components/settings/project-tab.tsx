@@ -143,7 +143,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
 
               {/* Project key (read-only) */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Key</label>
+                <h3 className="text-sm font-medium">Key</h3>
                 <div className="flex-1 flex items-center justify-between px-3 py-1 rounded-md bg-muted border border-border">
                   <code className="text-sm font-mono text-muted-foreground">
                     {project.project_key}
@@ -176,28 +176,28 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                   </FormItem>
                 )}
               />
+
+              {isOwner && (
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={
+                      form.formState.isSubmitting || !form.formState.isDirty
+                    }
+                  >
+                    {form.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      "Save changes"
+                    )}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
-
-          {isOwner && (
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={
-                  form.formState.isSubmitting || !form.formState.isDirty
-                }
-              >
-                {form.formState.isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  "Save changes"
-                )}
-              </Button>
-            </div>
-          )}
         </form>
       </Form>
 

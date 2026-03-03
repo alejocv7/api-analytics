@@ -277,19 +277,21 @@ export function AppSidebar() {
                     </Link>
                   </Button>
 
-                <div className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-accent transition-colors cursor-pointer">
-                  {darkMode ? (
-                    <Moon className="h-4 w-4" />
-                  ) : (
-                    <Sun className="h-4 w-4" />
-                  )}
-                  <span className="flex-1">Dark Mode</span>
-                  <Switch
-                    checked={darkMode}
-                    onCheckedChange={toggleDarkMode}
-                    className="scale-75 origin-right"
-                  />
-                </div>
+                  <div className="flex items-center justify-between px-2 py-1.5 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <div className="flex items-center gap-2">
+                      {darkMode ? (
+                        <Moon className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Sun className="h-4 w-4 text-amber-500" />
+                      )}
+                      <span>Dark Mode</span>
+                    </div>
+                    <Switch
+                      checked={darkMode}
+                      onCheckedChange={toggleDarkMode}
+                      className="scale-75 origin-right"
+                    />
+                  </div>
 
                   <div className="my-1 h-px bg-border" />
 

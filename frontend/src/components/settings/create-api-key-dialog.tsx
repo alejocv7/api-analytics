@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertCircle, Key, Loader2, Plus } from "lucide-react";
+import { Key, Loader2, Plus } from "lucide-react";
 import { addDays, format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { CopyButton } from "@/components/shared/copy-button";
+import { SecretDisplay } from "@/components/shared/secret-display";
+import { WarningBanner } from "@/components/shared/warning-banner";
 import { useCreateApiKey } from "@/hooks/use-api-keys";
 import {
   createApiKeySchema,
@@ -214,28 +215,13 @@ export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
             </DialogHeader>
 
             <div className="space-y-4">
-              {/* Warning banner */}
-              <div className="flex gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-800">
-                  Save this key securely. Once you close this dialog, you{" "}
-                  <strong>cannot</strong> retrieve it again. If lost, generate a
-                  new key.
-                </p>
-              </div>
+              <WarningBanner>
+                Save this key securely. Once you close this dialog, you{" "}
+                <strong>cannot</strong> retrieve it again. If lost, generate a
+                new key.
+              </WarningBanner>
 
-              {/* Key display */}
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">
-                  {createdKey.name}
-                </p>
-                <div className="flex items-center gap-2 p-3 rounded-md bg-muted border border-border">
-                  <code className="flex-1 text-sm font-mono break-all text-foreground">
-                    {createdKey.key}
-                  </code>
-                  <CopyButton value={createdKey.key} />
-                </div>
-              </div>
+              <SecretDisplay value={createdKey.key} label={createdKey.name} />
             </div>
 
             <DialogFooter>

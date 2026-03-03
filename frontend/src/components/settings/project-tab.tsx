@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { CopyButton } from "@/components/shared/copy-button";
+import { SecretDisplay } from "@/components/shared/secret-display";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useUpdateProject, useDeleteProject } from "@/hooks/use-projects";
 import {
@@ -142,18 +142,11 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
               />
 
               {/* Project key (read-only) */}
-              <div className="space-y-1.5">
-                <h3 className="text-sm font-medium">Key</h3>
-                <div className="flex-1 flex items-center justify-between px-3 py-1 rounded-md bg-muted border border-border">
-                  <code className="text-sm font-mono text-muted-foreground">
-                    {project.project_key}
-                  </code>
-                  <CopyButton value={project.project_key} />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  This key is auto-generated and used to identify your project.
-                </p>
-              </div>
+              <SecretDisplay
+                value={project.project_key}
+                label="Key"
+                description="This key is auto-generated and used to identify your project."
+              />
 
               <FormField
                 control={form.control}

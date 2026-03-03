@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Key, RefreshCw } from "lucide-react";
+import { Key, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CopyButton } from "@/components/shared/copy-button";
+import { SecretDisplay } from "@/components/shared/secret-display";
+import { WarningBanner } from "@/components/shared/warning-banner";
 import { useRotateApiKey } from "@/hooks/use-api-keys";
 import type { ApiKey, ApiKeyCreateResponse } from "@/types/api";
 
@@ -51,14 +52,24 @@ export function RotateKeyDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => {
-      if (!next && newKey) { handleClose(); return; }
-      if (!next) onOpenChange(false);
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && newKey) {
+          handleClose();
+          return;
+        }
+        if (!next) onOpenChange(false);
+      }}
+    >
       <DialogContent
         className="sm:max-w-md"
-        onInteractOutside={(e) => { if (newKey) e.preventDefault(); }}
-        onEscapeKeyDown={(e) => { if (newKey) e.preventDefault(); }}
+        onInteractOutside={(e) => {
+          if (newKey) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (newKey) e.preventDefault();
+        }}
       >
         {!newKey ? (
           <>
@@ -105,19 +116,11 @@ export function RotateKeyDialog({
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="flex gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-800">
-                  The old key has been deactivated. Update your applications
-                  with the new key below.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 p-3 rounded-md bg-muted border border-border">
-                <code className="flex-1 text-sm font-mono break-all text-foreground">
-                  {newKey.key}
-                </code>
-                <CopyButton value={newKey.key} />
-              </div>
+              <WarningBanner>
+                The old key has been deactivated. Update your applications with
+                the new key below.
+              </WarningBanner>
+              <SecretDisplay value={newKey.key} />
             </div>
             <DialogFooter>
               <Button onClick={handleClose} className="w-full">

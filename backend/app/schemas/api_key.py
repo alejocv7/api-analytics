@@ -43,6 +43,7 @@ class APIKeyResponse(APIKeyBase):
     """Schema for API key in responses (without the actual key)."""
 
     id: uuid.UUID
+    key_prefix: str
     project_id: uuid.UUID
     is_active: bool
     created_at: AwareDatetime
@@ -57,6 +58,7 @@ class APIKeyResponse(APIKeyBase):
                 {
                     "id": 1,
                     "name": "Production Key",
+                    "key_prefix": "sk_live_abc123",
                     "project_id": 1,
                     "is_active": True,
                     "created_at": "2026-01-27T10:00:00Z",

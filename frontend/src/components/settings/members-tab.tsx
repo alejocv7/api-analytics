@@ -35,24 +35,9 @@ import {
   useRemoveMember,
 } from "@/hooks/use-members";
 import { useProject } from "@/hooks/use-projects";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getInitials } from "@/lib/utils";
 import type { Member, ProjectRole } from "@/types/api";
 import { useUser } from "@/hooks/use-user";
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-const ROLE_LABELS: Record<ProjectRole, string> = {
-  owner: "Owner",
-  member: "Member",
-  viewer: "Viewer",
-};
 
 interface MemberRowProps {
   member: Member;
@@ -229,11 +214,11 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
         action={
           <div className="flex items-center gap-2">
             <SearchInput
-                placeholder="Search members…"
-                value={search}
-                onChange={setSearch}
-              />
-                        {isOwner && <InviteMemberDialog projectKey={projectKey} />}
+              placeholder="Search members…"
+              value={search}
+              onChange={setSearch}
+            />
+            {isOwner && <InviteMemberDialog projectKey={projectKey} />}
           </div>
         }
       />

@@ -267,15 +267,15 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                  className="w-full justify-start text-sm font-normal"
+                    className="w-full justify-start text-sm font-normal"
                     asChild
-                  onClick={() => setUserMenuOpen(false)}
-                >
-<Link href="/profile">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Link>
-</Button>
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </Button>
 
                 <div className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-accent transition-colors cursor-pointer">
                   {darkMode ? (
@@ -291,16 +291,16 @@ export function AppSidebar() {
                   />
                 </div>
 
-                <div className="my-1 h-px bg-border" />
+                  <div className="my-1 h-px bg-border" />
 
                   <Button
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start text-sm font-normal text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={handleLogout}
-                >
+                    onClick={handleLogout}
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                    Log out
                   </Button>
                 </div>
               </PopoverContent>

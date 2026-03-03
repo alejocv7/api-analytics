@@ -16,6 +16,7 @@ import {
   Sun,
   User,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 import {
@@ -59,11 +60,8 @@ export function AppSidebar() {
 
   const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(
-    () =>
-      typeof document !== "undefined" &&
-      document.documentElement.classList.contains("dark"),
-  );
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const darkMode = resolvedTheme === "dark";
 
   const projectKeyMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentPathKey = projectKeyMatch?.[1] ?? "";
@@ -80,12 +78,7 @@ export function AppSidebar() {
   const projects = projectsData?.items ?? [];
 
   function toggleDarkMode(enabled: boolean) {
-    setDarkMode(enabled);
-    if (enabled) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    setTheme(enabled ? "dark" : "light");
   }
 
   async function handleLogout() {
@@ -119,7 +112,10 @@ export function AppSidebar() {
         {/* Project Switcher */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <Popover open={projectSwitcherOpen} onOpenChange={setProjectSwitcherOpen}>
+            <Popover
+              open={projectSwitcherOpen}
+              onOpenChange={setProjectSwitcherOpen}
+            >
               <PopoverTrigger asChild>
                 <SidebarMenuButton size="lg" tooltip="Switch project">
                   <div className="flex-1 min-w-0 text-left">

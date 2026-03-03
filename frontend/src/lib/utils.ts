@@ -68,3 +68,13 @@ export function toISOString(date: Date): string {
 export function maskApiKey(prefix: string): string {
   return `${prefix}${"•".repeat(24)}`;
 }
+
+export function getInitials(name: string): string {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}

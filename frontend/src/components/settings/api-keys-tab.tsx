@@ -135,7 +135,6 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
               placeholder="Search keys…"
               value={search}
               onChange={setSearch}
-              className="w-48"
             />
             {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
           </div>

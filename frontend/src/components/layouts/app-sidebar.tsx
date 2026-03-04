@@ -195,7 +195,7 @@ export function AppSidebar() {
 
         {/* General group */}
         <SidebarGroup>
-          <SidebarGroupLabel>General</SidebarGroupLabel>
+          <SidebarGroupLabel>Manage</SidebarGroupLabel>
           <SidebarMenu>
             {projectKey && (
               <SidebarMenuItem>

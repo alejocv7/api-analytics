@@ -114,7 +114,7 @@ export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
       </DialogTrigger>
 
       <DialogContent
-        className="sm:max-w-md"
+        className="sm:max-w-lg"
         onInteractOutside={(e) => {
           if (createdKey && !acknowledged) e.preventDefault();
         }}

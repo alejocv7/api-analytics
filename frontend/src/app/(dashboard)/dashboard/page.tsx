@@ -12,7 +12,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Projects"
-        description="Manage and monitor all your API projects"
+        description="Manage and monitor all your projects"
         action={<CreateProjectDialog />}
       />
       <ProjectList />

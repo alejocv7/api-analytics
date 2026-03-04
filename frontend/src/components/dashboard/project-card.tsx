@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatDate } from "@/lib/utils";
 import type { Project } from "@/types/api";
+import { SecretDisplay } from "../shared/secret-display";
 
 interface ProjectCardProps {
   project: Project;
@@ -23,19 +24,19 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <Card className="flex flex-col hover:shadow-md transition-shadow cursor-pointer">
         <CardContent className="px-5 space-y-2.5">
           {/* Header: status badge + name */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between gap-2.5">
+            <h3 className="text-base font-semibold leading-tight break-all">
+              {project.name}
+            </h3>
             <StatusBadge
               status={project.is_active ? "active" : "inactive"}
               className="px-1 py-0 h-4"
             />
-            <h3 className="text-base font-semibold leading-tight break-all">
-              {project.name}
-            </h3>
           </div>
 
           {/* Project Key */}
-          <div>
-            <p className="text-xs text-muted-foreground mb-1.5">Project Key</p>
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium">Project Key</p>
             <div
               className="flex items-center gap-2 bg-muted/60 rounded-md px-3 py-2 group"
               onClick={(e) => {
@@ -43,7 +44,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 copyKey();
               }}
             >
-              <span className="flex-1 text-xs font-mono text-foreground truncate">
+              <span className="flex-1 text-xs font-mono text-muted-foreground truncate">
                 {project.project_key}
               </span>
               <Copy className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />

@@ -14,15 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { formatNumber, formatDuration, formatPercent, cn } from "@/lib/utils";
+import { METHOD_STYLES } from "@/lib/constants";
 import type { EndpointStat, PaginatedResponse } from "@/types/api";
-
-const METHOD_STYLES: Record<string, string> = {
-  GET: "bg-violet-100/70 text-violet-600/70",
-  POST: "bg-green-100/70 text-green-600/70",
-  PUT: "bg-slate-100/70 text-slate-600/70",
-  PATCH: "bg-amber-100/70 text-amber-600/70",
-  DELETE: "bg-red-100/70 text-red-600/70",
-};
 
 type SortField =
   | "request_count"
@@ -61,7 +54,7 @@ function SortButton({
     <button
       onClick={() => onSort(field)}
       className={cn(
-        "flex items-center gap-1 font-medium transition-colors group",
+        "flex items-center gap-1 font-medium transition-colors group [text-transform:inherit]",
         isActive ? "text-primary" : "text-muted-foreground hover:text-primary",
       )}
     >
@@ -128,15 +121,15 @@ export function EndpointTable({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-t border-border bg-muted">
-                  <TableHead className="pl-5 w-28 text-sm font-medium text-muted-foreground">
+                <TableRow className="border-t border-border bg-muted/50">
+                  <TableHead className="pl-5 w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Method
                   </TableHead>
-                  <TableHead className="text-sm font-medium text-muted-foreground">
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Path
                   </TableHead>
                   {/* Right-aligned headers to match right-aligned values */}
-                  <TableHead className="w-32 text-sm font-medium text-muted-foreground">
+                  <TableHead className="w-32 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     <div className="flex justify-end">
                       <SortButton
                         field="request_count"
@@ -148,7 +141,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 text-sm font-medium text-muted-foreground">
+                  <TableHead className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     <div className="flex justify-end">
                       <SortButton
                         field="avg_response_time_ms"
@@ -160,7 +153,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 text-sm font-medium text-muted-foreground">
+                  <TableHead className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     <div className="flex justify-end">
                       <SortButton
                         field="slowest_request_ms"
@@ -172,7 +165,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 text-sm font-medium text-muted-foreground">
+                  <TableHead className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     <div className="flex justify-end">
                       <SortButton
                         field="fastest_request_ms"
@@ -184,7 +177,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-24 pr-5 text-sm font-medium text-muted-foreground">
+                  <TableHead className="w-24 pr-5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     <div className="flex justify-end">
                       <SortButton
                         field="error_rate"
@@ -204,9 +197,9 @@ export function EndpointTable({
                     <TableCell className="pl-5">
                       <span
                         className={cn(
-                          "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold",
+                          "inline-flex items-center px-1.5 py-0.5 rounded border text-2xs font-semibold uppercase tracking-wider",
                           METHOD_STYLES[endpoint.method] ??
-                            "bg-slate-100 text-slate-500",
+                            "bg-slate-100 text-slate-500 border-slate-200",
                         )}
                       >
                         {endpoint.method}
@@ -243,7 +236,7 @@ export function EndpointTable({
                       <span
                         className={cn(
                           endpoint.error_rate > 1
-                            ? "text-red-600/70"
+                            ? "text-destructive"
                             : "text-foreground/70",
                         )}
                       >

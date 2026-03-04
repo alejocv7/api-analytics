@@ -13,8 +13,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControls } from "@/components/shared/pagination-controls";
+import { MethodBadge } from "@/components/shared/method-badge";
 import { formatNumber, formatDuration, formatPercent, cn } from "@/lib/utils";
-import { METHOD_STYLES } from "@/lib/constants";
 import type { EndpointStat, PaginatedResponse } from "@/types/api";
 
 type SortField =
@@ -195,15 +195,7 @@ export function EndpointTable({
                 {data.items.map((endpoint, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="pl-5">
-                      <span
-                        className={cn(
-                          "inline-flex items-center px-1.5 py-0.5 rounded border text-2xs font-semibold uppercase tracking-wider",
-                          METHOD_STYLES[endpoint.method] ??
-                            "bg-slate-100 text-slate-500 border-slate-200",
-                        )}
-                      >
-                        {endpoint.method}
-                      </span>
+                      <MethodBadge method={endpoint.method} />
                     </TableCell>
                     <TableCell>
                       <span className="text-sm font-mono text-foreground/70">

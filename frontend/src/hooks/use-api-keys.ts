@@ -5,6 +5,7 @@ import type {
   ApiKey,
   ApiKeyCreateResponse,
   CreateApiKeyRequest,
+  UpdateApiKeyRequest,
   PaginatedResponse,
 } from "@/types/api";
 
@@ -36,12 +37,13 @@ export function useCreateApiKey(projectKey: string) {
   });
 }
 
-export function useDeactivateApiKey(projectKey: string, keyId: string) {
+export function useUpdateApiKey(projectKey: string, keyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () =>
-      apiClient.post<ApiKey>(
-        `/projects/${projectKey}/api-keys/${keyId}/deactivate`,
+    mutationFn: (data: UpdateApiKeyRequest) =>
+      apiClient.patch<ApiKey>(
+        `/projects/${projectKey}/api-keys/${keyId}`,
+        data,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({

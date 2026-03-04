@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Key, RefreshCw, Trash2 } from "lucide-react";
+import { Key, Power, RefreshCw, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,7 +21,11 @@ import { PageHeader } from "@/components/layouts/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { useApiKeys, useDeleteApiKey } from "@/hooks/use-api-keys";
+import {
+  useApiKeys,
+  useDeleteApiKey,
+  useUpdateApiKey,
+} from "@/hooks/use-api-keys";
 import { useProject } from "@/hooks/use-projects";
 import { formatDate, formatNumber, maskApiKey } from "@/lib/utils";
 import type { ApiKey } from "@/types/api";
@@ -34,12 +38,18 @@ interface ApiKeysTabProps {
 interface ApiKeyRowActionsProps {
   projectKey: string;
   apiKey: ApiKey;
+  isExpired: boolean;
 }
 
-function ApiKeyRowActions({ projectKey, apiKey }: ApiKeyRowActionsProps) {
+function ApiKeyRowActions({
+  projectKey,
+  apiKey,
+  isExpired,
+}: ApiKeyRowActionsProps) {
   const [rotateOpen, setRotateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const deleteKey = useDeleteApiKey(projectKey, apiKey.id);
+  const updateKey = useUpdateApiKey(projectKey, apiKey.id);
 
   async function handleDelete() {
     try {
@@ -53,9 +63,34 @@ function ApiKeyRowActions({ projectKey, apiKey }: ApiKeyRowActionsProps) {
     }
   }
 
+  async function handleToggleActive() {
+    try {
+      await updateKey.mutateAsync({ is_active: !apiKey.is_active });
+      toast.success(
+        apiKey.is_active ? "API key deactivated" : "API key activated",
+      );
+    } catch (error) {
+      toast.error("Failed to update key", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
   return (
     <>
       <div className="flex items-center gap-1 justify-end">
+        {!isExpired && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-7 w-7 ${apiKey.is_active ? "text-muted-foreground hover:text-amber-500" : "text-amber-500 hover:text-foreground"}`}
+            onClick={handleToggleActive}
+            disabled={updateKey.isPending}
+            title={apiKey.is_active ? "Deactivate key" : "Activate key"}
+          >
+            <Power className="h-3.5 w-3.5" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -187,53 +222,56 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                keys.map((key) => (
-                  <TableRow key={key.id}>
-                    <TableCell className="pl-4">
-                      <div className="flex items-center gap-2">
-                        <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-sm font-medium">{key.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
-                        {maskApiKey(key.key_prefix)}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const now = new Date();
-                        const isExpired =
-                          key.expires_at !== null &&
-                          key.expires_at !== undefined &&
-                          new Date(key.expires_at) < now;
-                        if (isExpired) return <StatusBadge status="expired" />;
-                        return (
+                keys.map((key) => {
+                  const isExpired =
+                    key.expires_at != null &&
+                    new Date(key.expires_at) < new Date();
+
+                  return (
+                    <TableRow key={key.id}>
+                      <TableCell className="pl-4">
+                        <div className="flex items-center gap-2">
+                          <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm font-medium">
+                            {key.name}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <code className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
+                          {maskApiKey(key.key_prefix)}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        {isExpired ? (
+                          <StatusBadge status="expired" />
+                        ) : (
                           <StatusBadge
                             status={key.is_active ? "active" : "inactive"}
                           />
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(key.created_at)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatNumber(key.total_requests)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {key.expires_at ? formatDate(key.expires_at) : "Never"}
-                    </TableCell>
-                    {isOwner && (
-                      <TableCell>
-                        <ApiKeyRowActions
-                          projectKey={projectKey}
-                          apiKey={key}
-                        />
+                        )}
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDate(key.created_at)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatNumber(key.total_requests)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {key.expires_at ? formatDate(key.expires_at) : "Never"}
+                      </TableCell>
+                      {isOwner && (
+                        <TableCell>
+                          <ApiKeyRowActions
+                            projectKey={projectKey}
+                            apiKey={key}
+                            isExpired={isExpired}
+                          />
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

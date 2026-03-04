@@ -116,6 +116,11 @@ export interface CreateApiKeyRequest {
   expires_at?: string | null;
 }
 
+export interface UpdateApiKeyRequest {
+  name?: string;
+  is_active?: boolean;
+}
+
 // ============================================================
 // Member
 // ============================================================

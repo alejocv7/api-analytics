@@ -47,6 +47,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --text-2xs: var(--text-2xs);
 }
 
 :root {
@@ -61,6 +62,8 @@
   --font-mono:
     "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+
+  --text-2xs: 0.625rem;
 
   /* Base — light gray background to match reference */
   --background: oklch(0.965 0.003 264); /* ~#f3f4f7 cool light gray */

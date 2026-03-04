@@ -109,17 +109,23 @@ export function AppSidebar() {
               onOpenChange={setProjectSwitcherOpen}
             >
               <PopoverTrigger asChild>
-                <SidebarMenuButton size="lg" tooltip={currentProject?.name ?? "Switch project"}>
+                <SidebarMenuButton
+                  size="lg"
+                  tooltip={currentProject?.name ?? "Switch project"}
+                  className="ring-1 ring-sidebar-border bg-sidebar-accent/60 hover:bg-sidebar-accent"
+                >
                   <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="text-xs bg-sidebar-primary/30 text-sidebar-primary-foreground font-medium rounded-md">
-                      {getInitials(currentProject?.name ?? (projectKey ? "…" : "?"))}
+                    <AvatarFallback className="text-xs bg-sidebar-primary/30 text-sidebar-primary-foreground font-medium">
+                      {getInitials(
+                        currentProject?.name ?? (projectKey ? "…" : "?"),
+                      )}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 text-left">
-                    <span className="text-xs opacity-60 block leading-none mb-0.5">
-                      Project
+                    <span className="text-2xs font-semibold tracking-wider opacity-50 block leading-none mb-1">
+                      Current Project
                     </span>
-                    <span className="text-sm font-medium truncate block">
+                    <span className="text-sm font-semibold truncate block">
                       {currentProject?.name ??
                         (projectKey ? "Loading…" : "Select project")}
                     </span>

@@ -86,8 +86,8 @@ export interface UpdateProjectRequest {
 }
 
 export interface ProjectWithStats extends Project {
-  member_count?: number;
-  api_key_count?: number;
+  member_count: number;
+  api_key_count: number;
 }
 
 // ============================================================

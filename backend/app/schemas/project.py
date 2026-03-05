@@ -67,6 +67,8 @@ class ProjectResponse(ProjectBase):
     project_key: str
     user_id: uuid.UUID
     is_active: bool
+    member_count: int
+    api_key_count: int
     created_at: AwareDatetime
     updated_at: AwareDatetime | None
 
@@ -81,6 +83,8 @@ class ProjectResponse(ProjectBase):
                     "project_key": "production-api-a1b2",
                     "user_id": 1,
                     "is_active": True,
+                    "member_count": 3,
+                    "api_key_count": 2,
                     "created_at": "2026-01-01T12:00:00Z",
                     "updated_at": "2026-01-01T12:00:00Z",
                 }

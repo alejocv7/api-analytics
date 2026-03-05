@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, status
 
-from app import models, schemas
+from app import schemas
 from app.core import rate_limits
 from app.core.rate_limiter import get_user_key, limiter
 from app.dependencies import (
@@ -68,7 +68,7 @@ async def create_project(
     project_in: schemas.ProjectCreate,
     user: CurrentUserDep,
     session: SessionDep,
-) -> models.Project:
+) -> schemas.ProjectResponse:
     return await project_service.create_user_project(user.id, project_in, session)
 
 
@@ -85,8 +85,10 @@ async def create_project(
         404: {"model": schemas.ErrorResponse, "description": "Project not found"},
     },
 )
-async def get_project(project: ProjectDep) -> models.Project:
-    return project
+async def get_project(
+    project: ProjectDep, session: SessionDep
+) -> schemas.ProjectResponse:
+    return await project_service.get_project_with_counts(project, session)
 
 
 @router.patch(
@@ -114,7 +116,7 @@ async def update_project(
     project: OwnerProjectDep,
     update_data: schemas.ProjectUpdate,
     session: SessionDep,
-) -> models.Project:
+) -> schemas.ProjectResponse:
     return await project_service.update_user_project(project, update_data, session)
 
 

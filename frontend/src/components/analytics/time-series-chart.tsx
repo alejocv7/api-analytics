@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { format } from "date-fns";
 import { formatDuration, formatNumber } from "@/lib/utils";
 import type { TimeSeriesPoint } from "@/types/api";
@@ -117,25 +117,19 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
         </CardTitle>
 
         <CardAction>
-          {/* Connected pill toggle with border all the way around */}
-          <div className="flex items-center rounded-lg border border-border p-1 bg-muted/70">
-            <Button
-              variant={mode === "requests" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setMode("requests")}
-              className="h-7 px-3 text-xs shadow-none"
-            >
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={(v) => v && setMode(v as MetricMode)}
+            className="rounded-lg border border-border bg-muted/70 p-1"
+          >
+            <ToggleGroupItem value="requests" className="h-7 px-3 text-xs">
               Requests
-            </Button>
-            <Button
-              variant={mode === "response_time" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setMode("response_time")}
-              className="h-7 px-3 text-xs shadow-none"
-            >
+            </ToggleGroupItem>
+            <ToggleGroupItem value="response_time" className="h-7 px-3 text-xs">
               Response Time
-            </Button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </CardAction>
       </CardHeader>
 

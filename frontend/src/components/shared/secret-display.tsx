@@ -17,7 +17,7 @@ export function SecretDisplay({
   return (
     <div className={cn("space-y-1.5", className)}>
       {label && <p className="text-sm font-medium">{label}</p>}
-      <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-muted border border-border">
+      <div className="flex items-center gap-2 px-3 py-1 h-9 rounded-md bg-muted border border-border">
         <code className="flex-1 text-sm font-mono break-all text-muted-foreground">
           {value}
         </code>

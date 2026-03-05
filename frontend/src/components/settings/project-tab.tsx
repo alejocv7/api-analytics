@@ -33,6 +33,7 @@ import {
   type UpdateProjectFormValues,
 } from "@/lib/validators";
 import { ApiClientError } from "@/lib/api-client";
+import { applyApiFieldErrors } from "@/lib/form-errors";
 import type { Project } from "@/types/api";
 
 interface GeneralSettingsProps {
@@ -74,8 +75,12 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
       });
       toast.success("Project settings saved");
     } catch (err) {
-      if (err instanceof ApiClientError && err.status === 409) {
-        form.setError("name", { message: "Project name already exists" });
+      if (err instanceof ApiClientError) {
+        if (err.status === 409) {
+          form.setError("name", { message: err.message });
+        } else if (!applyApiFieldErrors(form, err)) {
+          toast.error("Failed to save settings");
+        }
       } else {
         toast.error("Failed to save settings");
       }

@@ -34,22 +34,25 @@ export type RegisterFormValues = z.infer<typeof registerSchema>;
 // Project
 // ============================================================
 
+const projectNameSchema = z
+  .string()
+  .min(1, "Project name is required")
+  .max(100, "Project name must be 100 characters or less")
+  .regex(
+    /^[a-zA-Z0-9\s_-]+$/,
+    "Name can only contain letters, numbers, spaces, hyphens, and underscores",
+  );
+
 export const createProjectSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Project name is required")
-    .max(100, "Project name must be 100 characters or less"),
-  description: z.string().max(500).optional(),
+  name: projectNameSchema,
+  description: z.string().max(1000).optional(),
 });
 
 export type CreateProjectFormValues = z.infer<typeof createProjectSchema>;
 
 export const updateProjectSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Project name is required")
-    .max(100, "Project name must be 100 characters or less"),
-  description: z.string().max(500).optional(),
+  name: projectNameSchema,
+  description: z.string().max(1000).optional(),
   is_active: z.boolean(),
 });
 
@@ -63,7 +66,7 @@ export const createApiKeySchema = z.object({
   name: z
     .string()
     .min(1, "Key name is required")
-    .max(100, "Key name must be 100 characters or less"),
+    .max(255, "Key name must be 255 characters or less"),
   expires_at: z.string().nullable().optional(),
 });
 

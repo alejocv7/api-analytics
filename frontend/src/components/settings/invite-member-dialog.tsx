@@ -36,6 +36,7 @@ import {
 import { useInviteMember } from "@/hooks/use-members";
 import { inviteMemberSchema, type InviteMemberFormValues } from "@/lib/validators";
 import { ApiClientError } from "@/lib/api-client";
+import { applyApiFieldErrors } from "@/lib/form-errors";
 
 interface InviteMemberDialogProps {
   projectKey: string;
@@ -59,10 +60,10 @@ export function InviteMemberDialog({ projectKey }: InviteMemberDialogProps) {
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 404) {
-          form.setError("email", { message: "No account found with this email" });
+          form.setError("email", { message: err.message });
         } else if (err.status === 409) {
-          form.setError("email", { message: "This person is already a member" });
-        } else {
+          form.setError("email", { message: err.message });
+        } else if (!applyApiFieldErrors(form, err)) {
           toast.error(err.message || "Failed to invite member");
         }
       } else {

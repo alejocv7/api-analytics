@@ -69,11 +69,9 @@ export function RegisterForm() {
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 409 || err.status === 400) {
-          form.setError("email", {
-            message: "Email already registered",
-          });
+          form.setError("email", { message: err.message });
         } else if (err.status === 429) {
-          toast.error("Too many registration attempts. Please wait a moment.");
+          toast.error(err.message);
         } else {
           toast.error(err.message || "Registration failed. Please try again.");
         }

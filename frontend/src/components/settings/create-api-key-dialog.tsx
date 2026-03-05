@@ -35,6 +35,7 @@ import {
   type CreateApiKeyFormValues,
 } from "@/lib/validators";
 import { ApiClientError } from "@/lib/api-client";
+import { applyApiFieldErrors } from "@/lib/form-errors";
 import { API_KEY_DEFAULT_EXPIRY_DAYS } from "@/lib/constants";
 import type { ApiKeyCreateResponse } from "@/types/api";
 
@@ -88,7 +89,9 @@ export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
       setCreatedKey(key);
     } catch (err) {
       if (err instanceof ApiClientError) {
-        toast.error(err.message || "Failed to create API key");
+        if (!applyApiFieldErrors(form, err)) {
+          toast.error(err.message || "Failed to create API key");
+        }
       } else {
         toast.error("An unexpected error occurred");
       }

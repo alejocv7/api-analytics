@@ -74,8 +74,7 @@ async def test_metrics_large_volume_simulation(
     client: AsyncClient, auth_headers, project, db_session
 ):
     """Simulate a larger volume of metrics to ensure query performance/correctness."""
-    # Create many metrics in bulk if possible, or loop
-    # For test speed, we'll keep it reasonable (e.g., 50)
+    # Create many metrics in loop. For test speed, we'll keep it reasonable, 50 metrics.
     for i in range(50):
         # Distribute over last hour
         ts = datetime.now(UTC) - timedelta(minutes=i)
@@ -90,6 +89,10 @@ async def test_metrics_large_volume_simulation(
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/metrics/summary",
         headers=auth_headers,
+        params={
+            "start_date": (datetime.now(UTC) - timedelta(hours=1)).isoformat(),
+            "end_date": (datetime.now(UTC) + timedelta(minutes=1)).isoformat(),
+        },
     )
     assert response.status_code == 200
     data = response.json()

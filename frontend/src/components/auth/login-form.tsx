@@ -47,13 +47,9 @@ export function LoginForm() {
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 401) {
-          form.setError("password", { message: "Invalid email or password" });
-        } else if (err.status === 423) {
-          toast.error(
-            "Account locked due to failed login attempts. Try again in 15 minutes.",
-          );
-        } else if (err.status === 429) {
-          toast.error("Too many requests. Please wait a moment and try again.");
+          form.setError("password", { message: err.message });
+        } else if (err.status === 423 || err.status === 429) {
+          toast.error(err.message);
         } else {
           toast.error(err.message || "Login failed. Please try again.");
         }

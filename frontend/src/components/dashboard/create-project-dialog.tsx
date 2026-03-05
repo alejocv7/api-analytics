@@ -31,6 +31,7 @@ import {
   type CreateProjectFormValues,
 } from "@/lib/validators";
 import { ApiClientError } from "@/lib/api-client";
+import { applyApiFieldErrors } from "@/lib/form-errors";
 import { useState } from "react";
 
 interface CreateProjectDialogProps {
@@ -59,8 +60,8 @@ export function CreateProjectDialog({ onSuccess }: CreateProjectDialogProps) {
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 409) {
-          form.setError("name", { message: "Project name already exists" });
-        } else {
+          form.setError("name", { message: err.message });
+        } else if (!applyApiFieldErrors(form, err)) {
           toast.error(err.message || "Failed to create project");
         }
       } else {

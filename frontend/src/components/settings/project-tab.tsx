@@ -179,6 +179,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                 <div className="flex justify-end">
                   <Button
                     type="submit"
+                    size="sm"
                     disabled={
                       form.formState.isSubmitting || !form.formState.isDirty
                     }

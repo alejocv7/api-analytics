@@ -12,12 +12,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
 import { RotateKeyDialog } from "./rotate-key-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { PageHeader } from "@/components/layouts/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -26,7 +31,6 @@ import {
   useDeleteApiKey,
   useUpdateApiKey,
 } from "@/hooks/use-api-keys";
-import { useProject } from "@/hooks/use-projects";
 import { formatDate, formatNumber, maskApiKey } from "@/lib/utils";
 import type { ApiKey } from "@/types/api";
 
@@ -134,19 +138,21 @@ function ApiKeyRowActions({
 
 export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
   const { data, isLoading } = useApiKeys(projectKey);
-  const { data: project } = useProject(projectKey);
   const [search, setSearch] = useState("");
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <div className="space-y-2">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-4 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
           ))}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -160,123 +166,131 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
     : allKeys;
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="API Keys"
-        description="Manage your API keys"
-        action={
-          <div className="flex items-center gap-2">
-            <SearchInput
-              placeholder="Search keys…"
-              value={search}
-              onChange={setSearch}
-            />
-            {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
-          </div>
-        }
-      />
-
-      {allKeys.length === 0 ? (
-        <EmptyState
-          icon={Key}
-          title="No API keys"
-          description="Generate an API key to start sending metrics from your applications."
-          action={
-            isOwner ? <CreateApiKeyDialog projectKey={projectKey} /> : undefined
-          }
-        />
-      ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
-                  Name
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Key
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Status
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Created
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Requests
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Expires
-                </TableHead>
-                {isOwner && <TableHead className="pr-5" />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {keys.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={isOwner ? 7 : 6}
-                    className="text-center text-sm text-muted-foreground py-8"
-                  >
-                    No keys match your search
-                  </TableCell>
-                </TableRow>
-              ) : (
-                keys.map((key) => {
-                  const isExpired =
-                    key.expires_at != null &&
-                    new Date(key.expires_at) < new Date();
-
-                  return (
-                    <TableRow key={key.id}>
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-2">
-                          <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="text-sm font-medium">
-                            {key.name}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
-                          {maskApiKey(key.key_prefix)}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        {isExpired ? (
-                          <StatusBadge status="expired" />
-                        ) : (
-                          <StatusBadge
-                            status={key.is_active ? "active" : "inactive"}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(key.created_at)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatNumber(key.total_requests)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {key.expires_at ? formatDate(key.expires_at) : "Never"}
-                      </TableCell>
-                      {isOwner && (
-                        <TableCell>
-                          <ApiKeyRowActions
-                            projectKey={projectKey}
-                            apiKey={key}
-                            isExpired={isExpired}
-                          />
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+    <Card className="pb-0">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div className="space-y-1">
+          <CardTitle>API Keys</CardTitle>
+          <CardDescription>Manage your API keys</CardDescription>
         </div>
-      )}
-    </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <SearchInput
+            placeholder="Search keys…"
+            value={search}
+            onChange={setSearch}
+          />
+          {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-0">
+        {allKeys.length === 0 ? (
+          <div className="px-6 pb-6">
+            <EmptyState
+              icon={Key}
+              title="No API keys"
+              description="Generate an API key to start sending metrics from your applications."
+              action={
+                isOwner ? (
+                  <CreateApiKeyDialog projectKey={projectKey} />
+                ) : undefined
+              }
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-t border-border bg-muted/50">
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
+                    Name
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Key
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Created
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Requests
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Expires
+                  </TableHead>
+                  {isOwner && <TableHead className="pr-5" />}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {keys.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={isOwner ? 7 : 6}
+                      className="text-center text-sm text-muted-foreground py-8"
+                    >
+                      No keys match your search
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  keys.map((key) => {
+                    const isExpired =
+                      key.expires_at != null &&
+                      new Date(key.expires_at) < new Date();
+
+                    return (
+                      <TableRow key={key.id} className="hover:bg-muted/50">
+                        <TableCell className="pl-5">
+                          <div className="flex items-center gap-2">
+                            <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-sm font-medium">
+                              {key.name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
+                            {maskApiKey(key.key_prefix)}
+                          </code>
+                        </TableCell>
+                        <TableCell>
+                          {isExpired ? (
+                            <StatusBadge status="expired" />
+                          ) : (
+                            <StatusBadge
+                              status={key.is_active ? "active" : "inactive"}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate(key.created_at)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatNumber(key.total_requests)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {key.expires_at
+                            ? formatDate(key.expires_at)
+                            : "Never"}
+                        </TableCell>
+                        {isOwner && (
+                          <TableCell>
+                            <ApiKeyRowActions
+                              projectKey={projectKey}
+                              apiKey={key}
+                              isExpired={isExpired}
+                            />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

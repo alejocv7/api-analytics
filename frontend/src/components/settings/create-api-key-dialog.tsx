@@ -112,7 +112,7 @@ export function CreateApiKeyDialog({ projectKey }: CreateApiKeyDialogProps) {
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="h-3.5 w-3.5" />
-          Generate key
+          Generate Key
         </Button>
       </DialogTrigger>
 

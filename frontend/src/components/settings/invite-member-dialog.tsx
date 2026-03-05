@@ -34,7 +34,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useInviteMember } from "@/hooks/use-members";
-import { inviteMemberSchema, type InviteMemberFormValues } from "@/lib/validators";
+import {
+  inviteMemberSchema,
+  type InviteMemberFormValues,
+} from "@/lib/validators";
 import { ApiClientError } from "@/lib/api-client";
 import { applyApiFieldErrors } from "@/lib/form-errors";
 
@@ -53,7 +56,10 @@ export function InviteMemberDialog({ projectKey }: InviteMemberDialogProps) {
 
   async function onSubmit(values: InviteMemberFormValues) {
     try {
-      await inviteMember.mutateAsync({ email: values.email, role: values.role });
+      await inviteMember.mutateAsync({
+        email: values.email,
+        role: values.role,
+      });
       toast.success(`Invited ${values.email} as ${values.role}`);
       setOpen(false);
       form.reset();
@@ -77,7 +83,7 @@ export function InviteMemberDialog({ projectKey }: InviteMemberDialogProps) {
       <DialogTrigger asChild>
         <Button size="sm">
           <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-          Invite member
+          Invite Member
         </Button>
       </DialogTrigger>
 

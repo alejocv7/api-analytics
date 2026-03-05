@@ -20,21 +20,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { RoleBadge } from "@/components/shared/role-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { InviteMemberDialog } from "./invite-member-dialog";
-import { PageHeader } from "@/components/layouts/page-header";
 import {
   useMembers,
   useUpdateMemberRole,
   useRemoveMember,
 } from "@/hooks/use-members";
-import { useProject } from "@/hooks/use-projects";
 import { formatDate, getInitials } from "@/lib/utils";
 import type { Member, ProjectRole } from "@/types/api";
 import { useUser } from "@/hooks/use-user";
@@ -83,7 +87,7 @@ function MemberRow({
     <>
       <TableRow>
         {/* Member */}
-        <TableCell>
+        <TableCell className="pl-5">
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback className="text-xs bg-sidebar-primary/30 text-sidebar-primary-foreground font-medium">
@@ -174,15 +178,17 @@ interface MembersTabProps {
 
 export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
   const { data, isLoading } = useMembers(projectKey);
-  const { data: project } = useProject(projectKey);
   const { user } = useUser();
   const [search, setSearch] = useState("");
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <div className="space-y-2">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3">
               <Skeleton className="h-8 w-8 rounded-full" />
@@ -192,8 +198,8 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
               </div>
             </div>
           ))}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -207,79 +213,85 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
     : allMembers;
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Team Members"
-        description="Manage project access"
-        action={
-          <div className="flex items-center gap-2">
-            <SearchInput
-              placeholder="Search members…"
-              value={search}
-              onChange={setSearch}
-            />
-            {isOwner && <InviteMemberDialog projectKey={projectKey} />}
-          </div>
-        }
-      />
-
-      {allMembers.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="No team members"
-          description="Invite colleagues to collaborate on this project."
-          action={
-            isOwner ? <InviteMemberDialog projectKey={projectKey} /> : undefined
-          }
-        />
-      ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent bg-muted/30">
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-4">
-                  Member
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Email
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Role
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Status
-                </TableHead>
-                <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Joined
-                </TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center text-sm text-muted-foreground py-8"
-                  >
-                    No members match your search
-                  </TableCell>
-                </TableRow>
-              ) : (
-                members.map((member) => (
-                  <MemberRow
-                    key={member.user_id}
-                    member={member}
-                    projectKey={projectKey}
-                    isOwner={isOwner}
-                    currentUserId={user?.id}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
+    <Card className="pb-0">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div className="space-y-1">
+          <CardTitle>Team Members</CardTitle>
+          <CardDescription>Manage project access</CardDescription>
         </div>
-      )}
-    </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <SearchInput
+            placeholder="Search members…"
+            value={search}
+            onChange={setSearch}
+          />
+          {isOwner && <InviteMemberDialog projectKey={projectKey} />}
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-0">
+        {allMembers.length === 0 ? (
+          <div className="px-6 pb-6">
+            <EmptyState
+              icon={Users}
+              title="No team members"
+              description="Invite colleagues to collaborate on this project."
+              action={
+                isOwner ? (
+                  <InviteMemberDialog projectKey={projectKey} />
+                ) : undefined
+              }
+            />
+          </div>
+        ) : (
+          <div className="overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-t border-border hover:bg-transparent bg-muted/50">
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
+                    Member
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Email
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Role
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Joined
+                  </TableHead>
+                  <TableHead className="w-16" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-sm text-muted-foreground py-8"
+                    >
+                      No members match your search
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  members.map((member) => (
+                    <MemberRow
+                      key={member.user_id}
+                      member={member}
+                      projectKey={projectKey}
+                      isOwner={isOwner}
+                      currentUserId={user?.id}
+                    />
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

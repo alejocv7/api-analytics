@@ -193,7 +193,7 @@ export function EndpointTable({
               </TableHeader>
               <TableBody>
                 {data.items.map((endpoint, i) => (
-                  <TableRow key={i} className="hover:bg-muted/30">
+                  <TableRow key={i}>
                     <TableCell className="pl-5">
                       <MethodBadge method={endpoint.method} />
                     </TableCell>

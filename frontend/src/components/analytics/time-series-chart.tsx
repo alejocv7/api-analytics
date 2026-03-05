@@ -118,7 +118,7 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
 
         <CardAction>
           {/* Connected pill toggle with border all the way around */}
-          <div className="flex items-center rounded-lg border border-border p-1 bg-muted/30">
+          <div className="flex items-center rounded-lg border border-border p-1 bg-muted/70">
             <Button
               variant={mode === "requests" ? "default" : "ghost"}
               size="sm"

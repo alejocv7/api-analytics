@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import type {
   Project,
+  ProjectWithStats,
   CreateProjectRequest,
   UpdateProjectRequest,
   PaginatedResponse,
@@ -16,7 +17,7 @@ export function useProjects(page = 1, pageSize = 20) {
   return useQuery({
     queryKey: queryKeys.projects.list({ page, page_size: pageSize }),
     queryFn: () =>
-      apiClient.get<PaginatedResponse<Project>>("/projects", {
+      apiClient.get<PaginatedResponse<ProjectWithStats>>("/projects", {
         page,
         page_size: pageSize,
       }),

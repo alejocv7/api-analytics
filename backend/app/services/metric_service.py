@@ -126,6 +126,7 @@ async def get_metrics_time_series(
             params,
         )
         .group_by(timestamp)
+        .order_by(timestamp)
         .offset(params.offset)
         .limit(params.page_size)
     )

@@ -6,11 +6,11 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatDate } from "@/lib/utils";
-import type { Project } from "@/types/api";
+import type { ProjectWithStats } from "@/types/api";
 import { SecretDisplay } from "../shared/secret-display";
 
 interface ProjectCardProps {
-  project: Project;
+  project: ProjectWithStats;
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
@@ -55,13 +55,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
-              {(project as Project & { member_count?: number }).member_count ??
-                "—"}
+              {project.member_count}
             </span>
             <span className="flex items-center gap-1">
               <Key className="h-3.5 w-3.5" />
-              {(project as Project & { api_key_count?: number })
-                .api_key_count ?? "—"}
+              {project.api_key_count}
             </span>
             <span className="ml-auto">
               Created {formatDate(project.created_at)}

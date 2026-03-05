@@ -17,7 +17,7 @@ async def create_user_project(
     user_id: uuid.UUID,
     project_in: schemas.ProjectCreate,
     session: AsyncSession,
-) -> models.Project:
+) -> schemas.ProjectResponse:
     project = models.Project(
         name=project_in.name,
         description=project_in.description,
@@ -41,7 +41,7 @@ async def create_user_project(
         raise ConflictError("Project already exists") from e
     await session.refresh(project)
 
-    return project
+    return await get_project_with_counts(project, session)
 
 
 async def find_project_by_key(
@@ -87,34 +87,79 @@ async def get_user_project_by_key(
     return project
 
 
+async def get_project_with_counts(
+    project: models.Project, session: AsyncSession
+) -> schemas.ProjectResponse:
+    """Enrich a project with member and API key counts."""
+    member_count = await session.scalar(
+        select(func.count(models.UserProject.user_id)).where(
+            models.UserProject.project_id == project.id
+        )
+    )
+    api_key_count = await session.scalar(
+        select(func.count(models.APIKey.id)).where(
+            models.APIKey.project_id == project.id
+        )
+    )
+
+    return schemas.ProjectResponse(
+        **project.__dict__,
+        member_count=member_count or 0,
+        api_key_count=api_key_count or 0,
+    )
+
+
 async def get_user_projects(
     user_id: uuid.UUID,
     session: AsyncSession,
     pagination: schemas.PaginationParams,
     active_only: bool = False,
-) -> schemas.PaginatedResult[models.Project]:
-    """Get a list of projects for a user with total count."""
+) -> schemas.PaginatedResult[schemas.ProjectResponse]:
+    """Get a list of projects for a user with total count and aggregate stats."""
 
-    total = await session.scalar(
-        select(func.count(models.Project.id))
-        .join(models.UserProject, models.UserProject.project_id == models.Project.id)
-        .where(models.UserProject.user_id == user_id)
-        .where(active_filter(models.Project.is_active, active_only))
+    # Correlated subqueries fetch counts for all projects in a single query.
+    member_count_subq = (
+        select(func.count(models.UserProject.user_id))
+        .where(models.UserProject.project_id == models.Project.id)
+        .correlate(models.Project)
+        .scalar_subquery()
+    )
+    api_key_count_subq = (
+        select(func.count(models.APIKey.id))
+        .where(models.APIKey.project_id == models.Project.id)
+        .correlate(models.Project)
+        .scalar_subquery()
     )
 
-    items = (
-        await session.scalars(
-            select(models.Project)
+    rows = (
+        await session.execute(
+            select(
+                models.Project,
+                member_count_subq,
+                api_key_count_subq,
+                func.count(models.Project.id).over().label("total"),
+            )
             .join(
                 models.UserProject, models.UserProject.project_id == models.Project.id
             )
             .where(models.UserProject.user_id == user_id)
             .where(active_filter(models.Project.is_active, active_only))
+            .order_by(models.Project.created_at.desc())
             .offset(pagination.offset)
             .limit(pagination.page_size)
         )
     ).all()
 
+    items = [
+        schemas.ProjectResponse(
+            **project.__dict__,
+            member_count=member_count,
+            api_key_count=api_key_count,
+        )
+        for project, member_count, api_key_count, _ in rows
+    ]
+
+    total = rows[0].total if rows else 0
     return schemas.PaginatedResult(items=items, total=total, pagination=pagination)
 
 
@@ -122,7 +167,7 @@ async def update_user_project(
     project: models.Project,
     update_data: schemas.ProjectUpdate,
     session: AsyncSession,
-) -> models.Project:
+) -> schemas.ProjectResponse:
     # Check if the new name is already in use
     if update_data.name is not None and update_data.name != project.name:
         stmt = select(
@@ -148,7 +193,7 @@ async def update_user_project(
     logger.info(
         "Project updated: %s (user_id: %s)", project.project_key, project.user_id
     )
-    return project
+    return await get_project_with_counts(project, session)
 
 
 async def delete_user_project(

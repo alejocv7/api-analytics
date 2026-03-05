@@ -1,5 +1,6 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layouts/app-sidebar";
+import { AppHeader } from "@/components/layouts/app-header";
 import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function DashboardLayout({
@@ -11,6 +12,7 @@ export default function DashboardLayout({
     <AuthGuard>
       <SidebarProvider>
         <AppSidebar />
+        <AppHeader />
         <SidebarInset>
           <main className="flex-1 overflow-auto p-10">{children}</main>
         </SidebarInset>

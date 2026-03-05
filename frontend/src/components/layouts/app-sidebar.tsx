@@ -85,18 +85,28 @@ export function AppSidebar() {
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
-        {/* Brand */}
+        {/* Brand — doubles as sidebar collapse toggle */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sidebar-primary shrink-0">
-                  <BarChart3 className="h-4 w-4 text-sidebar-primary-foreground" />
-                </div>
-                <span className="font-semibold text-sm tracking-tight">
-                  API Analytics
+            <SidebarMenuButton
+              size="lg"
+              onClick={toggleSidebar}
+              tooltip={open ? "Collapse sidebar" : "Expand sidebar"}
+              className="group/brand"
+            >
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-sidebar-primary shrink-0">
+                <BarChart3 className="h-4 w-4 text-sidebar-primary-foreground transition-opacity duration-150 group-hover/brand:opacity-0" />
+                <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/brand:opacity-100">
+                  {open ? (
+                    <PanelLeftClose className="h-4 w-4 text-sidebar-primary-foreground" />
+                  ) : (
+                    <PanelLeftOpen className="h-4 w-4 text-sidebar-primary-foreground" />
+                  )}
                 </span>
-              </Link>
+              </div>
+              <span className="font-semibold text-sm tracking-tight">
+                API Analytics
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -229,22 +239,6 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <SidebarMenu>
-          {/* Collapse toggle */}
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={toggleSidebar}
-              tooltip={open ? "Collapse sidebar" : "Expand sidebar"}
-              className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
-            >
-              {open ? (
-                <PanelLeftClose className="h-4 w-4" />
-              ) : (
-                <PanelLeftOpen className="h-4 w-4" />
-              )}
-              <span>Collapse</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
           <SidebarMenuItem>
             <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
               <PopoverTrigger asChild>

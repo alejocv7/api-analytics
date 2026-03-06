@@ -91,7 +91,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
     try {
       await deleteProject.mutateAsync();
       toast.success("Project deleted");
-      router.push("/dashboard");
+      router.push("/projects");
     } catch {
       toast.error("Failed to delete project");
     }

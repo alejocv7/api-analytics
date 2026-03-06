@@ -26,7 +26,7 @@ import {
 } from "@/hooks/use-metrics";
 import { useProject } from "@/hooks/use-projects";
 import { DEFAULT_GRANULARITY } from "@/lib/constants";
-import type { EndpointStat, Granularity } from "@/types/api";
+import type { Granularity } from "@/types/api";
 
 function EndpointHighlightRow({
   projectKey,
@@ -39,8 +39,6 @@ function EndpointHighlightRow({
   endTime: Date;
   granularity: Granularity;
 }) {
-  // Two pageSize:1 queries to get the globally slowest and fastest endpoints
-  // regardless of what page the endpoint table is on.
   const slowestQuery = useEndpointStats({
     projectKey,
     startTime,
@@ -109,7 +107,7 @@ function EndpointHighlightRow({
   );
 }
 
-export default function AnalyticsPage({
+export default function DashboardPage({
   params,
 }: {
   params: Promise<{ projectKey: string }>;
@@ -184,16 +182,13 @@ export default function AnalyticsPage({
         }
       />
 
-      {/* Summary cards */}
       <SummaryCards data={summary.data} isLoading={summary.isLoading} />
 
-      {/* Time series chart */}
       <TimeSeriesChart
         data={timeSeries.data}
         isLoading={timeSeries.isLoading}
       />
 
-      {/* Slowest / Fastest endpoint */}
       <EndpointHighlightRow
         projectKey={projectKey}
         startTime={dateRange.startTime}
@@ -201,7 +196,6 @@ export default function AnalyticsPage({
         granularity={granularity}
       />
 
-      {/* Endpoint table */}
       <EndpointTable
         data={endpoints.data}
         isLoading={endpoints.isLoading}

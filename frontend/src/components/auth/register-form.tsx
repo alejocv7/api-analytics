@@ -65,7 +65,7 @@ export function RegisterForm() {
       await refetchUser();
 
       toast.success("Account created! Welcome aboard.");
-      router.push("/dashboard");
+      router.push("/projects");
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 409 || err.status === 400) {

@@ -43,7 +43,7 @@ export function LoginForm() {
   async function onSubmit(values: LoginFormValues) {
     try {
       await login({ username: values.username, password: values.password });
-      router.push("/dashboard");
+      router.push("/projects");
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 401) {

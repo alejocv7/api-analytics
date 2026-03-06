@@ -59,7 +59,7 @@ export function AppSidebar() {
   const currentPathKey = projectKeyMatch?.[1] ?? "";
 
   // Persist the last active project key so sidebar nav stays visible
-  // when navigating to /dashboard (projects list)
+  // when navigating to /projects (projects list)
   const lastProjectKeyRef = useRef(currentPathKey);
   if (currentPathKey) lastProjectKeyRef.current = currentPathKey;
   const projectKey = lastProjectKeyRef.current;
@@ -166,7 +166,7 @@ export function AppSidebar() {
                         onClick={() => {
                           setProjectSwitcherOpen(false);
                           router.push(
-                            `/projects/${project.project_key}/analytics`,
+                            `/projects/${project.project_key}/dashboard`,
                           );
                         }}
                       >
@@ -190,10 +190,10 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname.includes("/analytics")}
+                  isActive={pathname.startsWith("/projects/") && pathname.endsWith("/dashboard")}
                   tooltip="Dashboard"
                 >
-                  <Link href={`/projects/${projectKey}/analytics`}>
+                  <Link href={`/projects/${projectKey}/dashboard`}>
                     <BarChart3 className="h-4 w-4" />
                     <span>Dashboard</span>
                   </Link>
@@ -224,10 +224,10 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === "/dashboard"}
+                isActive={pathname === "/projects"}
                 tooltip="Projects"
               >
-                <Link href="/dashboard">
+                <Link href="/projects">
                   <FolderKanban className="h-4 w-4" />
                   <span>Projects</span>
                 </Link>

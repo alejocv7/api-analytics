@@ -20,7 +20,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   }
 
   return (
-    <Link href={`/projects/${project.project_key}/analytics`}>
+    <Link href={`/projects/${project.project_key}/dashboard`}>
       <Card className="flex flex-col hover:shadow-md transition-shadow cursor-pointer">
         <CardContent className="px-5 space-y-2.5">
           {/* Header: name + status badge */}

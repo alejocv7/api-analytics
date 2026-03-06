@@ -5,6 +5,7 @@ interface SecretDisplayProps {
   value: string;
   label?: string;
   className?: string;
+  codeClassName?: string;
   description?: string;
 }
 
@@ -12,13 +13,14 @@ export function SecretDisplay({
   value,
   label,
   className,
+  codeClassName,
   description,
 }: SecretDisplayProps) {
   return (
     <div className={cn("space-y-1.5", className)}>
       {label && <p className="text-sm font-medium">{label}</p>}
       <div className="flex items-center gap-2 px-3 py-1 h-9 rounded-md bg-muted border border-border">
-        <code className="flex-1 text-sm font-mono break-all text-muted-foreground">
+        <code className={cn("flex-1 text-sm font-mono break-all text-muted-foreground", codeClassName)}>
           {value}
         </code>
         <CopyButton value={value} />

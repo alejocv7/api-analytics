@@ -23,11 +23,12 @@ A production-ready, high-performance API analytics backend built with Python 3.1
 
 ## 🛠 Tech Stack
 
-- **Languge**: Python 3.14
-- **Framework**: FastAPI (Pydantic v2)
+- **Language**: Python 3.14 (Backend), TypeScript (Frontend)
+- **Frameworks**: FastAPI (Backend), Next.js 15 (Frontend)
 - **Database**: PostgreSQL (SQLAlchemy 2.0 + AsyncPG)
 - **Cache/RL**: Redis
-- **Tooling**: `uv` (Fast package management)
+- **Tooling**: `uv` (Backend), `npm` (Frontend)
+- **Styling**: Tailwind CSS & shadcn/ui
 - **Logging**: `python-json-logger`, `colorlog`
 
 ---
@@ -47,17 +48,35 @@ We use Docker Compose as the primary way to run the application locally. This se
 docker compose up --watch
 ```
 
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
 - **API**: [http://localhost:8000](http://localhost:8000)
 - **Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
 
-### 3. Running Tests (Local)
+### 3. Frontend Development
 
-To run the test suite, you can use `uv` in the backend directory:
+To run the frontend in development mode with hot-reloading:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 4. Running Tests
+
+#### Backend
 
 ```bash
 cd backend
 uv run pytest --maxfail=1
+```
+
+#### Frontend
+
+```bash
+cd frontend
+npm test
 ```
 
 ### 4. Database Migration Workflow

@@ -23,33 +23,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Link href={`/projects/${project.project_key}/analytics`}>
       <Card className="flex flex-col hover:shadow-md transition-shadow cursor-pointer">
         <CardContent className="px-5 space-y-2.5">
-          {/* Header: status badge + name */}
-          <div className="flex items-center justify-between gap-2.5">
-            <h3 className="text-base font-semibold leading-tight break-all">
+          {/* Header: name + status badge */}
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
+            <h3 className="text-base font-semibold leading-tight wrap-break-word">
               {project.name}
             </h3>
             <StatusBadge
               status={project.is_active ? "active" : "inactive"}
-              className="px-1 py-0 h-4"
+              className="px-1 py-0 h-4 self-start sm:shrink-0"
             />
           </div>
 
-          {/* Project Key */}
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium">Project Key</p>
-            <div
-              className="flex items-center gap-2 bg-muted/60 rounded-md px-3 py-2 group"
-              onClick={(e) => {
-                e.preventDefault();
-                copyKey();
-              }}
-            >
-              <span className="flex-1 text-xs font-mono text-muted-foreground truncate">
-                {project.project_key}
-              </span>
-              <Copy className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-            </div>
-          </div>
+          <SecretDisplay
+            value={project.project_key}
+            label="Project Key"
+            codeClassName="truncate"
+          />
 
           {/* Footer: member count, key count, date */}
           <div className="flex items-center gap-3 text-xs text-muted-foreground">

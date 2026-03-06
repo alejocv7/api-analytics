@@ -20,7 +20,9 @@ export function CopyButton({
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
-  async function handleCopy() {
+  async function handleCopy(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
     await navigator.clipboard.writeText(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

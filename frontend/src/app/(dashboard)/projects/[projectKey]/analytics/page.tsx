@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SummaryCards } from "@/components/analytics/summary-cards";
 import { TimeSeriesChart } from "@/components/analytics/time-series-chart";
-import { EndpointTable } from "@/components/analytics/endpoint-table";
+import {
+  EndpointTable,
+  type SortField,
+} from "@/components/analytics/endpoint-table";
 import {
   DateRangePicker,
   type DateRangeValue,
@@ -24,8 +27,6 @@ import {
 import { useProject } from "@/hooks/use-projects";
 import { DEFAULT_GRANULARITY } from "@/lib/constants";
 import type { EndpointStat, Granularity } from "@/types/api";
-
-type SortField = Exclude<keyof EndpointStat, "url_path" | "method">;
 
 function EndpointHighlightRow({
   projectKey,
@@ -204,7 +205,6 @@ export default function AnalyticsPage({
       <EndpointTable
         data={endpoints.data}
         isLoading={endpoints.isLoading}
-        page={endpointPage}
         onPageChange={setEndpointPage}
         sortBy={sortBy}
         sortOrder={sortOrder}

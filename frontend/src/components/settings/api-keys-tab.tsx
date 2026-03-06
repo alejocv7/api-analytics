@@ -31,7 +31,7 @@ import {
   useDeleteApiKey,
   useUpdateApiKey,
 } from "@/hooks/use-api-keys";
-import { formatDate, formatNumber, maskApiKey } from "@/lib/utils";
+import { cn, formatDate, formatNumber, maskApiKey } from "@/lib/utils";
 import type { ApiKey } from "@/types/api";
 
 interface ApiKeysTabProps {
@@ -87,7 +87,7 @@ function ApiKeyRowActions({
           <Button
             variant="ghost"
             size="icon"
-            className={`h-7 w-7 ${apiKey.is_active ? "text-muted-foreground hover:text-amber-500" : "text-amber-500 hover:text-foreground"}`}
+            className={cn("h-7 w-7", apiKey.is_active ? "text-muted-foreground hover:text-amber-500" : "text-amber-500 hover:text-foreground")}
             onClick={handleToggleActive}
             disabled={updateKey.isPending}
             title={apiKey.is_active ? "Deactivate key" : "Activate key"}
@@ -201,24 +201,12 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-t border-border bg-muted/50">
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
-                    Name
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Key
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Created
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Requests
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Expires
-                  </TableHead>
+                  <TableHead className="pl-5">Name</TableHead>
+                  <TableHead>Key</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Requests</TableHead>
+                  <TableHead>Expires</TableHead>
                   {isOwner && <TableHead className="pr-5" />}
                 </TableRow>
               </TableHeader>

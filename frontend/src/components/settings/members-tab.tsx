@@ -248,21 +248,11 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-t border-border hover:bg-transparent bg-muted/50">
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
-                    Member
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Email
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Role
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Joined
-                  </TableHead>
+                  <TableHead className="pl-5">Member</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joined</TableHead>
                   <TableHead className="w-16" />
                 </TableRow>
               </TableHeader>

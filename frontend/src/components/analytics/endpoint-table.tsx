@@ -17,7 +17,7 @@ import { MethodBadge } from "@/components/shared/method-badge";
 import { formatNumber, formatDuration, formatPercent, cn } from "@/lib/utils";
 import type { EndpointStat, PaginatedResponse } from "@/types/api";
 
-type SortField =
+export type SortField =
   | "request_count"
   | "avg_response_time_ms"
   | "error_rate"
@@ -27,7 +27,6 @@ type SortField =
 interface EndpointTableProps {
   data?: PaginatedResponse<EndpointStat>;
   isLoading: boolean;
-  page: number;
   onPageChange: (page: number) => void;
   sortBy: SortField;
   sortOrder: "asc" | "desc";
@@ -72,7 +71,6 @@ function SortButton({
 export function EndpointTable({
   data,
   isLoading,
-  page: _page,
   onPageChange,
   sortBy,
   sortOrder,
@@ -122,14 +120,14 @@ export function EndpointTable({
             <Table>
               <TableHeader>
                 <TableRow className="border-t border-border bg-muted/50">
-                  <TableHead className="pl-5 w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <TableHead className="pl-5 w-28">
                     Method
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <TableHead>
                     Path
                   </TableHead>
                   {/* Right-aligned headers to match right-aligned values */}
-                  <TableHead className="w-32 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <TableHead className="w-32">
                     <div className="flex justify-end">
                       <SortButton
                         field="request_count"
@@ -141,7 +139,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <TableHead className="w-28">
                     <div className="flex justify-end">
                       <SortButton
                         field="avg_response_time_ms"
@@ -153,7 +151,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <TableHead className="w-28">
                     <div className="flex justify-end">
                       <SortButton
                         field="slowest_request_ms"
@@ -165,7 +163,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <TableHead className="w-28">
                     <div className="flex justify-end">
                       <SortButton
                         field="fastest_request_ms"
@@ -177,7 +175,7 @@ export function EndpointTable({
                       </SortButton>
                     </div>
                   </TableHead>
-                  <TableHead className="w-24 pr-5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <TableHead className="w-24 pr-5">
                     <div className="flex justify-end">
                       <SortButton
                         field="error_rate"

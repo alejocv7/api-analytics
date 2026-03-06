@@ -23,14 +23,9 @@ import {
 } from "@/hooks/use-metrics";
 import { useProject } from "@/hooks/use-projects";
 import { DEFAULT_GRANULARITY } from "@/lib/constants";
-import type { Granularity } from "@/types/api";
+import type { EndpointStat, Granularity } from "@/types/api";
 
-type SortField =
-  | "request_count"
-  | "avg_response_time_ms"
-  | "error_rate"
-  | "slowest_request_ms"
-  | "fastest_request_ms";
+type SortField = Exclude<keyof EndpointStat, "url_path" | "method">;
 
 function EndpointHighlightRow({
   projectKey,
@@ -43,32 +38,24 @@ function EndpointHighlightRow({
   endTime: Date;
   granularity: Granularity;
 }) {
-  const slowestQuery = useEndpointStats({
+  // Single query sorted by avg_response_time_ms desc — first item is slowest,
+  // last item is fastest among the fetched results.
+  const query = useEndpointStats({
     projectKey,
     startTime,
     endTime,
     granularity,
     page: 1,
-    pageSize: 1,
+    pageSize: 100,
     sortBy: "avg_response_time_ms",
     sortOrder: "desc",
   });
 
-  const fastestQuery = useEndpointStats({
-    projectKey,
-    startTime,
-    endTime,
-    granularity,
-    page: 1,
-    pageSize: 1,
-    sortBy: "avg_response_time_ms",
-    sortOrder: "asc",
-  });
+  const items = query.data?.items ?? [];
+  const slowest = items[0];
+  const fastest = items[items.length - 1];
 
-  const slowest = slowestQuery.data?.items[0];
-  const fastest = fastestQuery.data?.items[0];
-
-  if (slowestQuery.isLoading || fastestQuery.isLoading) {
+  if (query.isLoading) {
     return (
       <div className="grid grid-cols-2 gap-4">
         <Skeleton className="h-16 rounded-xl" />
@@ -77,11 +64,10 @@ function EndpointHighlightRow({
     );
   }
 
-  if (!slowest && !fastest) return null;
+  if (items.length === 0) return null;
 
   return (
     <div className="grid grid-cols-2 gap-4">
-      {/* Slowest — independent bubble */}
       {slowest && (
         <div className="flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card">
           <TrendingDown className="h-4 w-4 text-red-400 shrink-0" />
@@ -95,8 +81,7 @@ function EndpointHighlightRow({
           </div>
         </div>
       )}
-      {/* Fastest — independent bubble */}
-      {fastest && (
+      {fastest && fastest !== slowest && (
         <div className="flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card">
           <TrendingUp className="h-4 w-4 text-indigo-400 shrink-0" />
           <div className="min-w-0">

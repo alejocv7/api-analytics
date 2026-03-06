@@ -91,21 +91,30 @@ async def get_project_with_counts(
     project: models.Project, session: AsyncSession
 ) -> schemas.ProjectResponse:
     """Enrich a project with member and API key counts."""
-    member_count = await session.scalar(
-        select(func.count(models.UserProject.user_id)).where(
-            models.UserProject.project_id == project.id
-        )
+    member_count_subq = (
+        select(func.count(models.UserProject.user_id))
+        .where(models.UserProject.project_id == project.id)
+        .scalar_subquery()
     )
-    api_key_count = await session.scalar(
-        select(func.count(models.APIKey.id)).where(
-            models.APIKey.project_id == project.id
-        )
+    api_key_count_subq = (
+        select(func.count(models.APIKey.id))
+        .where(models.APIKey.project_id == project.id)
+        .scalar_subquery()
     )
+    row = (await session.execute(select(member_count_subq, api_key_count_subq))).one()
+    member_count, api_key_count = row
 
     return schemas.ProjectResponse(
-        **project.__dict__,
-        member_count=member_count or 0,
-        api_key_count=api_key_count or 0,
+        id=project.id,
+        name=project.name,
+        description=project.description,
+        project_key=project.project_key,
+        user_id=project.user_id,
+        is_active=project.is_active,
+        created_at=project.created_at,
+        updated_at=project.updated_at,
+        member_count=member_count,
+        api_key_count=api_key_count,
     )
 
 
@@ -152,7 +161,14 @@ async def get_user_projects(
 
     items = [
         schemas.ProjectResponse(
-            **project.__dict__,
+            id=project.id,
+            name=project.name,
+            description=project.description,
+            project_key=project.project_key,
+            user_id=project.user_id,
+            is_active=project.is_active,
+            created_at=project.created_at,
+            updated_at=project.updated_at,
             member_count=member_count,
             api_key_count=api_key_count,
         )

@@ -101,18 +101,12 @@ async def get_project_with_counts(
         .where(models.APIKey.project_id == project.id)
         .scalar_subquery()
     )
+
     row = (await session.execute(select(member_count_subq, api_key_count_subq))).one()
     member_count, api_key_count = row
 
     return schemas.ProjectResponse(
-        id=project.id,
-        name=project.name,
-        description=project.description,
-        project_key=project.project_key,
-        user_id=project.user_id,
-        is_active=project.is_active,
-        created_at=project.created_at,
-        updated_at=project.updated_at,
+        **project.__dict__,
         member_count=member_count,
         api_key_count=api_key_count,
     )
@@ -161,14 +155,7 @@ async def get_user_projects(
 
     items = [
         schemas.ProjectResponse(
-            id=project.id,
-            name=project.name,
-            description=project.description,
-            project_key=project.project_key,
-            user_id=project.user_id,
-            is_active=project.is_active,
-            created_at=project.created_at,
-            updated_at=project.updated_at,
+            **project.__dict__,
             member_count=member_count,
             api_key_count=api_key_count,
         )

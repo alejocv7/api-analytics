@@ -16,15 +16,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
+import { SearchableCardHeader } from "./searchable-card-header";
 import { RotateKeyDialog } from "./rotate-key-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
-import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   useApiKeys,
@@ -167,20 +165,12 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
 
   return (
     <Card className="pb-0">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="space-y-1">
-          <CardTitle>API Keys</CardTitle>
-          <CardDescription>Manage your API keys</CardDescription>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <SearchInput
-            placeholder="Search keys…"
-            value={search}
-            onChange={setSearch}
-          />
-          {isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
-        </div>
-      </CardHeader>
+      <SearchableCardHeader
+        title="API Keys"
+        description="Manage your API keys"
+        search={{ value: search, onChange: setSearch, placeholder: "Search keys…" }}
+        action={isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
+      />
 
       <CardContent className="p-0">
         {allKeys.length === 0 ? (

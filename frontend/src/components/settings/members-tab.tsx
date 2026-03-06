@@ -24,16 +24,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { RoleBadge } from "@/components/shared/role-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { InviteMemberDialog } from "./invite-member-dialog";
+import { SearchableCardHeader } from "./searchable-card-header";
 import {
   useMembers,
   useUpdateMemberRole,
@@ -214,20 +212,12 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
 
   return (
     <Card className="pb-0">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="space-y-1">
-          <CardTitle>Team Members</CardTitle>
-          <CardDescription>Manage project access</CardDescription>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <SearchInput
-            placeholder="Search members…"
-            value={search}
-            onChange={setSearch}
-          />
-          {isOwner && <InviteMemberDialog projectKey={projectKey} />}
-        </div>
-      </CardHeader>
+      <SearchableCardHeader
+        title="Team Members"
+        description="Manage project access"
+        search={{ value: search, onChange: setSearch, placeholder: "Search members…" }}
+        action={isOwner && <InviteMemberDialog projectKey={projectKey} />}
+      />
 
       <CardContent className="p-0">
         {allMembers.length === 0 ? (

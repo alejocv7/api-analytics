@@ -38,24 +38,34 @@ function EndpointHighlightRow({
   endTime: Date;
   granularity: Granularity;
 }) {
-  // Single query sorted by avg_response_time_ms desc — first item is slowest,
-  // last item is fastest among the fetched results.
-  const query = useEndpointStats({
+  // Two pageSize:1 queries to get the globally slowest and fastest endpoints
+  // regardless of what page the endpoint table is on.
+  const slowestQuery = useEndpointStats({
     projectKey,
     startTime,
     endTime,
     granularity,
     page: 1,
-    pageSize: 100,
+    pageSize: 1,
     sortBy: "avg_response_time_ms",
     sortOrder: "desc",
   });
 
-  const items = query.data?.items ?? [];
-  const slowest = items[0];
-  const fastest = items[items.length - 1];
+  const fastestQuery = useEndpointStats({
+    projectKey,
+    startTime,
+    endTime,
+    granularity,
+    page: 1,
+    pageSize: 1,
+    sortBy: "avg_response_time_ms",
+    sortOrder: "asc",
+  });
 
-  if (query.isLoading) {
+  const slowest = slowestQuery.data?.items[0];
+  const fastest = fastestQuery.data?.items[0];
+
+  if (slowestQuery.isLoading || fastestQuery.isLoading) {
     return (
       <div className="grid grid-cols-2 gap-4">
         <Skeleton className="h-16 rounded-xl" />
@@ -64,7 +74,7 @@ function EndpointHighlightRow({
     );
   }
 
-  if (items.length === 0) return null;
+  if (!slowest && !fastest) return null;
 
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -81,7 +91,7 @@ function EndpointHighlightRow({
           </div>
         </div>
       )}
-      {fastest && fastest !== slowest && (
+      {fastest && (
         <div className="flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card">
           <TrendingUp className="h-4 w-4 text-indigo-400 shrink-0" />
           <div className="min-w-0">

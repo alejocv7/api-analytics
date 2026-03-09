@@ -123,6 +123,28 @@ async def test_add_member(
     assert data["full_name"] == new_user.full_name
 
 
+async def test_add_member_response_serializes_user_fields(
+    client: AsyncClient,
+    auth_headers,
+    project,
+    db_session,
+):
+    """New membership responses include related user fields without async lazy loads."""
+    new_user = await create_user(
+        db_session,
+        email="serialized-member@example.com",
+        full_name="Serialized Member",
+    )
+
+    response = await _add_member(
+        client, auth_headers, project.project_key, new_user.email, role="viewer"
+    )
+
+    assert response.status_code == 201
+    assert response.json()["email"] == "serialized-member@example.com"
+    assert response.json()["full_name"] == "Serialized Member"
+
+
 async def test_add_member_with_member_role(
     client: AsyncClient, auth_headers, project, db_session
 ):

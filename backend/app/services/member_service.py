@@ -13,6 +13,24 @@ from app.services import user_service
 logger = logging.getLogger(__name__)
 
 
+async def _get_membership_with_user(
+    user_id: uuid.UUID,
+    project_id: uuid.UUID,
+    session: AsyncSession,
+) -> models.UserProject:
+    membership = await session.scalar(
+        select(models.UserProject)
+        .where(
+            models.UserProject.user_id == user_id,
+            models.UserProject.project_id == project_id,
+        )
+        .options(selectinload(models.UserProject.user))
+    )
+    if not membership:
+        raise NotFoundError("Member not found")
+    return membership
+
+
 async def add_member(
     project: models.Project,
     email: str,
@@ -32,12 +50,11 @@ async def add_member(
     if existing:
         raise ConflictError("User is already a member of this project")
 
-    membership = models.UserProject(
-        user_id=user.id, project_id=project.id, role=role, user=user
-    )
+    membership = models.UserProject(project=project, role=role, user=user)
+
     session.add(membership)
     await session.commit()
-    await session.refresh(membership)
+    membership = await _get_membership_with_user(user.id, project.id, session)
 
     logger.info(
         "Member added (user_id: %s, project_id: %s, role: %s)",
@@ -110,7 +127,7 @@ async def update_member_role(
 
     membership.role = role
     await session.commit()
-    await session.refresh(membership, attribute_names=["user"])
+    membership = await _get_membership_with_user(user_id, project.id, session)
 
     logger.info(
         "Member role updated (user_id: %s, project_id: %s, role: %s)",

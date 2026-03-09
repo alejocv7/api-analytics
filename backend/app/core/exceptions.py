@@ -150,6 +150,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
 
 async def api_exception_handler(request: Request, exc: APIError) -> JSONResponse:
+    logger.exception("API Error on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=exc.status_code,
         content={

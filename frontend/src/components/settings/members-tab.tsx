@@ -5,13 +5,6 @@ import { toast } from "sonner";
 import { Trash2, Users } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -34,7 +27,7 @@ import {
   useRemoveMember,
 } from "@/hooks/use-members";
 import { formatDate, getInitials } from "@/lib/utils";
-import type { Member, ProjectRole } from "@/types/api";
+import type { Member } from "@/types/api";
 import { useUser } from "@/hooks/use-user";
 
 interface MemberRowProps {
@@ -58,9 +51,9 @@ function MemberRow({
   const isProjectOwner = member.role === "owner";
   const canManage = isOwner && !isProjectOwner && !isSelf;
 
-  async function handleRoleChange(role: string) {
+  async function handleRoleChange(role: "member" | "viewer") {
     try {
-      await updateRole.mutateAsync({ role: role as "member" | "viewer" });
+      await updateRole.mutateAsync({ role });
       toast.success("Role updated");
     } catch {
       toast.error("Failed to update role");
@@ -108,19 +101,10 @@ function MemberRow({
 
         {/* Role */}
         <TableCell>
-          {canManage ? (
-            <Select value={member.role} onValueChange={handleRoleChange}>
-              <SelectTrigger className="h-7 w-28 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="member">Member</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <RoleBadge role={member.role} />
-          )}
+          <RoleBadge
+            role={member.role}
+            onChange={canManage ? handleRoleChange : undefined}
+          />
         </TableCell>
 
         {/* Status */}

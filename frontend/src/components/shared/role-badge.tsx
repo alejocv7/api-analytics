@@ -1,11 +1,15 @@
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { ProjectRole } from "@/types/api";
 
-const roleConfig: Record<
-  ProjectRole,
-  { label: string; className: string }
-> = {
+const roleConfig: Record<ProjectRole, { label: string; className: string }> = {
   owner: {
     label: "Owner",
     className:
@@ -23,18 +27,39 @@ const roleConfig: Record<
   },
 };
 
+type EditableRole = Exclude<ProjectRole, "owner">;
+
 interface RoleBadgeProps {
   role: ProjectRole;
+  onChange?: (role: EditableRole) => void;
   className?: string;
 }
 
-export function RoleBadge({ role, className }: RoleBadgeProps) {
+export function RoleBadge({ role, onChange, className }: RoleBadgeProps) {
   const config = roleConfig[role];
+  const baseClassName = cn("text-xs font-medium", config.className, className);
+
+  if (onChange) {
+    return (
+      <Select value={role} onValueChange={(v) => onChange(v as EditableRole)}>
+        <SelectTrigger
+          className={cn(
+            "h-auto! w-fit px-2 py-0.5 border rounded-full gap-1 shrink-0",
+            baseClassName,
+          )}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="member">{roleConfig.member.label}</SelectItem>
+          <SelectItem value="viewer">{roleConfig.viewer.label}</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+  }
+
   return (
-    <Badge
-      variant="outline"
-      className={cn("text-xs font-medium", config.className, className)}
-    >
+    <Badge variant="outline" className={baseClassName}>
       {config.label}
     </Badge>
   );

@@ -63,7 +63,12 @@ export default function LandingPage() {
             </span>
           </Link>
           <div className="flex items-center gap-3">
-            <Button variant="secondary" size="sm" asChild>
+            <Button
+              variant="secondary"
+              className="border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+              size="sm"
+              asChild
+            >
               <Link href="/login">Sign in</Link>
             </Button>
             <Button size="sm" asChild>
@@ -93,7 +98,12 @@ export default function LandingPage() {
           <Button size="lg" asChild>
             <Link href="/register">Start for free</Link>
           </Button>
-          <Button size="lg" variant="outline" asChild>
+          <Button
+            size="lg"
+            variant="secondary"
+            className="border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+            asChild
+          >
             <Link href="/login">Sign in</Link>
           </Button>
         </div>

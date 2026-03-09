@@ -109,8 +109,11 @@ async def test_add_member_happy_path():
     project = _make_project()
     user = _make_user()
     session = AsyncMock()
+    session.add = MagicMock()
 
+    membership = models.UserProject(project=project, user=user, role=ProjectRole.viewer)
     session.get.return_value = None
+    session.scalar.return_value = membership
 
     with patch(
         "app.services.member_service.user_service.get_user_by_email",
@@ -122,6 +125,7 @@ async def test_add_member_happy_path():
         )
 
     assert result.user == user
+    assert result.project == project
     session.add.assert_called_once()
     session.commit.assert_called_once()
 
@@ -210,6 +214,7 @@ async def test_update_member_role_happy_path():
     session = AsyncMock()
     membership = MagicMock(spec=models.UserProject)
     session.get.return_value = membership
+    session.scalar.return_value = membership
 
     result = await member_service.update_member_role(
         project, uuid.uuid4(), ProjectRole.member, session

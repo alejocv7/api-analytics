@@ -13,11 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
 import { SearchableCardHeader } from "./searchable-card-header";
 import { RotateKeyDialog } from "./rotate-key-dialog";
@@ -85,7 +81,12 @@ function ApiKeyRowActions({
           <Button
             variant="ghost"
             size="icon"
-            className={cn("h-7 w-7", apiKey.is_active ? "text-muted-foreground hover:text-amber-500" : "text-amber-500 hover:text-foreground")}
+            className={cn(
+              "h-7 w-7",
+              apiKey.is_active
+                ? "text-muted-foreground hover:text-amber-500"
+                : "text-amber-500 hover:text-foreground",
+            )}
             onClick={handleToggleActive}
             disabled={updateKey.isPending}
             title={apiKey.is_active ? "Deactivate key" : "Activate key"}
@@ -168,7 +169,11 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
       <SearchableCardHeader
         title="API Keys"
         description="Manage your API keys"
-        search={{ value: search, onChange: setSearch, placeholder: "Search keys…" }}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search keys…",
+        }}
         action={isOwner && <CreateApiKeyDialog projectKey={projectKey} />}
       />
 
@@ -227,7 +232,7 @@ export function ApiKeysTab({ projectKey, isOwner }: ApiKeysTabProps) {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <code className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
+                          <code className="text-xs font-mono text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-950/60 px-1.5 py-0.5 rounded">
                             {maskApiKey(key.key_prefix)}
                           </code>
                         </TableCell>

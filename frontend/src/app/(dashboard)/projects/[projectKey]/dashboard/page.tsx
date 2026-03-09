@@ -166,18 +166,24 @@ export default function DashboardPage({
           )
         }
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <DateRangePicker value={dateRange} onChange={setDateRange} />
-            <GranularitySelect value={granularity} onChange={setGranularity} />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleRefresh}
-              className="h-9 w-9"
-              title="Refresh"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <GranularitySelect
+                value={granularity}
+                onChange={setGranularity}
+                className="flex-1 sm:flex-none"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRefresh}
+                className="h-9 w-9 shrink-0"
+                title="Refresh"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         }
       />

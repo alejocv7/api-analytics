@@ -30,6 +30,7 @@ export interface DateRangeValue {
 interface DateRangePickerProps {
   value: DateRangeValue;
   onChange: (value: DateRangeValue) => void;
+  className?: string;
 }
 
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
@@ -62,7 +63,10 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="h-9 gap-2 font-normal">
+        <Button
+          variant="outline"
+          className="h-9 gap-2 font-normal w-full sm:w-auto"
+        >
           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">{label}</span>
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
@@ -97,7 +101,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               onSelect={setCalendarRange}
               numberOfMonths={2}
               disabled={{ after: new Date() }}
-              toDate={new Date()}
+              hidden={{ after: new Date() }}
             />
             <div className="flex justify-end pt-2 border-t border-border mt-2">
               <Button

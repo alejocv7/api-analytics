@@ -190,7 +190,10 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname.startsWith("/projects/") && pathname.endsWith("/dashboard")}
+                  isActive={
+                    pathname.startsWith("/projects/") &&
+                    pathname.endsWith("/dashboard")
+                  }
                   tooltip="Dashboard"
                 >
                   <Link href={`/projects/${projectKey}/dashboard`}>

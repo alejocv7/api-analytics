@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import type { Granularity } from "@/types/api";
 
 const options: { value: Granularity; label: string }[] = [
@@ -18,12 +19,17 @@ const options: { value: Granularity; label: string }[] = [
 interface GranularitySelectProps {
   value: Granularity;
   onChange: (value: Granularity) => void;
+  className?: string;
 }
 
-export function GranularitySelect({ value, onChange }: GranularitySelectProps) {
+export function GranularitySelect({
+  value,
+  onChange,
+  className,
+}: GranularitySelectProps) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as Granularity)}>
-      <SelectTrigger className="h-9 w-36">
+      <SelectTrigger className={cn("h-9 w-36", className)}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

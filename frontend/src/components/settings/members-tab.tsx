@@ -21,11 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { RoleBadge } from "@/components/shared/role-badge";
@@ -215,7 +211,11 @@ export function MembersTab({ projectKey, isOwner }: MembersTabProps) {
       <SearchableCardHeader
         title="Team Members"
         description="Manage project access"
-        search={{ value: search, onChange: setSearch, placeholder: "Search members…" }}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search members…",
+        }}
         action={isOwner && <InviteMemberDialog projectKey={projectKey} />}
       />
 

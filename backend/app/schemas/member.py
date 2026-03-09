@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Literal
 
 from pydantic import AliasPath, BaseModel, ConfigDict, EmailStr, Field
@@ -51,6 +52,7 @@ class MemberResponse(BaseModel):
     role: ProjectRole
     email: str = Field(validation_alias=AliasPath("user", "email"))
     full_name: str | None = Field(validation_alias=AliasPath("user", "full_name"))
+    joined_at: datetime = Field(validation_alias="created_at")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

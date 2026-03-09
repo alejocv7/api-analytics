@@ -70,6 +70,26 @@ export function RegisterForm() {
       if (err instanceof ApiClientError) {
         if (err.status === 409 || err.status === 400) {
           form.setError("email", { message: err.message });
+        } else if (err.status === 422 && Array.isArray(err.details)) {
+          // Map backend validation errors to their form fields
+          let handled = false;
+          for (const detail of err.details as {
+            field: unknown[];
+            message: string;
+          }[]) {
+            const field = detail.field?.at(-1);
+            const message = detail.message.replace(/^Value error,\s*/i, "");
+            if (field === "password") {
+              form.setError("password", { message });
+              handled = true;
+            } else if (field === "email") {
+              form.setError("email", { message });
+              handled = true;
+            }
+          }
+          if (!handled) {
+            toast.error("Registration failed. Please check your details.");
+          }
         } else if (err.status === 429) {
           toast.error(err.message);
         } else {

@@ -29,7 +29,7 @@ export function useMembers(projectKey: string) {
     queryKey: queryKeys.projects.members(projectKey),
     queryFn: () =>
       apiClient.get<PaginatedResponse<Member>>(
-        `/projects/${projectKey}/members`,
+        `/projects/${projectKey}/members/`,
         { page: 1, page_size: 50 },
       ),
     enabled: Boolean(projectKey),
@@ -40,7 +40,7 @@ export function useInviteMember(projectKey: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: InviteMemberRequest) =>
-      apiClient.post<Member>(`/projects/${projectKey}/members`, data),
+      apiClient.post<Member>(`/projects/${projectKey}/members/`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.projects.members(projectKey),

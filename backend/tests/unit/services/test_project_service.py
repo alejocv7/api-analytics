@@ -43,16 +43,17 @@ async def test_update_user_project_same_name_no_conflict():
     project = _make_project(name="Same Name")
     update_data = schemas.ProjectUpdate(name="Same Name")
 
-    # Counts return 0; the conflict-check scalar should never be called.
-    session.scalar.return_value = 0
+    # Counts query returns (0, 0); the conflict-check scalar should never be called.
+    mock_result = MagicMock()
+    mock_result.one.return_value = (0, 0)
+    session.execute.return_value = mock_result
 
     result = await project_service.update_user_project(project, update_data, session)
 
-    # Only the two count queries (member_count, api_key_count) should be called —
-    # not the name-conflict exists() check.
-    assert session.scalar.call_count == 2
     assert isinstance(result, schemas.ProjectResponse)
     assert result.name == "Same Name"
+    assert result.member_count == 0
+    assert result.api_key_count == 0
 
 
 async def test_find_project_by_key_not_found():

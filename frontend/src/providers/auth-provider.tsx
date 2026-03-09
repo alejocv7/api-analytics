@@ -15,7 +15,6 @@ import {
   setTokens,
 } from "@/lib/auth";
 import type { LoginRequest, TokenResponse, User } from "@/types/api";
-import { queryKeys } from "@/lib/query-keys";
 
 interface AuthContextValue {
   user: User | null;
@@ -77,7 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTokens();
       setUser(null);
       queryClient.clear();
-      queryClient.invalidateQueries({ queryKey: queryKeys.me() });
     }
   }, [queryClient]);
 

@@ -91,18 +91,17 @@ app.add_middleware(CorrelationIdMiddleware, header_name=settings.REQUEST_ID_HEAD
 
 # Security Middlewares
 app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.TRUSTED_HOSTS,
+)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
-
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.TRUSTED_HOSTS,
-)
-app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.get("/", tags=["root"])

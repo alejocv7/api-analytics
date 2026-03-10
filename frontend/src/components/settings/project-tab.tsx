@@ -151,6 +151,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                 value={project.project_key}
                 label="Key"
                 description="This key is auto-generated and used to identify your project."
+                codeClassName="truncate"
               />
 
               <FormField

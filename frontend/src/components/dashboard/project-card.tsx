@@ -41,7 +41,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           />
 
           {/* Footer: member count, key count, date */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
               {project.member_count}
@@ -50,9 +50,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <Key className="h-3.5 w-3.5" />
               {project.api_key_count}
             </span>
-            <span className="ml-auto">
-              Created {formatDate(project.created_at)}
-            </span>
+            <span>Created {formatDate(project.created_at)}</span>
           </div>
         </CardContent>
       </Card>

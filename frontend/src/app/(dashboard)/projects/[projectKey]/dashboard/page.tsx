@@ -84,7 +84,7 @@ function EndpointHighlightRow({
             <p className="text-xs text-muted-foreground mb-0.5">
               Slowest Endpoint
             </p>
-            <p className="text-sm font-mono truncate text-foreground/80">
+            <p className="text-sm font-mono break-all whitespace-normal text-foreground/80">
               {slowest.url_path}
             </p>
           </div>
@@ -97,7 +97,7 @@ function EndpointHighlightRow({
             <p className="text-xs text-muted-foreground mb-0.5">
               Fastest Endpoint
             </p>
-            <p className="text-sm font-mono truncate text-foreground/80">
+            <p className="text-sm font-mono break-all whitespace-normal text-foreground/80">
               {fastest.url_path}
             </p>
           </div>
@@ -172,13 +172,13 @@ export default function DashboardPage({
               <GranularitySelect
                 value={granularity}
                 onChange={setGranularity}
-                className="flex-1 sm:flex-none"
+                className="flex-1 sm:flex-none px-3"
               />
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleRefresh}
-                className="h-9 w-9 shrink-0"
+                className="flex-1 sm:flex-none px-3 h-9 sm:w-9"
                 title="Refresh"
               >
                 <RefreshCw className="h-3.5 w-3.5" />

@@ -9,7 +9,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ breadcrumb }: AppHeaderProps) {
   return (
-    <div className="fixed top-3 left-3 z-50 md:hidden bg-background border border-border rounded-md shadow-sm">
+    <div className="fixed top-3 right-3 z-50 md:hidden bg-background border border-border rounded-md shadow-sm">
       <SidebarTrigger />
     </div>
   );

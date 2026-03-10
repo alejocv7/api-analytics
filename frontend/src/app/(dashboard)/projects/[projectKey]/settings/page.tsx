@@ -30,8 +30,8 @@ export default function SettingsPage({
       ) : !project ? (
         <div className="text-sm text-muted-foreground">Project not found.</div>
       ) : (
-        <Tabs defaultValue="general">
-          <TabsList className="mb-6">
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="mb-6 w-full md:w-fit justify-start overflow-x-auto overflow-y-hidden flex-nowrap whitespace-nowrap px-0.5 no-scrollbar">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="api-keys">API Keys</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>

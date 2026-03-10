@@ -120,12 +120,8 @@ export function EndpointTable({
             <Table>
               <TableHeader>
                 <TableRow className="border-t border-border bg-muted/50">
-                  <TableHead className="pl-5 w-28">
-                    Method
-                  </TableHead>
-                  <TableHead>
-                    Path
-                  </TableHead>
+                  <TableHead className="pl-5 w-28">Method</TableHead>
+                  <TableHead>Path</TableHead>
                   {/* Right-aligned headers to match right-aligned values */}
                   <TableHead className="w-32">
                     <div className="flex justify-end">

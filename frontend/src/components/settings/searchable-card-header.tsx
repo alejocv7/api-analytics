@@ -1,8 +1,4 @@
-import {
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchInput } from "@/components/shared/search-input";
 
 interface SearchableCardHeaderProps {

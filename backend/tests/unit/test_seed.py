@@ -1,7 +1,7 @@
 """Unit tests for seed.py idempotency."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -16,6 +16,7 @@ async def test_seed_skips_when_project_key_not_set(monkeypatch):
     """seed_initial_data exits early and logs an error when PROJECT_KEY is empty."""
     monkeypatch.setattr(settings, "PROJECT_KEY", "")
     session = AsyncMock()
+    session.add = MagicMock()
 
     with patch("app.core.seed.logger") as mock_logger:
         await seed_initial_data(session)
@@ -33,6 +34,7 @@ async def test_seed_creates_user_and_project_on_first_run(monkeypatch):
     monkeypatch.setattr(settings, "PROJECT_DESCRIPTION", "Test Desc")
 
     session = AsyncMock()
+    session.add = MagicMock()
 
     async def _fake_refresh(obj: object) -> None:
         # Simulate the DB assigning a primary key on commit+refresh.
@@ -66,6 +68,7 @@ async def test_seed_is_idempotent_when_both_exist(monkeypatch):
     monkeypatch.setattr(settings, "PROJECT_USER", "system@example.com")
 
     session = AsyncMock()
+    session.add = MagicMock()
     user_id = uuid.uuid4()
     existing_user = models.User(
         id=user_id, email="system@example.com", hashed_password="x"
@@ -98,6 +101,7 @@ async def test_seed_creates_project_when_user_already_exists(monkeypatch):
     monkeypatch.setattr(settings, "PROJECT_DESCRIPTION", "Test Desc")
 
     session = AsyncMock()
+    session.add = MagicMock()
     existing_user = models.User(id=1, email="system@example.com", hashed_password="x")
 
     with (

@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -17,6 +17,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_register_duplicate_email():
     session = AsyncMock()
+    session.add = MagicMock()
     # Need a strong password for zxcvbn
     strong_password = "CorrectHorseBatteryStaple123!"
     user_in = schemas.UserCreate(
@@ -35,6 +36,7 @@ async def test_register_duplicate_email():
 
 async def test_authenticate_user_not_found():
     session = AsyncMock()
+    session.add = MagicMock()
     with patch(
         "app.services.user_service.find_user_by_email", new_callable=AsyncMock
     ) as mock_get:
@@ -47,6 +49,7 @@ async def test_authenticate_user_not_found():
 
 async def test_authenticate_user_wrong_password():
     session = AsyncMock()
+    session.add = MagicMock()
     user = models.User(id=1, email="test@example.com", hashed_password="hashed")
     with patch(
         "app.services.user_service.find_user_by_email", new_callable=AsyncMock
@@ -62,11 +65,8 @@ async def test_authenticate_user_wrong_password():
 
 
 async def test_authenticate_user_rehashes_password_when_needed():
-    """
-    When verify_password signals that the hash needs updating, the new hash
-    is persisted and the user is returned.
-    """
     session = AsyncMock()
+    session.add = MagicMock()
     user = models.User(
         id=1, email="test@example.com", hashed_password="old_hash", is_active=True
     )
@@ -98,6 +98,7 @@ async def test_refresh_user_token_rotates_refresh_version():
     """refresh_user_token increments token version and returns a new token pair."""
     uid = uuid.uuid4()
     session = AsyncMock()
+    session.add = MagicMock()
     user = models.User(id=uid, is_active=True, refresh_token_version=2)
     session.scalar.return_value = user
 
@@ -119,6 +120,7 @@ async def test_refresh_user_token_rejects_replayed_token():
     """refresh_user_token rejects old refresh tokens after rotation."""
     uid = uuid.uuid4()
     session = AsyncMock()
+    session.add = MagicMock()
     user = models.User(id=uid, is_active=True, refresh_token_version=3)
     session.scalar.return_value = user
 

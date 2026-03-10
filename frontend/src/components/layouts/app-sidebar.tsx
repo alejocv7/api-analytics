@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -48,12 +48,16 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useUser();
-  const { open, toggleSidebar } = useSidebar();
+  const { open, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
 
   const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
   const darkMode = resolvedTheme === "dark";
+
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
 
   const projectKeyMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentPathKey = projectKeyMatch?.[1] ?? "";
@@ -83,7 +87,11 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar variant="inset" collapsible="icon">
+    <Sidebar
+      variant="inset"
+      collapsible="icon"
+      side={isMobile ? "right" : "left"}
+    >
       <SidebarHeader>
         {/* Brand — doubles as sidebar collapse toggle */}
         <SidebarMenu>

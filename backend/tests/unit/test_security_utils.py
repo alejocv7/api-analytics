@@ -97,7 +97,11 @@ def test_decode_token_rejects_wrong_signature():
         "sub": "1",
         "exp": datetime.now(UTC) + timedelta(minutes=5),
     }
-    token = jwt.encode(payload, "wrong-key", algorithm=settings.SECURITY_ALGORITHM)
+    token = jwt.encode(
+        payload,
+        "wrong-key-that-is-at-least-32-bytes-long",
+        algorithm=settings.SECURITY_ALGORITHM,
+    )
 
     with pytest.raises(BearerAuthenticationError):
         security.decode_token(token)
@@ -185,7 +189,11 @@ def test_decode_refresh_token_rejects_wrong_signature():
         "type": "refresh",
         "exp": datetime.now(UTC) + timedelta(days=1),
     }
-    token = jwt.encode(payload, "wrong-key", algorithm=settings.SECURITY_ALGORITHM)
+    token = jwt.encode(
+        payload,
+        "wrong-key-that-is-at-least-32-bytes-long",
+        algorithm=settings.SECURITY_ALGORITHM,
+    )
 
     with pytest.raises(BearerAuthenticationError):
         security.decode_refresh_token(token)

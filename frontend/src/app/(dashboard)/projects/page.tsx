@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layouts/page-header";
-import { ProjectList } from "@/components/dashboard/project-list";
-import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog";
+import { ProjectList } from "@/components/projects/project-list";
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 
 export const metadata: Metadata = {
   title: "Projects",

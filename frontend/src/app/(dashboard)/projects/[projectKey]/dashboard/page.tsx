@@ -5,17 +5,17 @@ import { subHours } from "date-fns";
 import { RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SummaryCards } from "@/components/analytics/summary-cards";
-import { TimeSeriesChart } from "@/components/analytics/time-series-chart";
+import { SummaryCards } from "@/components/dashboard/summary-cards";
+import { TimeSeriesChart } from "@/components/dashboard/time-series-chart";
 import {
   EndpointTable,
   type SortField,
-} from "@/components/analytics/endpoint-table";
+} from "@/components/dashboard/endpoint-table";
 import {
   DateRangePicker,
   type DateRangeValue,
-} from "@/components/analytics/date-range-picker";
-import { GranularitySelect } from "@/components/analytics/granularity-select";
+} from "@/components/dashboard/date-range-picker";
+import { GranularitySelect } from "@/components/dashboard/granularity-select";
 import { PageHeader } from "@/components/layouts/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { RoleBadge } from "@/components/shared/role-badge";

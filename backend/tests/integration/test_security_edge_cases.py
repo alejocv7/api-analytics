@@ -41,7 +41,9 @@ async def test_invalid_jwt_signature(client: AsyncClient, test_user):
     }
     # Sign with a different key
     fake_token = jwt.encode(
-        payload, "wrong-secret-key", algorithm=settings.SECURITY_ALGORITHM
+        payload,
+        "wrong-secret-key-that-is-at-least-32-bytes",
+        algorithm=settings.SECURITY_ALGORITHM,
     )
 
     response = await client.get(

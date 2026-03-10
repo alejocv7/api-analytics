@@ -184,7 +184,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                     disabled={
                       form.formState.isSubmitting || !form.formState.isDirty
                     }
-                    className="w-full sm:w-auto min-w-40"
+                    className="w-full xl:w-auto min-w-40"
                   >
                     {form.formState.isSubmitting ? (
                       <>
@@ -209,7 +209,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
             <CardTitle className="text-destructive">Danger zone</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <p className="text-sm font-medium">Delete this project</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -220,7 +220,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                 variant="destructive"
                 size="sm"
                 onClick={() => setDeleteOpen(true)}
-                className="w-full sm:w-auto min-w-40"
+                className="w-full xl:w-auto min-w-40"
               >
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                 Delete project

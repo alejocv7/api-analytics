@@ -27,7 +27,10 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/layouts/page-header";
 import { apiClient, ApiClientError } from "@/lib/api-client";
-import { updateProfileSchema, type UpdateProfileFormValues } from "@/lib/validators";
+import {
+  updateProfileSchema,
+  type UpdateProfileFormValues,
+} from "@/lib/validators";
 import { formatDateTime } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import type { User } from "@/types/api";
@@ -61,8 +64,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <PageHeader title="Profile" description="Manage your account information" />
+    <div className="space-y-6">
+      <PageHeader
+        title="Profile"
+        description="Manage your account information"
+      />
 
       <Card>
         <CardHeader>
@@ -104,9 +110,10 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row sm:justify-end">
                 <Button
                   type="submit"
+                  className="w-full xl:w-auto min-w-40"
                   disabled={
                     form.formState.isSubmitting || !form.formState.isDirty
                   }

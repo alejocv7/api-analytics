@@ -94,7 +94,7 @@ export function AppSidebar() {
               tooltip={open ? "Collapse sidebar" : "Expand sidebar"}
               className="group/brand"
             >
-              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-sidebar-primary shrink-0">
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-primary shrink-0">
                 <BarChart3 className="h-4 w-4 text-sidebar-primary-foreground transition-opacity duration-150 group-hover/brand:opacity-0" />
                 <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/brand:opacity-100">
                   {open ? (

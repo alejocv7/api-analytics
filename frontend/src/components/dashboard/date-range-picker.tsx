@@ -58,6 +58,22 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
     }
   }
 
+  function getEndMonth() {
+    const now = new Date();
+    if (!calendarRange?.to) return now;
+
+    const isCurrentMonth =
+      calendarRange.to.getUTCMonth() === now.getUTCMonth() &&
+      calendarRange.to.getUTCFullYear() === now.getUTCFullYear();
+
+    if (isCurrentMonth) return now;
+
+    return new Date(
+      calendarRange.to.getUTCFullYear(),
+      calendarRange.to.getUTCMonth() + 1,
+    );
+  }
+
   const label = `${format(value.startTime, "MMM d, yyyy")} – ${format(value.endTime, "MMM d, yyyy")}`;
 
   return (
@@ -100,8 +116,8 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               selected={calendarRange}
               onSelect={setCalendarRange}
               numberOfMonths={2}
+              endMonth={getEndMonth()}
               disabled={{ after: new Date() }}
-              hidden={{ after: new Date() }}
             />
             <div className="flex justify-end pt-2 border-t border-border mt-2">
               <Button

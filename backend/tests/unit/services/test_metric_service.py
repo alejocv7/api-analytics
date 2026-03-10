@@ -2,7 +2,7 @@
 
 import uuid
 from http import HTTPMethod
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
@@ -26,6 +26,7 @@ async def test_add_metric_retries_on_transient_db_error_and_raises():
     the exception. rollback is called after each failed commit.
     """
     session = AsyncMock()
+    session.add = MagicMock()
     session.commit.side_effect = SQLAlchemyError("transient DB error")
 
     with patch("asyncio.sleep", new=AsyncMock()), pytest.raises(SQLAlchemyError):
@@ -43,6 +44,7 @@ async def test_add_metric_succeeds_after_transient_failure():
     followed by a successful commit.
     """
     session = AsyncMock()
+    session.add = MagicMock()
     session.commit.side_effect = [SQLAlchemyError("transient"), None]
 
     project_id = uuid.uuid4()
@@ -63,6 +65,7 @@ async def test_add_metric_hashes_ip_and_removes_raw_field():
     not pass `ip` to the Metric constructor.
     """
     session = AsyncMock()
+    session.add = MagicMock()
     metric_in = schemas.MetricCreate(
         url_path="/api/v1/test",
         method=HTTPMethod.POST,

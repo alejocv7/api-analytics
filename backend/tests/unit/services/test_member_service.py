@@ -159,6 +159,7 @@ async def test_remove_member_happy_path():
     """remove_member deletes the membership and commits."""
     project = _make_project()
     session = AsyncMock()
+    session.delete = AsyncMock()
     membership = MagicMock(spec=models.UserProject)
     session.get.return_value = membership
 

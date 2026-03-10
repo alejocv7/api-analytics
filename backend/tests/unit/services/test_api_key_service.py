@@ -9,11 +9,11 @@ from app.core.config import settings
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.services import api_key_service
 
-pytestmark = pytest.mark.asyncio
 
-
+@pytest.mark.asyncio
 async def test_create_api_key_limit(monkeypatch):
     session = AsyncMock()
+    session.add = MagicMock()
     project = models.Project(id=uuid.uuid4(), name="Test Project")
     key_in = schemas.APIKeyCreate(name="Limit Key")
 
@@ -27,8 +27,10 @@ async def test_create_api_key_limit(monkeypatch):
     assert "maximum number of API keys" in str(exc.value)
 
 
+@pytest.mark.asyncio
 async def test_delete_last_active_key_fails():
     session = AsyncMock()
+    session.delete = MagicMock()
     project_id = uuid.uuid4()
     api_key_id = uuid.uuid4()
     api_key = models.APIKey(id=api_key_id, project_id=project_id, is_active=True)
@@ -80,8 +82,10 @@ def test_record_usage_sets_last_used_at_to_utc_now():
     assert before <= api_key.last_used_at <= after
 
 
+@pytest.mark.asyncio
 async def test_rotate_inactive_key_fails():
     session = AsyncMock()
+    session.add = MagicMock()
     project_id = uuid.uuid4()
     key_id = uuid.uuid4()
     api_key = models.APIKey(id=key_id, project_id=project_id, is_active=False)
@@ -93,8 +97,10 @@ async def test_rotate_inactive_key_fails():
         await api_key_service.rotate_api_key(key_id, project_id, session)
 
 
+@pytest.mark.asyncio
 async def test_rotate_expired_key_fails():
     session = AsyncMock()
+    session.add = MagicMock()
     project_id = uuid.uuid4()
     key_id = uuid.uuid4()
     past = datetime.now(UTC) - timedelta(days=1)
@@ -109,8 +115,10 @@ async def test_rotate_expired_key_fails():
         await api_key_service.rotate_api_key(key_id, project_id, session)
 
 
+@pytest.mark.asyncio
 async def test_rotate_already_rotated_name_no_double_suffix():
     session = AsyncMock()
+    session.add = MagicMock()
     project_id = uuid.uuid4()
     key_id = uuid.uuid4()
     api_key = models.APIKey(
@@ -129,6 +137,7 @@ async def test_rotate_already_rotated_name_no_double_suffix():
         assert api_key.name == "K (rotated)"  # Not "K (rotated) (rotated)"
 
 
+@pytest.mark.asyncio
 async def test_get_api_key_not_found():
     session = AsyncMock()
     # await session.scalars(...) returns a mock object that has a .first() method

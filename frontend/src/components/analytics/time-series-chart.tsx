@@ -201,7 +201,7 @@ export function TimeSeriesChart({ data, isLoading }: TimeSeriesChartProps) {
                 }}
                 tickLine={false}
                 axisLine={false}
-                minTickGap={80}
+                minTickGap={30}
                 dy={6}
                 // Align ticks with grid lines
                 interval="preserveStartEnd"

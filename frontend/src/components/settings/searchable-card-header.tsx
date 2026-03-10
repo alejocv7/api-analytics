@@ -24,7 +24,7 @@ export function SearchableCardHeader({
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </div>
-      <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
         <SearchInput
           placeholder={search.placeholder}
           value={search.value}

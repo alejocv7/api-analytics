@@ -76,7 +76,7 @@ function EndpointHighlightRow({
   if (!slowest && !fastest) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {slowest && (
         <div className="flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card">
           <TrendingDown className="h-4 w-4 text-red-400 shrink-0" />

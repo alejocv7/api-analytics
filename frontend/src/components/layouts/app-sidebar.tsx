@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   ChevronDown,
-  ChevronUp,
   FolderKanban,
-  LogOut,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
   Sun,
-  User,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { toast } from "sonner";
 
 import {
   Sidebar,
@@ -39,31 +35,34 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { useUser } from "@/hooks/use-user";
 import { useProjects, useProject } from "@/hooks/use-projects";
 import { cn, getInitials } from "@/lib/utils";
+import { useState } from "react";
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout } = useUser();
-  const { open, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
-
-  const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { open, toggleSidebar, isMobile, setOpenMobile, breakpoint, setOpen } =
+    useSidebar();
+  const { resolvedTheme, setTheme } = useTheme();
   const darkMode = resolvedTheme === "dark";
 
+  const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
+  const router = useRouter();
+
+  // Auto-close on navigation: mobile closes the sheet, md closes the overlay.
   useEffect(() => {
-    setOpenMobile(false);
-  }, [pathname, setOpenMobile]);
+    if (isMobile) {
+      setOpenMobile(false);
+    } else if (breakpoint === "md") {
+      setOpen(false);
+    }
+  }, [pathname, isMobile, breakpoint, setOpenMobile, setOpen]);
 
   const projectKeyMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentPathKey = projectKeyMatch?.[1] ?? "";
 
   // Persist the last active project key so sidebar nav stays visible
-  // when navigating to /projects (projects list)
+  // when navigating to /projects (projects list).
   const lastProjectKeyRef = useRef(currentPathKey);
   if (currentPathKey) lastProjectKeyRef.current = currentPathKey;
   const projectKey = lastProjectKeyRef.current;
@@ -77,22 +76,8 @@ export function AppSidebar() {
     setTheme(enabled ? "dark" : "light");
   }
 
-  async function handleLogout() {
-    try {
-      await logout();
-      router.push("/login");
-    } catch {
-      toast.error("Failed to log out. Please try again.");
-    }
-  }
-
   return (
-    <Sidebar
-      variant="inset"
-      collapsible="icon"
-      side={isMobile ? "right" : "left"}
-      className="absolute"
-    >
+    <Sidebar variant="inset" collapsible="icon" className="absolute">
       <SidebarHeader>
         {/* Brand — doubles as sidebar collapse toggle */}
         <SidebarMenu>
@@ -215,7 +200,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* General group */}
+        {/* Manage group */}
         <SidebarGroup>
           <SidebarGroupLabel>Manage</SidebarGroupLabel>
           <SidebarMenu>
@@ -249,83 +234,31 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Dark mode toggle — always accessible in the sidebar footer */}
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
-              <PopoverTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  tooltip={user?.full_name ?? "Account"}
-                >
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="text-xs bg-sidebar-primary/30 text-sidebar-primary-foreground font-medium">
-                      {user ? getInitials(user.full_name) : "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0 text-left">
-                    <span className="text-sm font-medium truncate block">
-                      {user?.full_name}
-                    </span>
-                    <span className="text-xs opacity-60 truncate block">
-                      {user?.email}
-                    </span>
-                  </div>
-                  <ChevronUp className="h-4 w-4 shrink-0 opacity-50" />
-                </SidebarMenuButton>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-56 p-1.5"
-                align="start"
-                side="top"
-                sideOffset={4}
-              >
-                <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-sm font-normal"
-                    asChild
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    <Link href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </Button>
-
-                  <div className="flex items-center justify-between px-2 py-1.5 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors">
-                    <div className="flex items-center gap-2">
-                      {darkMode ? (
-                        <Moon className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Sun className="h-4 w-4 text-amber-500" />
-                      )}
-                      <span>Dark Mode</span>
-                    </div>
-                    <Switch
-                      checked={darkMode}
-                      onCheckedChange={toggleDarkMode}
-                      className="scale-75 origin-right"
-                    />
-                  </div>
-
-                  <div className="my-1 h-px bg-border" />
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-sm font-normal text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-between px-2 py-1.5 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group-data-[collapsible=icon]:justify-center">
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
+            {darkMode ? (
+              <Moon className="h-4 w-4 text-primary shrink-0" />
+            ) : (
+              <Sun className="h-4 w-4 text-amber-500 shrink-0" />
+            )}
+            <span>Dark Mode</span>
+          </div>
+          {/* Icon-only mode: just the icon, no switch */}
+          <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
+            {darkMode ? (
+              <Moon className="h-4 w-4 text-primary" />
+            ) : (
+              <Sun className="h-4 w-4 text-amber-500" />
+            )}
+          </div>
+          <Switch
+            checked={darkMode}
+            onCheckedChange={toggleDarkMode}
+            className="scale-75 origin-right group-data-[collapsible=icon]:hidden"
+          />
+        </div>
       </SidebarFooter>
 
       <SidebarRail />

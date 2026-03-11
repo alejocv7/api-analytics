@@ -18,7 +18,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-3 md:flex-row md:items-center md:justify-between",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function PageHeader({
           <p className="text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {action && <div className="shrink-0 w-full sm:w-auto">{action}</div>}
+      {action && <div className="shrink-0 w-full md:w-auto">{action}</div>}
     </div>
   );
 }

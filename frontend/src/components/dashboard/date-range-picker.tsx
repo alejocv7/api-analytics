@@ -12,13 +12,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DATE_PRESETS, MAX_DATE_RANGE_DAYS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +26,11 @@ interface DateRangePickerProps {
   className?: string;
 }
 
-export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+export function DateRangePicker({
+  value,
+  onChange,
+  className,
+}: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const [calendarRange, setCalendarRange] = useState<DateRange | undefined>({
     from: value.startTime,
@@ -81,7 +78,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="h-9 gap-2 font-normal w-full sm:w-auto"
+          className={cn("h-9 gap-2 font-normal w-full sm:w-auto", className)}
         >
           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">{label}</span>

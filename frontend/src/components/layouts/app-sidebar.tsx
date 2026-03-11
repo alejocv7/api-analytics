@@ -91,6 +91,7 @@ export function AppSidebar() {
       variant="inset"
       collapsible="icon"
       side={isMobile ? "right" : "left"}
+      className="absolute"
     >
       <SidebarHeader>
         {/* Brand — doubles as sidebar collapse toggle */}

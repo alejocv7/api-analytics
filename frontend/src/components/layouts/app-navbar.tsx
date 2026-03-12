@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useProject } from "@/hooks/use-projects";
 import { getInitials } from "@/lib/utils";
+import { StatusBadge } from "@/components/shared/status-badge";
 
 export function AppNavbar() {
   const pathname = usePathname();
@@ -58,12 +59,18 @@ export function AppNavbar() {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Current project name (informational, non-clickable) */}
+      {/* Current project name + live status dot */}
       <div className="flex flex-1 justify-center">
         {currentProject && (
-          <span className="max-w-xs truncate text-sm font-medium">
-            {currentProject.name}
-          </span>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="truncate text-base font-semibold">
+              {currentProject.name}
+            </span>
+            <StatusBadge
+              status={currentProject.is_active ? "active" : "inactive"}
+              dotOnly
+            />
+          </div>
         )}
       </div>
 

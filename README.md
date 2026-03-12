@@ -39,8 +39,23 @@ A production-ready, high-performance API analytics backend built with Python 3.1
 
 - Docker & Docker Compose
 - _Optional_: [uv](https://github.com/astral-sh/uv) (for running tests/linting outside Docker)
+- _Optional_: [OpenSSL](https://www.openssl.org/) (for generating security keys)
 
-### 2. Local Development (Docker Compose)
+### 2. Security Setup
+
+Before running the application, generate a strong secret for your `.env` file:
+
+```bash
+# Generate a 32-byte random SECURITY_KEY
+openssl rand -hex 32
+
+# Or using Python
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Never commit `.env` with real credentials.
+
+### 3. Local Development (Docker Compose)
 
 We use Docker Compose as the primary way to run the application locally. This sets up Postgres, Redis, and the FastAPI application in a production-like environment.
 

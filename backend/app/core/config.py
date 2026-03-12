@@ -131,6 +131,7 @@ class Settings(BaseSettings):
             # Basic security headers suitable for an API
             "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": "frame-ancestors 'none';",
+            "Cache-Control": "no-store",
         }
 
         if self.IS_PRODUCTION:

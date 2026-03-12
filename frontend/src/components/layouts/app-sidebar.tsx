@@ -77,7 +77,11 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar variant="inset" collapsible="icon" className="absolute">
+    <Sidebar
+      variant={isMobile ? "floating" : "inset"}
+      collapsible="icon"
+      className="absolute"
+    >
       <SidebarHeader>
         {/* Brand — doubles as sidebar collapse toggle */}
         <SidebarMenu>
@@ -85,13 +89,13 @@ export function AppSidebar() {
             <SidebarMenuButton
               size="lg"
               onClick={toggleSidebar}
-              tooltip={open ? "Collapse sidebar" : "Expand sidebar"}
+              tooltip={open || isMobile ? "Collapse sidebar" : "Expand sidebar"}
               className="group/brand"
             >
               <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-primary shrink-0">
                 <BarChart3 className="h-4 w-4 text-sidebar-primary-foreground transition-opacity duration-150 group-hover/brand:opacity-0" />
                 <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/brand:opacity-100">
-                  {open ? (
+                  {open || isMobile ? (
                     <PanelLeftClose className="h-4 w-4 text-sidebar-primary-foreground" />
                   ) : (
                     <PanelLeftOpen className="h-4 w-4 text-sidebar-primary-foreground" />
@@ -261,7 +265,7 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
 
-      <SidebarRail />
+      <SidebarRail className="hover:after:bg-transparent" />
     </Sidebar>
   );
 }

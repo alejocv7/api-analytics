@@ -93,10 +93,13 @@ function SidebarProvider({
   );
 
   // Auto-collapse when resizing from lg → md: sidebar must never stay expanded at md.
+  // Auto-expand when resizing to lg: sidebar should expand when space is available.
   const prevBreakpoint = React.useRef(breakpoint);
   React.useEffect(() => {
     if (prevBreakpoint.current === "lg" && breakpoint === "md") {
       setOpen(false);
+    } else if (prevBreakpoint.current === "md" && breakpoint === "lg") {
+      setOpen(true);
     }
     prevBreakpoint.current = breakpoint;
   }, [breakpoint, setOpen]);

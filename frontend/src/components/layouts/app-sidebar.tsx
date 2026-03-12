@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  ChartArea,
   ChevronDown,
   FolderKanban,
   Moon,
@@ -198,7 +199,7 @@ export function AppSidebar() {
                   tooltip="Dashboard"
                 >
                   <Link href={`/projects/${projectKey}/dashboard`}>
-                    <BarChart3 className="h-4 w-4" />
+                    <ChartArea className="h-4 w-4" />
                     <span>Dashboard</span>
                   </Link>
                 </SidebarMenuButton>

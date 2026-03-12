@@ -133,7 +133,16 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, breakpoint, openMobile, setOpenMobile, toggleSidebar],
+    [
+      state,
+      open,
+      setOpen,
+      isMobile,
+      breakpoint,
+      openMobile,
+      setOpenMobile,
+      toggleSidebar,
+    ],
   );
 
   return (
@@ -173,7 +182,15 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
-  const { isMobile, state, open, setOpen, openMobile, setOpenMobile, breakpoint } = useSidebar();
+  const {
+    isMobile,
+    state,
+    open,
+    setOpen,
+    openMobile,
+    setOpenMobile,
+    breakpoint,
+  } = useSidebar();
 
   if (collapsible === "none") {
     return (
@@ -197,10 +214,15 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+          className={cn(
+            "text-sidebar-foreground w-(--sidebar-width) border-none [&>button]:hidden",
+            variant === "floating" ? "bg-transparent p-2" : "bg-sidebar p-0",
+          )}
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+              // When floating, ensure we don't apply the default sheet shadow
+              boxShadow: variant === "floating" ? "none" : undefined,
             } as React.CSSProperties
           }
           side={side}
@@ -209,7 +231,15 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div
+            className={cn(
+              "flex h-full w-full flex-col overflow-hidden",
+              variant === "floating" &&
+                "bg-sidebar rounded-lg border border-sidebar-border shadow-sm",
+            )}
+          >
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     );
@@ -275,7 +305,8 @@ function Sidebar({
                   "p-2",
                   // At md: icon width when closed (state=collapsed), full width when open (overlay)
                   isOverlayMode
-                    ? !open && "w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
+                    ? !open &&
+                        "w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
                     : "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]",
                 )
               : cn(

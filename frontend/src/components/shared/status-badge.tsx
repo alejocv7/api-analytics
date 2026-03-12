@@ -5,6 +5,7 @@ interface StatusBadgeProps {
   status: "active" | "inactive" | "expired";
   className?: string;
   label?: string;
+  dotOnly?: boolean;
 }
 
 const STATUS_CONFIG = {
@@ -28,8 +29,35 @@ const STATUS_CONFIG = {
   },
 };
 
-export function StatusBadge({ status, className, label }: StatusBadgeProps) {
+export function StatusBadge({
+  status,
+  className,
+  label,
+  dotOnly,
+}: StatusBadgeProps) {
   const config = STATUS_CONFIG[status];
+
+  if (dotOnly) {
+    return (
+      <span className={cn("relative inline-flex h-2 w-2 shrink-0", className)}>
+        {status === "active" && (
+          <span
+            className={cn(
+              "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+              config.dotClass,
+            )}
+          />
+        )}
+        <span
+          className={cn(
+            "relative inline-flex h-2 w-2 rounded-full",
+            config.dotClass,
+          )}
+        />
+      </span>
+    );
+  }
+
   const displayLabel = label || config.label;
 
   return (

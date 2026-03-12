@@ -23,7 +23,7 @@ export default function SettingsPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Project Settings" description={project?.name} />
+      <PageHeader title="Project Settings" />
 
       {projectLoading || roleLoading ? (
         <Skeleton className="h-64 w-full" />

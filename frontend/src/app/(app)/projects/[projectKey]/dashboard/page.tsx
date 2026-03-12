@@ -17,7 +17,6 @@ import {
 } from "@/components/dashboard/date-range-picker";
 import { GranularitySelect } from "@/components/dashboard/granularity-select";
 import { PageHeader } from "@/components/layouts/page-header";
-import { StatusBadge } from "@/components/shared/status-badge";
 import { RoleBadge } from "@/components/shared/role-badge";
 import {
   useMetricsSummary,
@@ -155,16 +154,8 @@ export default function DashboardPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        title={project?.name ?? <Skeleton className="h-6 w-48" />}
-        description="API performance overview"
-        badges={
-          project && (
-            <>
-              <StatusBadge status={project.is_active ? "active" : "inactive"} />
-              {project.role && <RoleBadge role={project.role} />}
-            </>
-          )
-        }
+        title="API performance overview"
+        badges={project?.role && <RoleBadge role={project.role} />}
         action={
           <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row items-center gap-4 md:gap-2 w-full md:w-auto">
             <DateRangePicker

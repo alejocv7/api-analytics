@@ -1,4 +1,6 @@
 import os
+import secrets
+import warnings
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
@@ -139,7 +141,9 @@ class Settings(BaseSettings):
 
         return headers
 
-    SECURITY_KEY: str
+    SECURITY_KEY: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(32), min_length=32
+    )
     SECURITY_ALGORITHM: str = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     SECURITY_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
@@ -179,19 +183,27 @@ class Settings(BaseSettings):
 
     SHUTDOWN_TASKS_CANCEL_TIMEOUT_SECONDS: int = Field(default=5, ge=1, le=60)
 
+    def _check_default_secret(self, var_name: str, value: str | None) -> None:
+        if value == "changethis":
+            message = (
+                f'The value of {var_name} is "changethis", '
+                "for security, please change it, at least for deployments."
+            )
+            if self.ENVIRONMENT == "local":
+                warnings.warn(message, stacklevel=1)
+            else:
+                raise ValueError(message)
+
     @model_validator(mode="after")
-    def validate_security_key(self) -> Self:
-        key = self.SECURITY_KEY.strip()
-        if self.IS_PRODUCTION:
-            if len(key) < 32:
-                raise ValueError(
-                    "SECURITY_KEY must be at least 32 characters in production"
-                )
-            if key.lower() in ("changethis", "change_this", "secret", "password"):
-                raise ValueError(
-                    "SECURITY_KEY must be set to a secure value in production"
-                )
-        self.SECURITY_KEY = key
+    def _enforce_non_default_secrets(self) -> Self:
+        self._check_default_secret("SECURITY_KEY", self.SECURITY_KEY)
+        self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+        self._check_default_secret("REDIS_PASSWORD", self.REDIS_PASSWORD)
+        # Project
+        self._check_default_secret("PROJECT_PASSWORD", self.PROJECT_PASSWORD)
+        self._check_default_secret("PROJECT_USER", self.PROJECT_USER)
+        self._check_default_secret("PROJECT_KEY", self.PROJECT_KEY)
+
         return self
 
 

@@ -4,12 +4,26 @@ from pydantic import ValidationError
 from app.core.config import Settings
 
 
-def test_security_key_length_production():
-    """Test that SECURITY_KEY must be at least 32 characters in production."""
-    # Production environment with short key should fail
+def test_security_key_generation(monkeypatch):
+    """Test that SECURITY_KEY is generated automatically if not provided."""
+    monkeypatch.delenv("SECURITY_KEY", raising=False)
+    settings = Settings(
+        ENVIRONMENT="test",
+        PROJECT_USER="test@example.com",
+        PROJECT_PASSWORD="password",
+        PROJECT_KEY="test",
+        POSTGRES_SERVER="localhost",
+        POSTGRES_USER="user",
+    )
+    assert settings.SECURITY_KEY is not None
+    assert len(settings.SECURITY_KEY) >= 32
+
+
+def test_security_key_min_length():
+    """Test that SECURITY_KEY must be at least 32 characters in all environments."""
     with pytest.raises(ValidationError) as excinfo:
         Settings(
-            ENVIRONMENT="prod",
+            ENVIRONMENT="test",
             SECURITY_KEY="short",
             PROJECT_USER="test@example.com",
             PROJECT_PASSWORD="password",
@@ -17,40 +31,31 @@ def test_security_key_length_production():
             POSTGRES_SERVER="localhost",
             POSTGRES_USER="user",
         )
-    assert "SECURITY_KEY must be at least 32 characters in production" in str(
-        excinfo.value
-    )
+    assert "String should have at least 32 characters" in str(excinfo.value)
 
 
-def test_security_key_length_non_production():
-    """Test that SECURITY_KEY does not need to be 32 characters in non-production."""
-    # Test environment with short key should pass
-    settings = Settings(
-        ENVIRONMENT="test",
-        SECURITY_KEY="short",
-        PROJECT_USER="test@example.com",
-        PROJECT_PASSWORD="password",
-        PROJECT_KEY="test",
-        POSTGRES_SERVER="localhost",
-        POSTGRES_USER="user",
-    )
-    assert settings.SECURITY_KEY == "short"
-
-
-def test_security_key_secure_value_production():
-    """Test that SECURITY_KEY must be a secure value in production."""
-    # Note: Currently, all blacklisted words are caught by the length check (32 chars).
-    # Len validation error takes priority, even for blacklisted words like "changethis"
+def test_enforce_non_default_secrets_non_local():
+    """Test that default secrets are not allowed in non-local environments."""
     with pytest.raises(ValidationError) as excinfo:
         Settings(
-            ENVIRONMENT="prod",
-            SECURITY_KEY="changethis",
+            ENVIRONMENT="test",
+            PROJECT_KEY="changethis",
             PROJECT_USER="test@example.com",
             PROJECT_PASSWORD="password",
-            PROJECT_KEY="test",
             POSTGRES_SERVER="localhost",
             POSTGRES_USER="user",
         )
-    assert "SECURITY_KEY must be at least 32 characters in production" in str(
-        excinfo.value
-    )
+    assert 'The value of PROJECT_KEY is "changethis"' in str(excinfo.value)
+
+
+def test_enforce_non_default_secrets_local():
+    """Test that default secrets trigger a warning in local environment."""
+    with pytest.warns(UserWarning, match='The value of PROJECT_KEY is "changethis"'):
+        Settings(
+            ENVIRONMENT="local",
+            PROJECT_KEY="changethis",
+            PROJECT_USER="test@example.com",
+            PROJECT_PASSWORD="password",
+            POSTGRES_SERVER="localhost",
+            POSTGRES_USER="user",
+        )

@@ -77,7 +77,11 @@ export function AppNavbar() {
       {/* User avatar dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="rounded-full shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full shrink-0 border border-primary/50"
+          >
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-primary/10 text-xs font-medium">
                 {user ? getInitials(user.full_name) : "?"}
@@ -110,7 +114,7 @@ export function AppNavbar() {
             className="text-destructive focus:text-destructive focus:bg-destructive/10"
             onClick={handleLogout}
           >
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="mr-2 h-4 w-4 text-destructive" />
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>

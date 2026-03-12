@@ -120,7 +120,7 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   size="lg"
                   tooltip={currentProject?.name ?? "Switch project"}
-                  className="ring-1 ring-sidebar-border bg-accent-foreground/85 hover:bg-accent-foreground px-4 py-2 h-14"
+                  className="ring-1 ring-sidebar-border bg-sidebar-foreground/10 hover:bg-sidebar-foreground/20 px-4 py-2 h-14"
                 >
                   {!open && (
                     <Avatar className="h-8 w-8 shrink-0">
@@ -252,7 +252,9 @@ export function AppSidebar() {
               }}
               onMouseEnter={() => setThemeHovered(true)}
               onMouseLeave={() => setThemeHovered(false)}
-              tooltip={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              tooltip={
+                darkMode ? "Switch to light mode" : "Switch to dark mode"
+              }
             >
               <span className="relative h-4 w-4 shrink-0">
                 <Sun

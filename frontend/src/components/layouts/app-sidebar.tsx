@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -34,10 +34,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
 import { useProjects, useProject } from "@/hooks/use-projects";
 import { cn, getInitials } from "@/lib/utils";
-import { useState } from "react";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -45,6 +43,12 @@ export function AppSidebar() {
     useSidebar();
   const { resolvedTheme, setTheme } = useTheme();
   const darkMode = resolvedTheme === "dark";
+  const [themeHovered, setThemeHovered] = useState(false);
+
+  // Derive which icon to show: current icon, or next-theme icon while hovering.
+  // Reset hovered on click so the icon reflects the new theme immediately.
+  const showSun = darkMode === themeHovered; // light+idle OR dark+hovered
+  const showMoon = darkMode !== themeHovered; // dark+idle OR light+hovered
 
   const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const router = useRouter();
@@ -71,10 +75,6 @@ export function AppSidebar() {
   const { data: currentProject } = useProject(projectKey);
 
   const projects = projectsData?.items ?? [];
-
-  function toggleDarkMode(enabled: boolean) {
-    setTheme(enabled ? "dark" : "light");
-  }
 
   return (
     <Sidebar
@@ -241,31 +241,41 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Dark mode toggle — always accessible in the sidebar footer */}
+      {/* Dark mode toggle — click to switch, hover previews the next theme */}
       <SidebarFooter>
-        <div className="flex items-center justify-between px-2 py-1.5 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group-data-[collapsible=icon]:justify-center">
-          <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-            {darkMode ? (
-              <Moon className="h-4 w-4 text-primary shrink-0" />
-            ) : (
-              <Sun className="h-4 w-4 text-amber-500 shrink-0" />
-            )}
-            <span>Dark Mode</span>
-          </div>
-          {/* Icon-only mode: just the icon, no switch */}
-          <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
-            {darkMode ? (
-              <Moon className="h-4 w-4 text-primary" />
-            ) : (
-              <Sun className="h-4 w-4 text-amber-500" />
-            )}
-          </div>
-          <Switch
-            checked={darkMode}
-            onCheckedChange={toggleDarkMode}
-            className="scale-75 origin-right group-data-[collapsible=icon]:hidden"
-          />
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => {
+                setThemeHovered(false);
+                setTheme(darkMode ? "light" : "dark");
+              }}
+              onMouseEnter={() => setThemeHovered(true)}
+              onMouseLeave={() => setThemeHovered(false)}
+              tooltip={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              <span className="relative h-4 w-4 shrink-0">
+                <Sun
+                  className={cn(
+                    "absolute inset-0 h-4 w-4 text-amber-500 transition-all duration-200",
+                    showSun
+                      ? "opacity-100 scale-100 rotate-0"
+                      : "opacity-0 scale-0 rotate-90",
+                  )}
+                />
+                <Moon
+                  className={cn(
+                    "absolute inset-0 h-4 w-4 text-blue-400 transition-all duration-200",
+                    showMoon
+                      ? "opacity-100 scale-100 rotate-0"
+                      : "opacity-0 scale-0 -rotate-90",
+                  )}
+                />
+              </span>
+              <span>{showSun ? "Light mode" : "Dark mode"}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
 
       <SidebarRail className="hover:after:bg-transparent" />

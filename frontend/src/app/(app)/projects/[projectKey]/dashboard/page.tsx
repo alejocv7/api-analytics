@@ -154,7 +154,7 @@ export default function DashboardPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        title="API performance overview"
+        title="API Performance Overview"
         badges={project?.role && <RoleBadge role={project.role} />}
         action={
           <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row items-center gap-4 md:gap-2 w-full md:w-auto">

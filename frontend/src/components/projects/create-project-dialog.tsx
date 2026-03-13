@@ -73,8 +73,8 @@ export function CreateProjectDialog({ onSuccess }: CreateProjectDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
+        <Button size="sm" className="w-full sm:w-auto">
+          <Plus className="h-3.5 w-3.5" />
           New project
         </Button>
       </DialogTrigger>

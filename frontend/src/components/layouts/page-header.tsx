@@ -6,6 +6,8 @@ interface PageHeaderProps {
   badges?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
+  /** Breakpoint at which layout switches from column to row. Defaults to "md" */
+  actionBreakpoint?: "sm" | "md" | "lg";
 }
 
 export function PageHeader({
@@ -14,14 +16,13 @@ export function PageHeader({
   badges,
   action,
   className,
+  actionBreakpoint = "md",
 }: PageHeaderProps) {
+  const layout = `${actionBreakpoint}:flex-row ${actionBreakpoint}:items-center ${actionBreakpoint}:justify-between`;
+  const actionWidth = `w-full ${actionBreakpoint}:w-auto`;
+
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-3 md:flex-row md:items-center md:justify-between",
-        className,
-      )}
-    >
+    <div className={cn("flex flex-col gap-3", layout, className)}>
       <div className="space-y-1 min-w-0">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight text-foreground whitespace-normal wrap-break-word capitalize">
@@ -33,7 +34,7 @@ export function PageHeader({
           <p className="text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {action && <div className="shrink-0 w-full md:w-auto">{action}</div>}
+      {action && <div className={cn("shrink-0", actionWidth)}>{action}</div>}
     </div>
   );
 }

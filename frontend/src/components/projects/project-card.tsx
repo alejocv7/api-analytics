@@ -24,13 +24,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <Card className="flex flex-col hover:shadow-md transition-shadow cursor-pointer">
         <CardContent className="px-5 space-y-2.5">
           {/* Header: name + status badge */}
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between md:gap-2.5">
             <h3 className="text-base font-semibold leading-tight wrap-break-word">
               {project.name}
             </h3>
             <StatusBadge
               status={project.is_active ? "active" : "inactive"}
-              className="px-1 py-0 h-4 self-start sm:shrink-0"
+              className="px-1 py-0 h-4 self-start md:shrink-0"
             />
           </div>
 

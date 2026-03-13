@@ -105,8 +105,11 @@ export function AppNavbar() {
             </>
           )}
           <DropdownMenuItem asChild>
-            <Link href="/profile">
-              <User className="mr-2 h-4 w-4" />
+            <Link
+              href="/profile"
+              className="text-primary focus:text-primary focus:bg-primary/10"
+            >
+              <User className="mr-2 h-4 w-4 text-primary" />
               Profile
             </Link>
           </DropdownMenuItem>

@@ -14,6 +14,7 @@ export default function ProjectsPage() {
         title="Projects"
         description="Manage and monitor all your projects"
         action={<CreateProjectDialog />}
+        actionBreakpoint="sm"
       />
       <ProjectList />
     </div>

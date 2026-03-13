@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, User } from "lucide-react";
@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useProject } from "@/hooks/use-projects";
+import { useActiveProject } from "@/providers/active-project-provider";
 import { getInitials } from "@/lib/utils";
 import { StatusBadge } from "@/components/shared/status-badge";
 
@@ -27,13 +28,13 @@ export function AppNavbar() {
   const { toggleSidebar } = useSidebar();
   const { user, logout } = useUser();
 
-  // Mirror the project-key resolution logic from AppSidebar so the navbar
-  // always shows the correct project name even when on /projects list page.
   const projectKeyMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentPathKey = projectKeyMatch?.[1] ?? "";
-  const lastProjectKeyRef = useRef(currentPathKey);
-  if (currentPathKey) lastProjectKeyRef.current = currentPathKey;
-  const projectKey = lastProjectKeyRef.current;
+
+  const { projectKey, setProjectKey } = useActiveProject();
+  useEffect(() => {
+    if (currentPathKey) setProjectKey(currentPathKey);
+  }, [currentPathKey, setProjectKey]);
 
   const { data: currentProject } = useProject(projectKey);
 

@@ -28,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { SecretDisplay } from "@/components/shared/secret-display";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useUpdateProject, useDeleteProject } from "@/hooks/use-projects";
+import { useActiveProject } from "@/providers/active-project-provider";
 import {
   updateProjectSchema,
   type UpdateProjectFormValues,
@@ -45,6 +46,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const { clearProjectKey } = useActiveProject();
   const updateProject = useUpdateProject(project.project_key);
   const deleteProject = useDeleteProject(project.project_key);
 
@@ -90,6 +92,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
   async function handleDelete() {
     try {
       await deleteProject.mutateAsync();
+      clearProjectKey();
       toast.success("Project deleted");
       router.push("/projects");
     } catch {

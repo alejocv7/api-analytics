@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProjects, useProject } from "@/hooks/use-projects";
+import { useActiveProject } from "@/providers/active-project-provider";
 import { cn, getInitials } from "@/lib/utils";
 
 export function AppSidebar() {
@@ -66,11 +67,12 @@ export function AppSidebar() {
   const projectKeyMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentPathKey = projectKeyMatch?.[1] ?? "";
 
+  const { projectKey, setProjectKey } = useActiveProject();
   // Persist the last active project key so sidebar nav stays visible
   // when navigating to /projects (projects list).
-  const lastProjectKeyRef = useRef(currentPathKey);
-  if (currentPathKey) lastProjectKeyRef.current = currentPathKey;
-  const projectKey = lastProjectKeyRef.current;
+  useEffect(() => {
+    if (currentPathKey) setProjectKey(currentPathKey);
+  }, [currentPathKey, setProjectKey]);
 
   const { data: projectsData } = useProjects(1, 50);
   const { data: currentProject } = useProject(projectKey);

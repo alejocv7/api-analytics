@@ -1,5 +1,4 @@
 import os
-import secrets
 import warnings
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -141,9 +140,7 @@ class Settings(BaseSettings):
 
         return headers
 
-    SECURITY_KEY: str = Field(
-        default_factory=lambda: secrets.token_urlsafe(32), min_length=32
-    )
+    SECURITY_KEY: str = Field(min_length=32)
     SECURITY_ALGORITHM: str = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     SECURITY_REFRESH_TOKEN_EXPIRE_DAYS: int = 30

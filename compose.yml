@@ -1,4 +1,13 @@
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL?Variable not set}
+        - NODE_ENV=production
+    restart: always
+
   backend:
     build:
       context: .

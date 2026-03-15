@@ -1,0 +1,28 @@
+# Ignore dependencies and build output
+node_modules
+.next
+.vercel
+.cache
+.turbo
+dist
+out
+coverage
+
+# Ignore environment and config files (sensitive data/local specific)
+.env
+.env*.local
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Ignore development and system files
+.git
+.gitignore
+*Dockerfile*
+.dockerignore
+docker-compose*.yml
+compose*.yml
+.vscode
+.idea
+*.swp
+.DS_Store

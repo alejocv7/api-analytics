@@ -13,11 +13,7 @@ services:
     restart: "no"
     ports:
       - "8000:8000"
-    command:
-      - fastapi
-      - run
-      - --reload
-      - "app/main.py"
+    command: ["fastapi", "run", "--reload", "app/main.py"]
     develop:
       watch:
         - path: ./backend
@@ -27,4 +23,23 @@ services:
             - ./backend/.venv
             - .venv
         - path: ./backend/pyproject.toml
+          action: rebuild
+
+  frontend:
+    restart: "no"
+    ports:
+      - "3000:3000"
+    build:
+      target: dev
+      args:
+        - NEXT_PUBLIC_API_URL=http://backend:8000
+    develop:
+      watch:
+        - path: ./frontend
+          action: sync
+          target: /app/frontend
+          ignore:
+            - ./frontend/.next
+            - ./frontend/node_modules
+        - path: ./frontend/package-lock.json
           action: rebuild

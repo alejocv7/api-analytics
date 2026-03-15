@@ -9,8 +9,7 @@ FROM base AS deps
 
 WORKDIR /app/frontend
 
-# Install dependencies
-COPY frontend/package.json frontend/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 # ----------------------------------------------------------------------------
@@ -23,7 +22,7 @@ WORKDIR /app/frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/frontend/node_modules ./node_modules
-COPY frontend ./
+COPY . .
 
 CMD ["npm", "run", "dev"]
 
@@ -35,7 +34,7 @@ FROM base AS builder
 WORKDIR /app/frontend
 
 COPY --from=deps /app/frontend/node_modules ./node_modules
-COPY frontend ./
+COPY . .
 
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
@@ -45,7 +44,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ----------------------------------------------------------------------------
-# Step 2. Production image, copy all the files and run next
+# Stage 4: runner — minimal production image
 # ----------------------------------------------------------------------------
 FROM base AS runner
 

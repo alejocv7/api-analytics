@@ -20,32 +20,31 @@ ENV UV_COMPILE_BYTECODE=1
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
 ENV UV_LINK_MODE=copy
 
-WORKDIR /app
+WORKDIR /app/backend
 
 # Place executables in the environment at the front of the path
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/app/backend/.venv/bin:$PATH"
 
-# Install dependencies
+# Install dependencies only — app code excluded to maximise layer cache reuse.
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=backend/pyproject.toml,target=backend/pyproject.toml \
-    uv sync --locked --no-install-workspace --package app
+    uv sync --locked --no-install-project
 
-# Copy the application into the container.
-COPY ./backend/pyproject.toml ./backend/alembic.ini ./backend/README.md /app/backend/
-COPY ./backend/scripts /app/backend/scripts
-COPY ./backend/alembic /app/backend/alembic
-COPY ./backend/app /app/backend/app
+# Copy the application into the container
+COPY pyproject.toml alembic.ini README.md ./
+COPY scripts ./scripts
+COPY alembic ./alembic
+COPY app ./app
 
 # Sync the project
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --package app
+    uv sync --locked
 
 # Reset the entrypoint, don't invoke `uv`
 ENTRYPOINT []
@@ -53,8 +52,5 @@ ENTRYPOINT []
 # Switch to non-root user
 USER nonroot
 
-# Set the working directory to the application code
-WORKDIR /app/backend
-
-# Run the application.
+# Run the application
 CMD ["fastapi", "run", "--workers", "4", "app/main.py"]

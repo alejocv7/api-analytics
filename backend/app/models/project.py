@@ -27,9 +27,9 @@ class Project(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str] = mapped_column(String(40), nullable=False)
     project_key: Mapped[str] = mapped_column(
-        String(100 + 1 + settings.PROJECT_SUFFIX_LENGTH), unique=True, index=True
+        String(40 + 1 + settings.PROJECT_SUFFIX_LENGTH), unique=True, index=True
     )
     description: Mapped[str | None] = mapped_column(String(1000))
 

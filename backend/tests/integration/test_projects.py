@@ -195,6 +195,45 @@ async def test_update_project_returns_counts(
     assert data["api_key_count"] == 1
 
 
+async def test_create_project_name_at_max_length(client: AsyncClient, auth_headers):
+    name = "A" * 40
+    response = await client.post(
+        "/api/v1/projects/",
+        headers=auth_headers,
+        json={"name": name},
+    )
+    assert response.status_code == 201
+    assert response.json()["name"] == name
+
+
+async def test_create_project_name_exceeds_max_length(
+    client: AsyncClient, auth_headers
+):
+    response = await client.post(
+        "/api/v1/projects/",
+        headers=auth_headers,
+        json={"name": "A" * 41},
+    )
+    assert response.status_code == 422
+
+
+async def test_update_project_name_exceeds_max_length(
+    client: AsyncClient, auth_headers, test_user, db_session
+):
+    p = await create_project(
+        db_session,
+        user=test_user,
+        name="Valid Name",
+        project_key="valid-name-key",
+    )
+    response = await client.patch(
+        f"/api/v1/projects/{p.project_key}",
+        headers=auth_headers,
+        json={"name": "A" * 41},
+    )
+    assert response.status_code == 422
+
+
 async def test_delete_project(client: AsyncClient, auth_headers, test_user, db_session):
     p = await create_project(
         db_session,

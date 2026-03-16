@@ -94,7 +94,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Full name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Jane Smith" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

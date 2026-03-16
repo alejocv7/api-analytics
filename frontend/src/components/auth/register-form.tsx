@@ -120,11 +120,7 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Full name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Jane Smith"
-                      autoComplete="name"
-                      {...field}
-                    />
+                    <Input autoComplete="name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

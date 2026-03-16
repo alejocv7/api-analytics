@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   ChartArea,
+  Check,
   ChevronDown,
   FolderKanban,
   Moon,
@@ -159,26 +160,28 @@ export function AppSidebar() {
                   </p>
                 ) : (
                   <div className="space-y-0.5">
-                    {projects.map((project) => (
-                      <button
-                        key={project.id}
-                        className={cn(
-                          "w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground",
-                          project.project_key === projectKey &&
-                            "bg-accent text-accent-foreground font-medium",
-                        )}
-                        onClick={() => {
-                          setProjectSwitcherOpen(false);
-                          router.push(
-                            `/projects/${project.project_key}/dashboard`,
-                          );
-                        }}
-                      >
-                        <span className="block wrap-break-word leading-snug">
-                          {project.name}
-                        </span>
-                      </button>
-                    ))}
+                    {projects.map((project) => {
+                      const isActive = project.project_key === projectKey;
+                      return (
+                        <button
+                          key={project.id}
+                          className={cn(
+                            "w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors hover:bg-sidebar-primary/20 hover:text-accent-foreground flex items-center gap-2",
+                            isActive && "bg-primary text-accent font-medium",
+                          )}
+                          onClick={() => {
+                            setProjectSwitcherOpen(false);
+                            router.push(
+                              `/projects/${project.project_key}/dashboard`,
+                            );
+                          }}
+                        >
+                          <span className="flex-1 wrap-break-word leading-snug">
+                            {project.name}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </PopoverContent>

@@ -9,6 +9,7 @@ from app.core.config import settings
 def redis_url(redis_container) -> str:
     settings.REDIS_HOST = redis_container.get_container_host_ip()
     settings.REDIS_PORT = redis_container.get_exposed_port(6379)
+    settings.REDIS_PASSWORD = ""
     settings.model_rebuild()
 
     return settings.REDIS_URL

@@ -123,7 +123,7 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   size="lg"
                   tooltip={currentProject?.name ?? "Switch project"}
-                  className="ring-1 ring-sidebar-border bg-sidebar-foreground/10 hover:bg-sidebar-foreground/20 px-4 py-2 h-14"
+                  className="ring-1 ring-sidebar-border bg-sidebar-foreground/10 hover:bg-sidebar-foreground/20 px-4 py-2 min-h-14 h-auto"
                 >
                   {!open && (
                     <Avatar className="h-8 w-8 shrink-0">
@@ -139,7 +139,7 @@ export function AppSidebar() {
                     <span className="text-2xs font-semibold tracking-wider opacity-50 block leading-none mb-1">
                       Current Project
                     </span>
-                    <span className="text-sm font-semibold truncate block">
+                    <span className="text-sm font-semibold line-clamp-2 leading-snug">
                       {currentProject?.name ??
                         (projectKey ? "Loading…" : "Select project")}
                     </span>
@@ -174,7 +174,9 @@ export function AppSidebar() {
                           );
                         }}
                       >
-                        <span className="truncate block">{project.name}</span>
+                        <span className="block wrap-break-word leading-snug">
+                          {project.name}
+                        </span>
                       </button>
                     ))}
                   </div>

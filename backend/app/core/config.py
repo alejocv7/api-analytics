@@ -32,12 +32,12 @@ def parse_list(v: Any) -> list[str] | str:
 
 def get_env_file() -> Path:
     env = os.getenv("ENVIRONMENT", "local")
-    base_dir = Path(__file__).resolve().parent.parent.parent.parent
+    backend_dir = Path(__file__).resolve().parent.parent.parent
 
     env_file_name = f".env.{env}" if env != "local" else ".env"
-    candidate = base_dir / env_file_name
+    candidate = backend_dir / env_file_name
 
-    return candidate if candidate.exists() else base_dir / ".env"
+    return candidate if candidate.exists() else backend_dir / ".env"
 
 
 class Settings(BaseSettings):

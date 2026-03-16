@@ -14,7 +14,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     env_file:
-      - .env
+      - ./backend/.env
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_PORT=${POSTGRES_PORT}
@@ -44,7 +44,7 @@ services:
       dockerfile: Dockerfile
     command: ./scripts/migrate.sh
     env_file:
-      - .env
+      - ./backend/.env
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_PORT=${POSTGRES_PORT}
@@ -58,8 +58,6 @@ services:
   db:
     image: postgres:16-alpine
     restart: always
-    env_file:
-      - .env
     environment:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
@@ -75,8 +73,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
-    env_file:
-      - .env
     command: >
       redis-server
       --requirepass ${REDIS_PASSWORD}

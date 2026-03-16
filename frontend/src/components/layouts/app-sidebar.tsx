@@ -124,7 +124,10 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   size="lg"
                   tooltip={currentProject?.name ?? "Switch project"}
-                  className="ring-1 ring-sidebar-border bg-sidebar-foreground/10 hover:bg-sidebar-foreground/20 px-4 py-2 min-h-14 h-auto"
+                  className={cn(
+                    "ring-1 ring-sidebar-border bg-sidebar-foreground/10 hover:bg-sidebar-foreground/20 px-4 py-2",
+                    open ? "min-h-14 h-auto" : "h-14",
+                  )}
                 >
                   {!open && (
                     <Avatar className="h-8 w-8 shrink-0">

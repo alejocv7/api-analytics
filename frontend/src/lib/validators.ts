@@ -37,7 +37,7 @@ export type RegisterFormValues = z.infer<typeof registerSchema>;
 const projectNameSchema = z
   .string()
   .min(1, "Project name is required")
-  .max(100, "Project name must be 100 characters or less")
+  .max(40, "Project name must be 40 characters or less")
   .regex(
     /^[a-zA-Z0-9\s_-]+$/,
     "Name can only contain letters, numbers, spaces, hyphens, and underscores",

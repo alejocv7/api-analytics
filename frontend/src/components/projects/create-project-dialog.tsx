@@ -96,7 +96,7 @@ export function CreateProjectDialog({ onSuccess }: CreateProjectDialogProps) {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Production API" {...field} />
+                    <Input placeholder="Production API" maxLength={40} {...field} />
                   </FormControl>
                   <FormDescription>
                     A unique name for this project. Used to generate a project

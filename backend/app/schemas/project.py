@@ -15,7 +15,7 @@ class ProjectBase(BaseModel):
     """Base project schema."""
 
     name: str = Field(
-        ..., min_length=1, max_length=100, pattern=settings.PROJECT_NAME_PATTERN
+        ..., min_length=1, max_length=40, pattern=settings.PROJECT_NAME_PATTERN
     )
     description: str | None = Field(None, max_length=1000)
 
@@ -41,7 +41,7 @@ class ProjectUpdate(BaseModel):
     """Schema for updating a project."""
 
     name: str | None = Field(
-        None, min_length=1, max_length=100, pattern=settings.PROJECT_NAME_PATTERN
+        None, min_length=1, max_length=40, pattern=settings.PROJECT_NAME_PATTERN
     )
     description: str | None = Field(None, max_length=1000)
     is_active: bool | None = None

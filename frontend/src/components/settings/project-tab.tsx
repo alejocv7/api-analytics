@@ -124,6 +124,7 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
                         {...field}
                         disabled={!isOwner}
                         placeholder="Project name"
+                        maxLength={40}
                       />
                     </FormControl>
                     <FormMessage />

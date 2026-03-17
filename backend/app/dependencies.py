@@ -69,7 +69,9 @@ async def get_project_id_by_api_key(
     # Prevent timing attacks by verifying the API key even when it doesn't exist.
     # This ensures the response time is similar whether or not the API key exists.
     key_hash = (
-        api_key_obj.key_hash if api_key_obj else config.settings.SECURITY_DUMMY_HASH
+        api_key_obj.key_hash
+        if api_key_obj
+        else (config.settings.SECURITY_DUMMY_API_KEY_HASH)
     )
 
     if (

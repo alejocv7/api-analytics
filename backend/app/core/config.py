@@ -156,6 +156,13 @@ class Settings(BaseSettings):
         "I0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
     )
 
+    # Dummy hash for API key timing-attack prevention.
+    # Must be a 64-char hex string (valid HMAC-SHA256 output) so that
+    # hmac.compare_digest always compares equal-length strings.
+    SECURITY_DUMMY_API_KEY_HASH: str = (
+        "a3f1c2e4b5d6789012345678901234567890abcdef1234567890abcdef123456"
+    )
+
     # CORS & Trusted Hosts
     TRUSTED_HOSTS: Annotated[list[str] | str, BeforeValidator(parse_list)] = []
     BACKEND_CORS_ORIGINS: Annotated[

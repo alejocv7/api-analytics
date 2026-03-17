@@ -31,7 +31,7 @@ async def test_register_duplicate_email():
 
         with pytest.raises(BadRequestError) as exc:
             await auth_service.register(user_in, session)
-        assert "Email already registered" in str(exc.value)
+        assert "Registration failed" in str(exc.value)
 
 
 async def test_authenticate_user_not_found():

@@ -103,10 +103,7 @@ class MetricMiddleware:
                                 settings.PROJECT_KEY, session
                             )
                             if not project:
-                                logger.warning(
-                                    "Self-monitoring project not found for key: %s",
-                                    settings.PROJECT_KEY,
-                                )
+                                logger.warning("Self-monitoring project not found")
                                 return
 
                             self._project_id = project.id

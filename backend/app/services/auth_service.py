@@ -24,7 +24,7 @@ async def register(user: schemas.UserCreate, session: AsyncSession) -> models.Us
             "Registration failed: Email already registered: %s",
             utils.mask_email(user.email),
         )
-        raise BadRequestError("Email already registered")
+        raise BadRequestError("Registration failed")
 
     hashed_password = security.hash_password(user.password.get_secret_value())
     new_user = models.User(

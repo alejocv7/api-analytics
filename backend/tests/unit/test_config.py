@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.core.config import Settings
 
-_VALID_KEY = "a" * 32  # exactly 32 chars, meets min_length
+_VALID_KEY = "abcdefghij" + "a" * 22  # at least 10 unique chars, 32 total
 _BASE_SETTINGS: dict[str, Any] = {
     "SECURITY_KEY": _VALID_KEY,
     "PROJECT_USER": "test@example.com",
@@ -97,3 +97,38 @@ def test_enforce_ssl_in_remote_envs(env: str):
     )
     assert settings.POSTGRES_SSL is True
     assert settings.REDIS_SSL is True
+
+
+def test_security_key_entropy_remote_envs():
+    """Test that SECURITY_KEY must have >= 10 unique chars in remote envs (M8)."""
+    low_entropy_key = "a" * 32
+    with pytest.raises(ValidationError) as excinfo:
+        Settings(
+            ENVIRONMENT="prod",
+            **{**_BASE_SETTINGS, "SECURITY_KEY": low_entropy_key},
+        )
+    assert "entropy" in str(excinfo.value)
+
+    # Local env should still allow low entropy for dev convenience
+    settings = Settings(
+        ENVIRONMENT="local", **{**_BASE_SETTINGS, "SECURITY_KEY": low_entropy_key}
+    )
+    assert low_entropy_key == settings.SECURITY_KEY
+
+
+def test_security_algorithm_restriction():
+    """Test that only HS256, HS384, HS512 are allowed (M9)."""
+    # Valid
+    for alg in ["HS256", "HS384", "HS512"]:
+        settings = Settings(
+            ENVIRONMENT="test", SECURITY_ALGORITHM=alg, **_BASE_SETTINGS
+        )
+        assert alg == settings.SECURITY_ALGORITHM
+
+    # Invalid
+    with pytest.raises(ValidationError) as excinfo:
+        Settings(ENVIRONMENT="test", SECURITY_ALGORITHM="none", **_BASE_SETTINGS)
+    assert "Input should be 'HS256', 'HS384' or 'HS512'" in str(excinfo.value)
+
+    with pytest.raises(ValidationError):
+        Settings(ENVIRONMENT="test", SECURITY_ALGORITHM="RS256", **_BASE_SETTINGS)

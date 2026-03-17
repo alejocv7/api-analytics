@@ -26,7 +26,7 @@ router = APIRouter()
     responses={
         400: {
             "model": schemas.ErrorResponse,
-            "description": "Email already registered",
+            "description": "Registration failed",
         },
         422: {
             "model": schemas.ErrorResponse,

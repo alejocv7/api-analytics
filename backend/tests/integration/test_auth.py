@@ -40,7 +40,7 @@ async def test_register_duplicate_email(client: AsyncClient, test_user):
         },
     )
     assert response.status_code == 400
-    assert "Email already registered" in response.json()["error"]
+    assert "Registration failed" in response.json()["error"]
 
 
 async def test_login_success(client: AsyncClient, test_user):

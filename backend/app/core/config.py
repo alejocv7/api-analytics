@@ -209,7 +209,10 @@ class Settings(BaseSettings):
         self._check_default_secret("PROJECT_PASSWORD", self.PROJECT_PASSWORD)
         self._check_default_secret("PROJECT_USER", self.PROJECT_USER)
         self._check_default_secret("PROJECT_KEY", self.PROJECT_KEY)
+        return self
 
+    @model_validator(mode="after")
+    def _enforce_environment_security(self) -> Self:
         # M8 - Entropy check for SECURITY_KEY
         if self.ENVIRONMENT != "local":
             unique_chars = len(set(self.SECURITY_KEY))

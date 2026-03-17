@@ -165,7 +165,7 @@ async def test_failed_login_increments_counter(
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "WrongPassword"},
     )
-    key = f"login_attempts:{test_user.email}"
+    key = f"login_attempts:127.0.0.1:{test_user.email}"
     assert await async_redis_client.get(key) == "1"
 
 
@@ -198,7 +198,7 @@ async def test_successful_login_resets_counter(
             data={"username": test_user.email, "password": "WrongPassword"},
         )
 
-    key = f"login_attempts:{test_user.email}"
+    key = f"login_attempts:127.0.0.1:{test_user.email}"
     assert await async_redis_client.get(key) == "2"
 
     response = await client.post(
@@ -241,3 +241,35 @@ async def test_inactive_user_cannot_access_protected(
     )
     assert response.status_code == 403
     assert "Inactive user" in response.json()["error"]
+
+
+async def test_logout(client: AsyncClient, test_user):
+    # 1. Login to get tokens
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "Password123!"},
+    )
+    tokens = login.json()
+    access_token = tokens["access_token"]
+    refresh_token = tokens["refresh_token"]
+
+    # 2. Verify access works (stateless)
+    me = await client.get(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert me.status_code == 200
+
+    # 3. Logout
+    logout_resp = await client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert logout_resp.status_code == 204
+
+    # 4. Verify refresh token is revoked
+    refresh_fail = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert refresh_fail.status_code == 401

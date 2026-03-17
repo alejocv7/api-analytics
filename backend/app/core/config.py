@@ -143,7 +143,7 @@ class Settings(BaseSettings):
         return headers
 
     SECURITY_KEY: str = Field(min_length=32)
-    SECURITY_ALGORITHM: str = "HS256"
+    SECURITY_ALGORITHM: Literal["HS256", "HS384", "HS512"] = "HS256"
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     SECURITY_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
@@ -209,6 +209,14 @@ class Settings(BaseSettings):
         self._check_default_secret("PROJECT_PASSWORD", self.PROJECT_PASSWORD)
         self._check_default_secret("PROJECT_USER", self.PROJECT_USER)
         self._check_default_secret("PROJECT_KEY", self.PROJECT_KEY)
+
+        # M8 - Entropy check for SECURITY_KEY
+        if self.ENVIRONMENT != "local":
+            unique_chars = len(set(self.SECURITY_KEY))
+            if unique_chars < 10:
+                raise ValueError(
+                    "SECURITY_KEY has too low entropy (fewer than 10 unique characters)"
+                )
 
         if self.ENVIRONMENT in ("prod", "staging"):
             if not self.POSTGRES_SSL:

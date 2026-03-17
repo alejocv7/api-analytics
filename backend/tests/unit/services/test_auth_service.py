@@ -143,7 +143,7 @@ async def test_check_login_locked_passes_when_no_attempts():
     """No prior failures means the account is not locked."""
     redis = FakeAsyncRedis()
     # Should not raise
-    await auth_service.check_login_locked("user@example.com", redis)  # type: ignore[arg-type]
+    await auth_service.check_login_locked("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
 
 
 async def test_check_login_locked_raises_after_max_attempts():
@@ -151,11 +151,11 @@ async def test_check_login_locked_raises_after_max_attempts():
     from app.core.config import settings
 
     redis = FakeAsyncRedis()
-    key = "login_attempts:user@example.com"
+    key = "login_attempts:127.0.0.1:user@example.com"
     redis._data[key] = settings.LOGIN_MAX_ATTEMPTS
 
     with pytest.raises(RateLimitError) as exc:
-        await auth_service.check_login_locked("user@example.com", redis)  # type: ignore[arg-type]
+        await auth_service.check_login_locked("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
     assert "locked" in str(exc.value).lower()
 
 
@@ -163,10 +163,10 @@ async def test_record_failed_login_increments():
     """record_failed_login increments the counter each call."""
     redis = FakeAsyncRedis()
 
-    await auth_service.record_failed_login("user@example.com", redis)  # type: ignore[arg-type]
-    await auth_service.record_failed_login("user@example.com", redis)  # type: ignore[arg-type]
+    await auth_service.record_failed_login("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
+    await auth_service.record_failed_login("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
 
-    key = "login_attempts:user@example.com"
+    key = "login_attempts:127.0.0.1:user@example.com"
     assert redis._data[key] == 2
 
 
@@ -183,8 +183,8 @@ async def test_record_failed_login_sets_expiry_only_on_first():
 
     redis.expire = tracking_expire  # type: ignore[method-assign]
 
-    await auth_service.record_failed_login("user@example.com", redis)  # type: ignore[arg-type]
-    await auth_service.record_failed_login("user@example.com", redis)  # type: ignore[arg-type]
+    await auth_service.record_failed_login("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
+    await auth_service.record_failed_login("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
 
     assert len(expire_calls) == 1
 
@@ -192,8 +192,8 @@ async def test_record_failed_login_sets_expiry_only_on_first():
 async def test_reset_login_attempts_clears_counter():
     """reset_login_attempts removes the key from the store."""
     redis = FakeAsyncRedis()
-    redis._data["login_attempts:user@example.com"] = 3
+    redis._data["login_attempts:127.0.0.1:user@example.com"] = 3
 
-    await auth_service.reset_login_attempts("user@example.com", redis)  # type: ignore[arg-type]
+    await auth_service.reset_login_attempts("user@example.com", "127.0.0.1", redis)  # type: ignore[arg-type]
 
-    assert "login_attempts:user@example.com" not in redis._data
+    assert "login_attempts:127.0.0.1:user@example.com" not in redis._data

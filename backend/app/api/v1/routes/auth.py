@@ -7,7 +7,7 @@ from app import models, schemas
 from app.core import rate_limits
 from app.core.exceptions import BearerAuthenticationError
 from app.core.rate_limiter import limiter
-from app.dependencies import RedisDep, SessionDep
+from app.dependencies import CurrentUserDep, RedisDep, SessionDep
 from app.services import auth_service
 
 router = APIRouter()
@@ -66,21 +66,22 @@ async def register(
 )
 @limiter.limit(rate_limits.AUTH_LOGIN)
 async def login(
-    request: Request,  # noqa: ARG001
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: SessionDep,
     redis: RedisDep,
 ) -> schemas.TokenResponse:
-    await auth_service.check_login_locked(form_data.username, redis)
+    client_ip = request.client.host if request.client else "unknown"
+    await auth_service.check_login_locked(client_ip, form_data.username, redis)
     try:
         user = await auth_service.authenticate_user(
             form_data.username, form_data.password, session
         )
     except BearerAuthenticationError:
-        await auth_service.record_failed_login(form_data.username, redis)
+        await auth_service.record_failed_login(client_ip, form_data.username, redis)
         raise
 
-    await auth_service.reset_login_attempts(form_data.username, redis)
+    await auth_service.reset_login_attempts(form_data.username, client_ip, redis)
     return auth_service.create_user_token(user)
 
 
@@ -109,3 +110,21 @@ async def refresh_token(
     session: SessionDep,
 ) -> schemas.TokenResponse:
     return await auth_service.refresh_user_token(body.refresh_token, session)
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Logout user",
+    description="""
+    Logs out the current user by revoking all currently issued refresh tokens.
+    """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+    },
+)
+async def logout(
+    user: CurrentUserDep,
+    session: SessionDep,
+) -> None:
+    await auth_service.logout(user.id, session)

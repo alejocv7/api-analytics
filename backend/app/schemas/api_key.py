@@ -14,7 +14,7 @@ from app.schemas.pagination import PaginatedResponse
 class APIKeyBase(BaseModel):
     """Base API key schema."""
 
-    name: str = Field(max_length=255)
+    name: str = Field(min_length=1, max_length=255)
 
 
 class APIKeyCreate(APIKeyBase):
@@ -35,7 +35,7 @@ class APIKeyCreate(APIKeyBase):
 class APIKeyUpdate(BaseModel):
     """Schema for updating an API key."""
 
-    name: str | None = Field(None, max_length=255)
+    name: str | None = Field(None, min_length=1, max_length=255)
     is_active: bool | None = None
 
 

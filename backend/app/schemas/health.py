@@ -10,8 +10,8 @@ class HealthResponse(BaseModel):
     components: dict[str, str] = Field(
         ..., description="Status of individual components"
     )
-    environment: str = Field(..., description="Current environment")
-    version: str = Field(..., description="API version")
+    environment: str | None = Field(None, description="Current environment")
+    version: str | None = Field(None, description="API version")
     timestamp: str = Field(
         default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"),
         description="Current server time",

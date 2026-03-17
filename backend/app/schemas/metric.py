@@ -21,7 +21,9 @@ from app.schemas.pagination import PaginatedResponse, PaginationParams
 
 
 class MetricBase(BaseModel):
-    url_path: NormalizedUrlPath = Field(..., description="API endpoint path")
+    url_path: NormalizedUrlPath = Field(
+        ..., max_length=2048, description="API endpoint path"
+    )
 
     method: HTTPMethod = Field(..., description="HTTP method")
     response_status_code: int = Field(
@@ -30,7 +32,9 @@ class MetricBase(BaseModel):
     response_time_ms: float = Field(
         ..., ge=0, le=120_000, description="Response time in milliseconds"
     )
-    user_agent: str | None = Field(None, description="User agent string")
+    user_agent: str | None = Field(
+        None, max_length=512, description="User agent string"
+    )
 
 
 class MetricCreate(MetricBase):

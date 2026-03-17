@@ -3,7 +3,7 @@ from datetime import datetime
 from http import HTTPMethod
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, Index, func
+from sqlalchemy import Enum, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -21,10 +21,12 @@ class Metric(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE")
+    )
     project: Mapped[Project] = relationship(back_populates="metrics")
 
-    url_path: Mapped[str] = mapped_column()
+    url_path: Mapped[str] = mapped_column(String(2048))
     method: Mapped[HTTPMethod] = mapped_column(
         Enum(HTTPMethod, name="http_method_enum")
     )
@@ -34,7 +36,7 @@ class Metric(Base):
     response_time_ms: Mapped[float]
     timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
 
-    user_agent: Mapped[str | None]
+    user_agent: Mapped[str | None] = mapped_column(String(512))
     ip_hash: Mapped[str | None]
 
     __table_args__ = (

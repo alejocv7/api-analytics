@@ -207,3 +207,27 @@ def test_validate_password():
     # Strong password
     p = SecurePassword("CorrectHorseBatteryStaple123!")
     assert security.validate_password(p) == p
+
+
+# ---------------------------------------------------------------------------
+# Dummy API key hash (M3)
+# ---------------------------------------------------------------------------
+
+
+def test_dummy_api_key_hash_is_64_hex_chars():
+    """SECURITY_DUMMY_API_KEY_HASH must be a valid HMAC-SHA256 hex digest (64 chars)."""
+    dummy = settings.SECURITY_DUMMY_API_KEY_HASH
+    assert len(dummy) == 64, f"Expected 64 chars, got {len(dummy)}"
+    assert all(c in "0123456789abcdef" for c in dummy), (
+        "Expected lowercase hex characters only"
+    )
+
+
+def test_dummy_api_key_hash_compare_digest_runs_and_returns_false():
+    """compare_api_key must not crash and must return False when the stored
+    hash is SECURITY_DUMMY_API_KEY_HASH — confirming equal-length comparison."""
+    result = security.compare_api_key(
+        "sk_live_invalid_key_that_does_not_exist",
+        settings.SECURITY_DUMMY_API_KEY_HASH,
+    )
+    assert result is False

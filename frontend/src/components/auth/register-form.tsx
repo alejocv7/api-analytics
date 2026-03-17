@@ -68,8 +68,8 @@ export function RegisterForm() {
       router.push("/projects");
     } catch (err) {
       if (err instanceof ApiClientError) {
-        if (err.status === 409 || err.status === 400) {
-          form.setError("email", { message: err.message });
+        if (err.status === 400 || err.status === 409) {
+          toast.error("Registration failed. Please try again.");
         } else if (err.status === 422 && Array.isArray(err.details)) {
           // Map backend validation errors to their form fields
           let handled = false;

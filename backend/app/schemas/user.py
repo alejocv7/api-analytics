@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr
+from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.types import SecurePassword
 
@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
 
     email: EmailStr
     password: SecurePassword
-    full_name: str | None = None
+    full_name: str | None = Field(None, max_length=255)
 
     model_config = ConfigDict(
         json_schema_extra={

@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 import redis.asyncio as redis
 from sqlalchemy import select
@@ -75,6 +76,17 @@ async def refresh_user_token(
     return create_user_token(user)
 
 
+async def logout(user_id: uuid.UUID, session: AsyncSession) -> None:
+    """Invalidate all refresh tokens for the user by incrementing version."""
+    user = await session.scalar(
+        select(models.User).where(models.User.id == user_id).with_for_update()
+    )
+    if user:
+        user.refresh_token_version += 1
+        session.add(user)
+        await session.commit()
+
+
 async def authenticate_user(
     email: str, password: str, session: AsyncSession
 ) -> models.User:
@@ -111,13 +123,13 @@ async def authenticate_user(
 # --------------- Account lockout ----------------
 
 
-def _login_attempts_key(email: str) -> str:
-    return f"login_attempts:{email}"
+def _login_attempts_key(ip: str, email: str) -> str:
+    return f"login_attempts:{ip}:{email}"
 
 
-async def check_login_locked(email: str, redis_client: redis.Redis) -> None:
+async def check_login_locked(ip: str, email: str, redis_client: redis.Redis) -> None:
     """Raise RateLimitError if the account is temporarily locked."""
-    value = await redis_client.get(_login_attempts_key(email))
+    value = await redis_client.get(_login_attempts_key(ip, email))
     attempts = int(value) if value else 0
     if attempts >= settings.LOGIN_MAX_ATTEMPTS:
         raise RateLimitError(
@@ -126,14 +138,14 @@ async def check_login_locked(email: str, redis_client: redis.Redis) -> None:
         )
 
 
-async def record_failed_login(email: str, redis_client: redis.Redis) -> None:
+async def record_failed_login(ip: str, email: str, redis_client: redis.Redis) -> None:
     """Increment the failed login counter. Sets expiry on first failure."""
-    key = _login_attempts_key(email)
+    key = _login_attempts_key(ip, email)
     attempts = await redis_client.incr(key)
     if attempts == 1:
         await redis_client.expire(key, settings.LOGIN_LOCKOUT_WINDOW_SECONDS)
 
 
-async def reset_login_attempts(email: str, redis_client: redis.Redis) -> None:
+async def reset_login_attempts(email: str, ip: str, redis_client: redis.Redis) -> None:
     """Clear the failed login counter on successful authentication."""
-    await redis_client.delete(_login_attempts_key(email))
+    await redis_client.delete(_login_attempts_key(ip, email))

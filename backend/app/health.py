@@ -26,6 +26,6 @@ async def health() -> schemas.HealthResponse:
             "database": "healthy" if db_healthy else "unhealthy",
             "redis": "healthy" if redis_healthy else "unhealthy",
         },
-        environment=settings.ENVIRONMENT,
-        version=settings.VERSION,
+        environment=settings.ENVIRONMENT if not settings.IS_PRODUCTION else None,
+        version=settings.VERSION if not settings.IS_PRODUCTION else None,
     )

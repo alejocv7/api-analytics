@@ -152,8 +152,6 @@ class LoggingMiddleware:
 
         start_time = time.perf_counter()
         method, path = scope["method"], scope["path"]
-        client = scope.get("client")
-        client_ip = client[0] if client else "unknown"
 
         logger.info(
             "Request started: %s %s",
@@ -162,7 +160,6 @@ class LoggingMiddleware:
             extra={
                 "http_method": method,
                 "http_path": path,
-                "client_ip": client_ip,
             },
         )
 

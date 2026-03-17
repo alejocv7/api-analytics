@@ -31,7 +31,9 @@ class APIKey(Base, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(255))
 
-    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"), index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     project: Mapped[Project] = relationship(back_populates="api_keys")
 
     expires_at: Mapped[datetime] = mapped_column(

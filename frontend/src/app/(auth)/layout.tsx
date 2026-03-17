@@ -15,7 +15,7 @@ export default function AuthLayout({
             href="/"
             className="flex items-center gap-3 text-foreground hover:opacity-80 transition-opacity"
           >
-            <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary">
+            <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-3xl bg-primary">
               <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
             </div>
             <span className="font-bold text-xl sm:text-2xl tracking-tight">

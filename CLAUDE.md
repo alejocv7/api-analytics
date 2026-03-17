@@ -1,4 +1,4 @@
-## Project Overview
+# Project Overview
 
 Multi-tenant API analytics backend built with: Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2 async, PostgreSQL (asyncpg), Redis
 

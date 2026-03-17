@@ -78,3 +78,18 @@ def test_mask_email_no_at_sign():
 
 def test_mask_email_empty_string():
     assert mask_email("") == "***"
+
+
+# ---------------------------------------------------------------------------
+# Regression: edge cases that relied on the fixed except (ValueError, IndexError)
+# ---------------------------------------------------------------------------
+
+
+def test_mask_email_only_at_sign():
+    """'@' → user='' domain='' — short-circuit branch returns '*@', no crash."""
+    assert mask_email("@") == "*@"
+
+
+def test_mask_email_double_at_sign():
+    """'@@' has two '@' chars — ValueError path must be caught."""
+    assert mask_email("@@") == "***"

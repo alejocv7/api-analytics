@@ -85,11 +85,13 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str = ""
+    POSTGRES_SSL: bool = False
     # Redis
     REDIS_DB: str = "0"
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str
+    REDIS_SSL: bool = False
     REDIS_POOL_SIZE: int = 20
     REDIS_HEALTH_CHECK_INTERVAL: int = 30
 
@@ -116,7 +118,7 @@ class Settings(BaseSettings):
     def REDIS_URL(self) -> str:
         return str(
             RedisDsn.build(
-                scheme="redis",
+                scheme="rediss" if self.REDIS_SSL else "redis",
                 host=self.REDIS_HOST,
                 port=self.REDIS_PORT,
                 password=self.REDIS_PASSWORD,
@@ -207,6 +209,12 @@ class Settings(BaseSettings):
         self._check_default_secret("PROJECT_PASSWORD", self.PROJECT_PASSWORD)
         self._check_default_secret("PROJECT_USER", self.PROJECT_USER)
         self._check_default_secret("PROJECT_KEY", self.PROJECT_KEY)
+
+        if self.ENVIRONMENT in ("prod", "staging"):
+            if not self.POSTGRES_SSL:
+                raise ValueError("POSTGRES_SSL must be True in prod/staging")
+            if not self.REDIS_SSL:
+                raise ValueError("REDIS_SSL must be True in prod/staging")
 
         return self
 

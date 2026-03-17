@@ -67,3 +67,33 @@ def test_enforce_non_default_secrets(
     with pytest.raises(ValidationError) as excinfo:
         Settings(ENVIRONMENT=env, **{**_BASE_SETTINGS, **override})
     assert f'The value of {field_name} is "changethis"' in str(excinfo.value)
+
+
+def test_redis_url_ssl_scheme():
+    """Test that REDIS_URL uses 'rediss' only when REDIS_SSL is True."""
+    settings = Settings(ENVIRONMENT="test", REDIS_SSL=False, **_BASE_SETTINGS)
+    assert settings.REDIS_URL.startswith("redis://")
+
+    settings = Settings(ENVIRONMENT="test", REDIS_SSL=True, **_BASE_SETTINGS)
+    assert settings.REDIS_URL.startswith("rediss://")
+
+
+@pytest.mark.parametrize("env", ["staging", "prod"])
+def test_enforce_ssl_in_remote_envs(env: str):
+    """Test that prod/staging environments require SSL to be True."""
+    # Both False (default) -> Error
+    with pytest.raises(ValidationError) as excinfo:
+        Settings(ENVIRONMENT=env, **_BASE_SETTINGS)
+    assert "POSTGRES_SSL must be True" in str(excinfo.value)
+
+    # Only DB True -> Error
+    with pytest.raises(ValidationError) as excinfo:
+        Settings(ENVIRONMENT=env, POSTGRES_SSL=True, **_BASE_SETTINGS)
+    assert "REDIS_SSL must be True" in str(excinfo.value)
+
+    # Both True -> Success
+    settings = Settings(
+        ENVIRONMENT=env, POSTGRES_SSL=True, REDIS_SSL=True, **_BASE_SETTINGS
+    )
+    assert settings.POSTGRES_SSL is True
+    assert settings.REDIS_SSL is True

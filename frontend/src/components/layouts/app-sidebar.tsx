@@ -162,7 +162,7 @@ export function AppSidebar() {
                     No projects
                   </p>
                 ) : (
-                  <div className="space-y-0.5">
+                  <div className="space-y-0.5 max-h-60 overflow-y-auto">
                     {projects.map((project) => {
                       const isActive = project.project_key === projectKey;
                       return (
@@ -170,7 +170,8 @@ export function AppSidebar() {
                           key={project.id}
                           className={cn(
                             "w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors hover:bg-sidebar-primary/20 hover:text-accent-foreground flex items-center gap-2",
-                            isActive && "bg-primary text-accent font-medium",
+                            isActive &&
+                              "bg-primary text-primary-foreground font-medium",
                           )}
                           onClick={() => {
                             setProjectSwitcherOpen(false);
@@ -202,10 +203,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={
-                    pathname.startsWith("/projects/") &&
-                    pathname.endsWith("/dashboard")
-                  }
+                  isActive={pathname === `/projects/${projectKey}/dashboard`}
                   tooltip="Dashboard"
                 >
                   <Link href={`/projects/${projectKey}/dashboard`}>
@@ -226,7 +224,9 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname.includes("/settings")}
+                  isActive={pathname.startsWith(
+                    `/projects/${projectKey}/settings`,
+                  )}
                   tooltip="Settings"
                 >
                   <Link href={`/projects/${projectKey}/settings`}>

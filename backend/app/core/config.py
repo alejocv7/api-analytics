@@ -136,7 +136,6 @@ class Settings(BaseSettings):
             "Content-Security-Policy": "frame-ancestors 'none';",
             "Cache-Control": "no-store",
             "X-Frame-Options": "DENY",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
         }
 
         if self.IS_PRODUCTION:

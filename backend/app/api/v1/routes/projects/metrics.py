@@ -54,8 +54,7 @@ async def read_metrics_summary(
     session: SessionDep,
     request: Request,  # noqa: ARG001
 ) -> schemas.MetricSummaryResponse:
-    result = await metric_service.get_metrics_summary(params, project.id, session)
-    return schemas.MetricSummaryResponse.from_raw(result, params)
+    return await metric_service.get_metrics_summary(params, project.id, session)
 
 
 @router.get(

@@ -1,7 +1,13 @@
 from tests.fixtures.cache import async_redis_client, redis_url, reset_rate_limiter
 from tests.fixtures.client import client
 from tests.fixtures.containers import postgres_container, redis_container
-from tests.fixtures.db import apply_migrations, async_db_url, db_session, engine
+from tests.fixtures.db import (
+    apply_migrations,
+    async_db_url,
+    db_session,
+    engine,
+    session_factory,
+)
 from tests.fixtures.domain import auth_headers, project, test_user
 
 __all__ = [
@@ -17,5 +23,6 @@ __all__ = [
     "redis_container",
     "redis_url",
     "reset_rate_limiter",
+    "session_factory",
     "test_user",
 ]

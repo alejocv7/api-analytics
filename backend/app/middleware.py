@@ -40,7 +40,7 @@ class MetricMiddleware:
 
         path = scope.get("path", "")
         if (
-            settings.ENVIRONMENT == "test"
+            not settings.ENABLE_SELF_METRICS
             or not settings.PROJECT_KEY
             or not self.API_TRACKING_PATTERN.match(path)
         ):

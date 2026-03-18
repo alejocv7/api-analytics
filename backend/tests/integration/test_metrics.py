@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from tests.factories import create_metric, create_project
 
@@ -178,6 +178,64 @@ async def test_metrics_range_too_short(client: AsyncClient, auth_headers, projec
     )
     assert response.status_code == 422
     assert "at least 1 minute" in response.text
+
+
+async def test_self_metrics_are_recorded_when_enabled(
+    client: AsyncClient, auth_headers, session_factory, monkeypatch
+):
+    from app import models
+    from app.core import db as core_db
+    from app.core.config import settings
+    from app.core.seed import seed_initial_data
+    from app.main import app
+
+    request_path = "/api/v1/projects/"
+    monkeypatch.setattr(settings, "ENABLE_SELF_METRICS", True)
+    monkeypatch.setattr(core_db, "AsyncSessionLocal", session_factory)
+
+    async with session_factory() as session:
+        await seed_initial_data(session)
+        project_result = await session.execute(
+            select(models.Project).where(
+                models.Project.project_key == settings.PROJECT_KEY
+            )
+        )
+        self_monitoring_project: models.Project = project_result.scalar_one()
+
+        before_count = await session.scalar(
+            select(func.count(models.Metric.id)).where(
+                models.Metric.project_id == self_monitoring_project.id,
+            )
+        )
+        assert before_count is not None
+
+    response = await client.get(request_path, headers=auth_headers)
+    assert response.status_code == 200
+
+    await app.state.metric_middleware.drain_background_tasks(timeout_seconds=1)
+
+    async with session_factory() as session:
+        after_count = await session.scalar(
+            select(func.count(models.Metric.id)).where(
+                models.Metric.project_id == self_monitoring_project.id,
+            )
+        )
+        assert after_count is not None
+        metric_result = await session.execute(
+            select(models.Metric)
+            .where(
+                models.Metric.project_id == self_monitoring_project.id,
+            )
+            .order_by(models.Metric.timestamp.desc())
+        )
+        recorded_metric = metric_result.scalars().first()
+
+    assert after_count == before_count + 1
+    assert recorded_metric is not None
+    assert recorded_metric.url_path in {request_path, request_path.rstrip("/")}
+    assert recorded_metric.method.value == "GET"
+    assert recorded_metric.response_status_code == 200
+    assert recorded_metric.response_time_ms > 0
 
 
 async def test_endpoint_stats_sort_by_request_count(

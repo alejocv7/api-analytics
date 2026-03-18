@@ -62,6 +62,7 @@ class Settings(BaseSettings):
 
     # Environment
     ENVIRONMENT: Literal["local", "staging", "test", "prod"] = "local"
+    ENABLE_SELF_METRICS: bool = True
 
     @computed_field  # type: ignore[prop-decorator]
     @property

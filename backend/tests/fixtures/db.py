@@ -5,7 +5,7 @@ import pytest
 import pytest_asyncio
 from alembic.config import Config
 from sqlalchemy import event, pool
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from alembic import command
 from app.core.config import settings
@@ -38,11 +38,20 @@ async def engine(async_db_url: str):
     await engine.dispose()
 
 
+@pytest.fixture(scope="session")
+def session_factory(engine):
+    return async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+
 @pytest_asyncio.fixture
-async def db_session(engine):
+async def db_session(engine, session_factory):
     async with engine.connect() as conn:
         transaction = await conn.begin()
-        session = AsyncSession(bind=conn, expire_on_commit=False)
+        session = session_factory(bind=conn)
         await session.begin_nested()
 
         @event.listens_for(session.sync_session, "after_transaction_end")

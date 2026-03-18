@@ -17,7 +17,6 @@ def _make_project(**kwargs) -> models.Project:
         "id": uuid.uuid4(),
         "name": "Test Project",
         "description": None,
-        "project_key": "test-key",
         "user_id": uuid.uuid4(),
         "is_active": True,
         "created_at": datetime.now(UTC),

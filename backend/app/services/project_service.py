@@ -1,7 +1,6 @@
 import logging
 import uuid
 
-from slugify import slugify
 from sqlalchemy import exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,30 +13,21 @@ from app.core.utils import active_filter, apply_update
 logger = logging.getLogger(__name__)
 
 
-def _normalize_name(name: str) -> str:
-    """Normalize a project name for uniqueness comparison.
-
-    Lowercases and collapses all whitespace runs to a single space, matching
-    the functional unique index uq_user_project_name_normalized in the DB.
-    "My API", "my api", and "MY  API" all normalize to "my api".
-    """
-    return " ".join(name.lower().split())
-
-
-async def _assert_name_available(
+async def _ensure_name_available(
     user_id: uuid.UUID,
     name: str,
     session: AsyncSession,
     exclude_project_id: uuid.UUID | None = None,
 ) -> None:
-    """Raise ConflictError if a project with a conflicting normalized name exists."""
-    normalized = _normalize_name(name)
+    """Raise ConflictError if a project with a conflicting normalized name exists.
+
+    Names are stored pre-normalized (trimmed, whitespace-collapsed), so only
+    a lower() comparison is needed to match the uq_user_project_name_normalized index.
+    """
+    normalized = " ".join(name.lower().split())
     conditions = [
         models.Project.user_id == user_id,
-        func.lower(
-            func.regexp_replace(func.trim(models.Project.name), r"\s+", " ", "g")
-        )
-        == normalized,
+        func.lower(models.Project.name) == normalized,
     ]
     if exclude_project_id is not None:
         conditions.append(models.Project.id != exclude_project_id)
@@ -56,7 +46,7 @@ async def create_user_project(
     project_in: schemas.ProjectCreate,
     session: AsyncSession,
 ) -> schemas.ProjectResponse:
-    await _assert_name_available(user_id, project_in.name, session)
+    await _ensure_name_available(user_id, project_in.name, session)
 
     project = models.Project(
         name=project_in.name,
@@ -211,11 +201,13 @@ async def update_user_project(
     update_data: schemas.ProjectUpdate,
     session: AsyncSession,
 ) -> schemas.ProjectResponse:
-    if update_data.name is not None and update_data.name != project.name:
-        await _assert_name_available(
+    if (
+        update_data.name is not None
+        and " ".join(update_data.name.split()) != project.name
+    ):
+        await _ensure_name_available(
             project.user_id, update_data.name, session, exclude_project_id=project.id
         )
-        project.project_key = slugify(update_data.name)
 
     apply_update(project, update_data)
 

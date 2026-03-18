@@ -20,11 +20,22 @@ def test_generate_project_key_special_chars():
     assert project.project_key == "project-with-special-chars"
 
 
-def test_generate_project_key_extra_whitespace():
+def test_name_is_trimmed_on_save():
+    project = models.Project(name="  My Project  ")
+    assert project.name == "My Project"
+    assert project.project_key == "my-project"
+
+
+def test_name_internal_whitespace_is_collapsed_on_save():
     project = models.Project(name="spaces  everywhere")
+    assert project.name == "spaces everywhere"
     assert project.project_key == "spaces-everywhere"
 
 
-def test_generate_project_key_explicit_override():
-    project = models.Project(name="Ignored Name", project_key="custom-key")
-    assert project.project_key == "custom-key"
+def test_rename_syncs_project_key():
+    project = models.Project(name="Original")
+    assert project.project_key == "original"
+
+    project.name = "Renamed Project"
+    assert project.name == "Renamed Project"
+    assert project.project_key == "renamed-project"

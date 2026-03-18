@@ -16,7 +16,6 @@ async def project_with_data(db_session, test_user):
         db_session,
         user=test_user,
         name="Data Project",
-        project_key="data-key",
     )
 
     # Add some metrics within Today's range

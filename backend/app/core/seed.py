@@ -7,7 +7,7 @@ from app import models
 from app.core import db, security
 from app.core.config import settings
 from app.core.enums import ProjectRole
-from app.services import project_service, user_service
+from app.services import user_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,8 +22,8 @@ async def seed_initial_data(session: AsyncSession) -> None:
     - A self-monitoring project linked to the system user and PROJECT_ID
     """
 
-    if not settings.PROJECT_KEY:
-        logger.error("PROJECT_KEY is not set. Skipping seeding.")
+    if not settings.PROJECT_ID:
+        logger.error("PROJECT_ID is not set. Skipping seeding.")
         return
 
     # Use a system email
@@ -51,18 +51,14 @@ async def seed_initial_data(session: AsyncSession) -> None:
                 raise
 
     # 2. Check if the self-monitoring project exists
-    project = await project_service.find_user_project_by_key(
-        user.id, settings.PROJECT_KEY, session
-    )
+    project = await session.get(models.Project, settings.PROJECT_ID)
     if not project:
-        logger.info(
-            "Creating self-monitoring project (key: %s)...", settings.PROJECT_KEY
-        )
+        logger.info("Creating self-monitoring project (id: %s)...", settings.PROJECT_ID)
 
         project = models.Project(
+            id=settings.PROJECT_ID,
             name=f"{settings.PROJECT_NAME} Self-Monitoring",
             description=settings.PROJECT_DESCRIPTION,
-            project_key=settings.PROJECT_KEY,
             user_id=user.id,
             is_active=True,
         )
@@ -78,9 +74,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
         except Exception:
             await session.rollback()
             # If it failed, maybe it was created by another worker
-            project = await project_service.get_user_project_by_key(
-                user.id, settings.PROJECT_KEY, session
-            )
+            project = await session.get(models.Project, settings.PROJECT_ID)
             if not project:
                 raise
 

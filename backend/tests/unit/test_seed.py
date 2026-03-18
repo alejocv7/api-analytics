@@ -12,9 +12,9 @@ from app.core.seed import seed_initial_data
 pytestmark = pytest.mark.asyncio
 
 
-async def test_seed_skips_when_project_key_not_set(monkeypatch):
-    """seed_initial_data exits early and logs an error when PROJECT_KEY is empty."""
-    monkeypatch.setattr(settings, "PROJECT_KEY", "")
+async def test_seed_skips_when_project_id_not_set(monkeypatch):
+    """seed_initial_data exits early and logs an error when PROJECT_ID is empty."""
+    monkeypatch.setattr(settings, "PROJECT_ID", None)
     session = AsyncMock()
     session.add = MagicMock()
 
@@ -27,7 +27,7 @@ async def test_seed_skips_when_project_key_not_set(monkeypatch):
 
 async def test_seed_creates_user_and_project_on_first_run(monkeypatch):
     """First run: creates the system user and self-monitoring project."""
-    monkeypatch.setattr(settings, "PROJECT_KEY", "test-self-key")
+    monkeypatch.setattr(settings, "PROJECT_ID", uuid.uuid4())
     monkeypatch.setattr(settings, "PROJECT_USER", "system@example.com")
     monkeypatch.setattr(settings, "PROJECT_PASSWORD", "StrongPassword123!")
     monkeypatch.setattr(settings, "PROJECT_NAME", "Test Service")
@@ -35,6 +35,7 @@ async def test_seed_creates_user_and_project_on_first_run(monkeypatch):
 
     session = AsyncMock()
     session.add = MagicMock()
+    session.get = AsyncMock(return_value=None)
 
     async def _fake_refresh(obj: object) -> None:
         # Simulate the DB assigning a primary key on commit+refresh.
@@ -49,10 +50,6 @@ async def test_seed_creates_user_and_project_on_first_run(monkeypatch):
             "app.core.seed.user_service.find_user_by_email",
             new=AsyncMock(return_value=None),
         ),
-        patch(
-            "app.core.seed.project_service.find_user_project_by_key",
-            new=AsyncMock(return_value=None),
-        ),
     ):
         await seed_initial_data(session)
 
@@ -64,7 +61,7 @@ async def test_seed_creates_user_and_project_on_first_run(monkeypatch):
 
 async def test_seed_is_idempotent_when_both_exist(monkeypatch):
     """Subsequent run: nothing is created when user and project already exist."""
-    monkeypatch.setattr(settings, "PROJECT_KEY", "test-self-key")
+    monkeypatch.setattr(settings, "PROJECT_ID", uuid.uuid4())
     monkeypatch.setattr(settings, "PROJECT_USER", "system@example.com")
 
     session = AsyncMock()
@@ -73,18 +70,13 @@ async def test_seed_is_idempotent_when_both_exist(monkeypatch):
     existing_user = models.User(
         id=user_id, email="system@example.com", hashed_password="x"
     )
-    existing_project = models.Project(
-        name="Test Self-Monitoring", user_id=user_id, project_key="test-self-key"
-    )
+    existing_project = models.Project(name="Test Self-Monitoring", user_id=user_id)
+    session.get = AsyncMock(return_value=existing_project)
 
     with (
         patch(
             "app.core.seed.user_service.find_user_by_email",
             new=AsyncMock(return_value=existing_user),
-        ),
-        patch(
-            "app.core.seed.project_service.find_user_project_by_key",
-            new=AsyncMock(return_value=existing_project),
         ),
     ):
         await seed_initial_data(session)
@@ -95,23 +87,22 @@ async def test_seed_is_idempotent_when_both_exist(monkeypatch):
 
 async def test_seed_creates_project_when_user_already_exists(monkeypatch):
     """Partial state: user exists but project does not — only the project is created."""
-    monkeypatch.setattr(settings, "PROJECT_KEY", "test-self-key")
+    monkeypatch.setattr(settings, "PROJECT_ID", uuid.uuid4())
     monkeypatch.setattr(settings, "PROJECT_USER", "system@example.com")
     monkeypatch.setattr(settings, "PROJECT_NAME", "Test Service")
     monkeypatch.setattr(settings, "PROJECT_DESCRIPTION", "Test Desc")
 
     session = AsyncMock()
     session.add = MagicMock()
-    existing_user = models.User(id=1, email="system@example.com", hashed_password="x")
+    session.get = AsyncMock(return_value=None)
+    existing_user = models.User(
+        id=uuid.uuid4(), email="system@example.com", hashed_password="x"
+    )
 
     with (
         patch(
             "app.core.seed.user_service.find_user_by_email",
             new=AsyncMock(return_value=existing_user),
-        ),
-        patch(
-            "app.core.seed.project_service.find_user_project_by_key",
-            new=AsyncMock(return_value=None),
         ),
     ):
         await seed_initial_data(session)

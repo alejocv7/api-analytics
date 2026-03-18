@@ -261,9 +261,7 @@ async def test_rename_project_updates_project_key(
     assert response.status_code == 200
 
     # Old key is gone
-    response = await client.get(
-        "/api/v1/projects/original-name", headers=auth_headers
-    )
+    response = await client.get("/api/v1/projects/original-name", headers=auth_headers)
     assert response.status_code == 404
 
 

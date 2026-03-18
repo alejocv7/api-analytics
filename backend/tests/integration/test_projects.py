@@ -15,7 +15,7 @@ async def test_create_project(client: AsyncClient, auth_headers):
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Test Project"
-    assert "project_key" in data
+    assert data["project_key"] == "test-project"
     # A freshly created project has the owner as its sole member and no API keys.
     assert data["member_count"] == 1
     assert data["api_key_count"] == 0
@@ -232,6 +232,85 @@ async def test_update_project_name_exceeds_max_length(
         json={"name": "A" * 41},
     )
     assert response.status_code == 422
+
+
+async def test_rename_project_updates_project_key(
+    client: AsyncClient, auth_headers, test_user, db_session
+):
+    p = await create_project(
+        db_session,
+        user=test_user,
+        name="Original Name",
+        project_key="original-name",
+    )
+
+    response = await client.patch(
+        f"/api/v1/projects/{p.project_key}",
+        headers=auth_headers,
+        json={"name": "Renamed Project"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Renamed Project"
+    assert data["project_key"] == "renamed-project"
+
+    # New key is accessible
+    response = await client.get(
+        "/api/v1/projects/renamed-project", headers=auth_headers
+    )
+    assert response.status_code == 200
+
+    # Old key is gone
+    response = await client.get(
+        "/api/v1/projects/original-name", headers=auth_headers
+    )
+    assert response.status_code == 404
+
+
+async def test_create_project_case_insensitive_name_conflict(
+    client: AsyncClient, auth_headers, test_user, db_session
+):
+    await create_project(
+        db_session,
+        user=test_user,
+        name="My API",
+        project_key="my-api",
+    )
+
+    # "my api" normalizes to "my api", same as "My API"
+    response = await client.post(
+        "/api/v1/projects/",
+        headers=auth_headers,
+        json={"name": "my api"},
+    )
+    assert response.status_code == 409
+    assert "already in use" in response.json()["error"]
+
+
+async def test_rename_project_case_insensitive_name_conflict(
+    client: AsyncClient, auth_headers, test_user, db_session
+):
+    await create_project(
+        db_session,
+        user=test_user,
+        name="My API",
+        project_key="my-api",
+    )
+    p2 = await create_project(
+        db_session,
+        user=test_user,
+        name="Other Project",
+        project_key="other-project",
+    )
+
+    # "MY API" normalizes to "my api", same as existing "My API"
+    response = await client.patch(
+        f"/api/v1/projects/{p2.project_key}",
+        headers=auth_headers,
+        json={"name": "MY API"},
+    )
+    assert response.status_code == 409
+    assert "already in use" in response.json()["error"]
 
 
 async def test_delete_project(client: AsyncClient, auth_headers, test_user, db_session):

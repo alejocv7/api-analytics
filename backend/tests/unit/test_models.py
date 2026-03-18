@@ -38,12 +38,16 @@ def test_api_key_is_valid():
     assert key.is_valid is False
 
 
-def test_project_key_immutability():
-    p = Project(name="Test Project", project_key="initial-key", user_id=uuid.uuid4())
+def test_project_key_generated_as_name_slug():
+    p = Project(name="My Awesome Project", user_id=uuid.uuid4())
+    assert p.project_key == "my-awesome-project"
 
-    # Trying to change it should raise ValueError due to @validates
-    with pytest.raises(ValueError, match="cannot be changed"):
-        p.project_key = "new-key"
+
+def test_project_key_is_mutable():
+    p = Project(name="Test Project", user_id=uuid.uuid4())
+    # Should not raise; project_key can be updated (e.g. on rename)
+    p.project_key = "renamed-project"
+    assert p.project_key == "renamed-project"
 
 
 def test_model_reprs():

@@ -56,6 +56,43 @@ async def test_update_user_project_same_name_no_conflict():
     assert result.api_key_count == 0
 
 
+async def test_update_project_name_updates_project_key():
+    session = AsyncMock()
+    project = _make_project(name="Old Name", project_key="old-name")
+    update_data = schemas.ProjectUpdate(name="New Name")
+
+    session.scalar.return_value = False  # no conflict
+    mock_result = MagicMock()
+    mock_result.one.return_value = (0, 0)
+    session.execute.return_value = mock_result
+
+    result = await project_service.update_user_project(project, update_data, session)
+
+    assert project.project_key == "new-name"
+    assert result.name == "New Name"
+
+
+async def test_create_project_name_conflict_case_insensitive():
+    session = AsyncMock()
+    project_in = schemas.ProjectCreate(name="my api")
+
+    session.scalar.return_value = True  # normalized name conflict
+
+    with pytest.raises(ConflictError):
+        await project_service.create_user_project(uuid.uuid4(), project_in, session)
+
+
+async def test_update_project_name_conflict_case_insensitive():
+    session = AsyncMock()
+    project = _make_project(name="other project", project_key="other-project")
+    update_data = schemas.ProjectUpdate(name="MY API")
+
+    session.scalar.return_value = True  # "my api" already exists for this user
+
+    with pytest.raises(ConflictError):
+        await project_service.update_user_project(project, update_data, session)
+
+
 async def test_find_project_by_key_not_found():
     session = AsyncMock()
     mock_result = MagicMock()

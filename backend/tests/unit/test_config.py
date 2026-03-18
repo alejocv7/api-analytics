@@ -10,7 +10,7 @@ _BASE_SETTINGS: dict[str, Any] = {
     "SECURITY_KEY": _VALID_KEY,
     "PROJECT_USER": "test@example.com",
     "PROJECT_PASSWORD": "password",
-    "PROJECT_KEY": "test",
+    "PROJECT_ID": "00000000-0000-0000-0000-000000000000",
     "POSTGRES_SERVER": "localhost",
     "POSTGRES_USER": "user",
 }
@@ -24,7 +24,7 @@ def test_security_key_min_length():
             SECURITY_KEY="short",
             PROJECT_USER="test@example.com",
             PROJECT_PASSWORD="password",
-            PROJECT_KEY="test",
+            PROJECT_ID="00000000-0000-0000-0000-000000000000",
             POSTGRES_SERVER="localhost",
             POSTGRES_USER="user",
         )
@@ -44,19 +44,20 @@ def test_enable_self_metrics_can_be_disabled():
 
 def test_enforce_non_default_secrets_local():
     """Test that default secrets trigger a warning in local environment."""
-    with pytest.warns(UserWarning, match='The value of PROJECT_KEY is "changethis"'):
+    with pytest.warns(
+        UserWarning, match='The value of PROJECT_PASSWORD is "changethis"'
+    ):
         settings = Settings(
             ENVIRONMENT="local",
-            **{**_BASE_SETTINGS, "PROJECT_KEY": "changethis"},
+            **{**_BASE_SETTINGS, "PROJECT_PASSWORD": "changethis"},
         )
-    assert settings.PROJECT_KEY == "changethis"
+    assert settings.PROJECT_PASSWORD == "changethis"
 
 
 @pytest.mark.parametrize("env", ["test", "staging", "prod"])
 @pytest.mark.parametrize(
     "field_name,override",
     [
-        ("PROJECT_KEY", {"PROJECT_KEY": "changethis"}),
         ("PROJECT_PASSWORD", {"PROJECT_PASSWORD": "changethis"}),
         ("POSTGRES_PASSWORD", {"POSTGRES_PASSWORD": "changethis"}),
         ("REDIS_PASSWORD", {"REDIS_PASSWORD": "changethis"}),

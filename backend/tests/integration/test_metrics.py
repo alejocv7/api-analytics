@@ -195,9 +195,7 @@ async def test_self_metrics_are_recorded_when_enabled(
     async with session_factory() as session:
         await seed_initial_data(session)
         project_result = await session.execute(
-            select(models.Project).where(
-                models.Project.project_key == settings.PROJECT_KEY
-            )
+            select(models.Project).where(models.Project.id == settings.PROJECT_ID)
         )
         self_monitoring_project: models.Project = project_result.scalar_one()
 

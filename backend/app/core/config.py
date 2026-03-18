@@ -1,4 +1,5 @@
 import os
+import uuid
 import warnings
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -50,7 +51,7 @@ class Settings(BaseSettings):
     # Project
     PROJECT_USER: EmailStr
     PROJECT_PASSWORD: str
-    PROJECT_KEY: str
+    PROJECT_ID: uuid.UUID
     PROJECT_NAME: str = "API Analytics Service"
     PROJECT_DESCRIPTION: str = "Track and analyze API performance metrics"
     PROJECT_NAME_PATTERN: str = r"^[a-zA-Z0-9\s_-]+$"
@@ -209,7 +210,7 @@ class Settings(BaseSettings):
         # Project
         self._check_default_secret("PROJECT_PASSWORD", self.PROJECT_PASSWORD)
         self._check_default_secret("PROJECT_USER", self.PROJECT_USER)
-        self._check_default_secret("PROJECT_KEY", self.PROJECT_KEY)
+        self._check_default_secret("PROJECT_ID", str(self.PROJECT_ID))
         return self
 
     @model_validator(mode="after")

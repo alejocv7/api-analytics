@@ -9,10 +9,10 @@ from typing import Any
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app import schemas
+from app import models, schemas
 from app.core import db
 from app.core.config import settings
-from app.services import metric_service, project_service
+from app.services import metric_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class MetricMiddleware:
         path = scope.get("path", "")
         if (
             not settings.ENABLE_SELF_METRICS
-            or not settings.PROJECT_KEY
+            or not settings.PROJECT_ID
             or not self.API_TRACKING_PATTERN.match(path)
         ):
             await self.app(scope, receive, send)
@@ -99,8 +99,8 @@ class MetricMiddleware:
                 if not self._project_id:
                     async with self._project_id_lock:
                         if not self._project_id:
-                            project = await project_service.find_project_by_key(
-                                settings.PROJECT_KEY, session
+                            project = await session.get(
+                                models.Project, settings.PROJECT_ID
                             )
                             if not project:
                                 logger.warning("Self-monitoring project not found")

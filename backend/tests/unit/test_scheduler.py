@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from contextlib import suppress
 from http import HTTPMethod
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -264,18 +265,17 @@ def _make_middleware_mocks(project_id: int | None = 7):
 async def test_log_metric_adds_metric_when_project_found():
     """log_metric records a metric and caches the project_id on success."""
     middleware = MetricMiddleware(AsyncMock())
-    _, mock_session_factory, mock_project = _make_middleware_mocks(project_id=7)
+    mock_session, mock_session_factory, mock_project = _make_middleware_mocks(
+        project_id=7
+    )
+    mock_session.get.return_value = mock_project
 
     with (
         patch("app.middleware.db.AsyncSessionLocal", mock_session_factory),
-        patch(
-            "app.middleware.project_service.find_project_by_key",
-            new=AsyncMock(return_value=mock_project),
-        ),
         patch("app.middleware.metric_service.add_metric", new=AsyncMock()) as mock_add,
         patch("app.middleware.settings") as mock_settings,
     ):
-        mock_settings.PROJECT_KEY = "self-mon-key"
+        mock_settings.PROJECT_ID = uuid.uuid4()
         await middleware.log_metric(_METRIC)
 
     mock_add.assert_called_once()
@@ -285,19 +285,16 @@ async def test_log_metric_adds_metric_when_project_found():
 async def test_log_metric_warns_and_skips_when_project_not_found():
     """log_metric logs a warning and does not add a metric when project is missing."""
     middleware = MetricMiddleware(AsyncMock())
-    _, mock_session_factory, _ = _make_middleware_mocks()
+    mock_session, mock_session_factory, _ = _make_middleware_mocks()
+    mock_session.get.return_value = None
 
     with (
         patch("app.middleware.db.AsyncSessionLocal", mock_session_factory),
-        patch(
-            "app.middleware.project_service.find_project_by_key",
-            new=AsyncMock(return_value=None),
-        ),
         patch("app.middleware.metric_service.add_metric", new=AsyncMock()) as mock_add,
         patch("app.middleware.settings") as mock_settings,
         patch("app.middleware.logger") as mock_logger,
     ):
-        mock_settings.PROJECT_KEY = "missing-key"
+        mock_settings.PROJECT_ID = uuid.uuid4()
         await middleware.log_metric(_METRIC)
 
     mock_add.assert_not_called()
@@ -311,21 +308,20 @@ async def test_log_metric_caches_project_id_after_first_lookup():
     Subsequent calls use the cached _project_id, bypassing the DB lookup.
     """
     middleware = MetricMiddleware(AsyncMock())
-    _, mock_session_factory, mock_project = _make_middleware_mocks(project_id=42)
+    mock_session, mock_session_factory, mock_project = _make_middleware_mocks(
+        project_id=42
+    )
+    mock_session.get.return_value = mock_project
 
     with (
         patch("app.middleware.db.AsyncSessionLocal", mock_session_factory),
-        patch(
-            "app.middleware.project_service.find_project_by_key",
-            new=AsyncMock(return_value=mock_project),
-        ) as mock_get_project,
         patch("app.middleware.metric_service.add_metric", new=AsyncMock()),
         patch("app.middleware.settings") as mock_settings,
     ):
-        mock_settings.PROJECT_KEY = "self-mon-key"
+        mock_settings.PROJECT_ID = uuid.uuid4()
 
         await middleware.log_metric(_METRIC)  # first call — fetches project
         await middleware.log_metric(_METRIC)  # second call — uses cache
 
-    assert mock_get_project.call_count == 1
+    assert mock_session.get.call_count == 1
     assert middleware._project_id == 42

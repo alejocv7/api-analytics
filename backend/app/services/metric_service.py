@@ -4,7 +4,6 @@ from typing import Any
 
 from sqlalchemy import (
     ColumnElement,
-    Row,
     Select,
     asc,
     case,
@@ -78,7 +77,7 @@ async def get_metrics(
 
 async def get_metrics_summary(
     params: schemas.MetricParams, project_id: uuid.UUID, session: AsyncSession
-) -> Row[Any] | None:
+) -> schemas.MetricSummaryResponse:
     query = _with_time_filter(
         select(
             func.count(models.Metric.id).label("request_count"),
@@ -92,14 +91,14 @@ async def get_metrics_summary(
     )
 
     result = await session.execute(query)
-    return result.first()
+    return schemas.MetricSummaryResponse.from_raw(result.first(), params)
 
 
 async def get_metrics_time_series(
     params: schemas.MetricTimeSeriesQuery,
     project_id: uuid.UUID,
     session: AsyncSession,
-) -> schemas.PaginatedResult[Any]:
+) -> schemas.PaginatedResult[schemas.MetricTimeSeriesPointResponse]:
     """Get metric time series with total count."""
     timestamp: ColumnElement[datetime] = func.date_trunc(
         params.granularity.value, models.Metric.timestamp
@@ -132,15 +131,18 @@ async def get_metrics_time_series(
     )
 
     results = (await session.execute(items_query)).all()
+    items = [
+        schemas.MetricTimeSeriesPointResponse.model_validate(row) for row in results
+    ]
 
-    return schemas.PaginatedResult(items=results, total=total, pagination=params)
+    return schemas.PaginatedResult(items=items, total=total, pagination=params)
 
 
 async def get_metrics_endpoints_stats(
     params: schemas.MetricEndpointStatsParams,
     project_id: uuid.UUID,
     session: AsyncSession,
-) -> schemas.PaginatedResult[Any]:
+) -> schemas.PaginatedResult[schemas.MetricEndpointStatsResponse]:
     """Get metrics grouped by endpoint with total count."""
 
     # ---- Aggregates ----
@@ -184,8 +186,9 @@ async def get_metrics_endpoints_stats(
     )
 
     results = (await session.execute(items_query)).all()
+    items = [schemas.MetricEndpointStatsResponse.model_validate(row) for row in results]
 
-    return schemas.PaginatedResult(items=results, total=total, pagination=params)
+    return schemas.PaginatedResult(items=items, total=total, pagination=params)
 
 
 async def cleanup_old_metrics(session: AsyncSession, retention_days: int = 90) -> int:

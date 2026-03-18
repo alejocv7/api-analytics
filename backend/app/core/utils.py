@@ -6,6 +6,11 @@ from sqlalchemy import true
 from sqlalchemy.orm import DeclarativeBase
 
 
+def normalize_whitespace(name: str) -> str:
+    """Collapse all internal whitespace runs to a single space and strip edges."""
+    return " ".join(name.split())
+
+
 def get_default_start_date() -> AwareDatetime:
     return datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 

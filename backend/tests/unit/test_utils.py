@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.core.utils import apply_update, mask_email
+from app.core.utils import apply_update, mask_email, normalize_whitespace
 
 
 class _FakeUpdate(BaseModel):
@@ -78,6 +78,40 @@ def test_mask_email_no_at_sign():
 
 def test_mask_email_empty_string():
     assert mask_email("") == "***"
+
+
+# ---------------------------------------------------------------------------
+# Regression: edge cases that relied on the fixed except (ValueError, IndexError)
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# normalize_whitespace
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_whitespace_strips_leading_trailing():
+    assert normalize_whitespace("  hello  ") == "hello"
+
+
+def test_normalize_whitespace_collapses_internal_spaces():
+    assert normalize_whitespace("hello   world") == "hello world"
+
+
+def test_normalize_whitespace_collapses_tabs_and_newlines():
+    assert normalize_whitespace("hello\t\nworld") == "hello world"
+
+
+def test_normalize_whitespace_already_clean():
+    assert normalize_whitespace("hello world") == "hello world"
+
+
+def test_normalize_whitespace_empty_string():
+    assert normalize_whitespace("") == ""
+
+
+def test_normalize_whitespace_only_whitespace():
+    assert normalize_whitespace("   ") == ""
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from slugify import slugify
 from sqlalchemy import exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +14,50 @@ from app.core.utils import active_filter, apply_update
 logger = logging.getLogger(__name__)
 
 
+def _normalize_name(name: str) -> str:
+    """Normalize a project name for uniqueness comparison.
+
+    Lowercases and collapses all whitespace runs to a single space, matching
+    the functional unique index uq_user_project_name_normalized in the DB.
+    "My API", "my api", and "MY  API" all normalize to "my api".
+    """
+    return " ".join(name.lower().split())
+
+
+async def _assert_name_available(
+    user_id: uuid.UUID,
+    name: str,
+    session: AsyncSession,
+    exclude_project_id: uuid.UUID | None = None,
+) -> None:
+    """Raise ConflictError if a project with a conflicting normalized name exists."""
+    normalized = _normalize_name(name)
+    conditions = [
+        models.Project.user_id == user_id,
+        func.lower(
+            func.regexp_replace(func.trim(models.Project.name), r"\s+", " ", "g")
+        )
+        == normalized,
+    ]
+    if exclude_project_id is not None:
+        conditions.append(models.Project.id != exclude_project_id)
+
+    if await session.scalar(select(exists().where(*conditions))):
+        logger.warning(
+            "Project name conflict: '%s' (normalized) already in use for user_id: %s",
+            normalized,
+            user_id,
+        )
+        raise ConflictError("Project name already in use")
+
+
 async def create_user_project(
     user_id: uuid.UUID,
     project_in: schemas.ProjectCreate,
     session: AsyncSession,
 ) -> schemas.ProjectResponse:
+    await _assert_name_available(user_id, project_in.name, session)
+
     project = models.Project(
         name=project_in.name,
         description=project_in.description,
@@ -171,22 +211,11 @@ async def update_user_project(
     update_data: schemas.ProjectUpdate,
     session: AsyncSession,
 ) -> schemas.ProjectResponse:
-    # Check if the new name is already in use
     if update_data.name is not None and update_data.name != project.name:
-        stmt = select(
-            exists().where(
-                models.Project.user_id == project.user_id,
-                models.Project.name == update_data.name,
-                models.Project.id != project.id,
-            )
+        await _assert_name_available(
+            project.user_id, update_data.name, session, exclude_project_id=project.id
         )
-        if await session.scalar(stmt):
-            logger.warning(
-                "Project update failed: Name '%s' already in use for user_id: %s",
-                update_data.name,
-                project.user_id,
-            )
-            raise ConflictError("Project name already in use")
+        project.project_key = slugify(update_data.name)
 
     apply_update(project, update_data)
 

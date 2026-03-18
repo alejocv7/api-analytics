@@ -70,12 +70,15 @@ export function GeneralSettings({ project, isOwner }: GeneralSettingsProps) {
 
   async function onSubmit(values: UpdateProjectFormValues) {
     try {
-      await updateProject.mutateAsync({
+      const updated = await updateProject.mutateAsync({
         name: values.name,
         description: values.description || undefined,
         is_active: values.is_active,
       });
       toast.success("Project settings saved");
+      if (updated.project_key !== project.project_key) {
+        router.push(`/projects/${updated.project_key}/settings`);
+      }
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 409) {

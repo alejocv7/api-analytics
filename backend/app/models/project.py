@@ -1,12 +1,10 @@
-import secrets
 import uuid
 from typing import TYPE_CHECKING, Any
 
 from slugify import slugify
 from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.config import settings
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -20,7 +18,12 @@ class Project(Base, TimestampMixin):
     """Projects belong to users. Each project represents an app being tracked.
 
     The canonical owner is stored in `user_id`. All user-project relationships
-    (including ownership) are also reflected in the `user_projects` junction table.
+    (including ownership) are also reflected in the `user_projects` junction table
+    with roles `owner`/`member`/`viewer`.
+
+    `project_key` is a URL-safe slug derived from the project name. It is unique
+    per user and is updated automatically when the project is renamed. It is NOT
+    the database primary key — `id` is.
     """
 
     __tablename__ = "projects"
@@ -28,9 +31,7 @@ class Project(Base, TimestampMixin):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
     name: Mapped[str] = mapped_column(String(40), nullable=False)
-    project_key: Mapped[str] = mapped_column(
-        String(40 + 1 + settings.PROJECT_SUFFIX_LENGTH), unique=True, index=True
-    )
+    project_key: Mapped[str] = mapped_column(String(40), nullable=False)
     description: Mapped[str | None] = mapped_column(String(1000))
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -54,20 +55,16 @@ class Project(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(default=True)
 
     __table_args__ = (
-        UniqueConstraint("user_id", "name", name="uq_user_project_name"),
+        UniqueConstraint("user_id", "project_key", name="uq_user_project_key"),
+        # uq_user_project_name_normalized is a functional unique index managed
+        # entirely by migrations (case-insensitive + whitespace-collapsed name
+        # uniqueness per user). It cannot be represented as a plain
+        # UniqueConstraint here, so it is intentionally omitted from __table_args__
+        # to avoid autogenerate conflicts.
         Index("idx_project_user_active", "user_id", "is_active"),
     )
 
-    def __init__(self, name: str, **kwargs: Any):
+    def __init__(self, name: str, **kwargs: Any) -> None:
         if "project_key" not in kwargs:
-            kwargs["project_key"] = (
-                f"{slugify(name)}"
-                f"-{secrets.token_hex(settings.PROJECT_SUFFIX_LENGTH // 2)}"
-            )
+            kwargs["project_key"] = slugify(name)
         super().__init__(name=name, **kwargs)
-
-    @validates("project_key")
-    def protect_project_key(self, key: str, value: str) -> str:
-        if self.project_key is not None:
-            raise ValueError("project_key cannot be changed after it is set.")
-        return value

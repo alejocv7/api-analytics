@@ -37,6 +37,11 @@ def test_security_key_exactly_32_chars():
     assert len(settings.SECURITY_KEY) == 32
 
 
+def test_enable_self_metrics_can_be_disabled():
+    settings = Settings(ENVIRONMENT="test", ENABLE_SELF_METRICS=False, **_BASE_SETTINGS)
+    assert settings.ENABLE_SELF_METRICS is False
+
+
 def test_enforce_non_default_secrets_local():
     """Test that default secrets trigger a warning in local environment."""
     with pytest.warns(UserWarning, match='The value of PROJECT_KEY is "changethis"'):

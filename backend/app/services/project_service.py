@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import models, schemas
 from app.core.enums import ProjectRole
 from app.core.exceptions import ConflictError, NotFoundError
-from app.core.utils import active_filter, apply_update
+from app.core.utils import active_filter, apply_update, normalize_whitespace
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ async def _ensure_name_available(
     Names are stored pre-normalized (trimmed, whitespace-collapsed), so only
     a lower() comparison is needed to match the uq_user_project_name_normalized index.
     """
-    normalized = " ".join(name.lower().split())
+    normalized = normalize_whitespace(name).lower()
     conditions = [
         models.Project.user_id == user_id,
         func.lower(models.Project.name) == normalized,
@@ -203,7 +203,7 @@ async def update_user_project(
 ) -> schemas.ProjectResponse:
     if (
         update_data.name is not None
-        and " ".join(update_data.name.split()) != project.name
+        and normalize_whitespace(update_data.name) != project.name
     ):
         await _ensure_name_available(
             project.user_id, update_data.name, session, exclude_project_id=project.id

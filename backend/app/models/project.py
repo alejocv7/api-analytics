@@ -2,9 +2,10 @@ import uuid
 from typing import TYPE_CHECKING
 
 from slugify import slugify
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
+from app.core.utils import normalize_whitespace
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -56,15 +57,17 @@ class Project(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("user_id", "project_key", name="uq_user_project_key"),
-        # uq_user_project_name_normalized is a functional unique index on
-        # (user_id, lower(name)) managed entirely by migrations. Names are
-        # pre-normalized on save (trimmed, whitespace-collapsed) so only
-        # lower() is needed. Omitted here to avoid Alembic autogenerate noise.
+        Index(
+            "uq_user_project_name_normalized",
+            "user_id",
+            func.lower(text("name")),
+            unique=True,
+        ),
         Index("idx_project_user_active", "user_id", "is_active"),
     )
 
     @validates("name")
     def _normalize_name(self, key: str, name: str) -> str:
-        normalized = " ".join(name.split())
+        normalized = normalize_whitespace(name)
         self.project_key = slugify(normalized)
         return normalized

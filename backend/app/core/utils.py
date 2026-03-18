@@ -30,7 +30,7 @@ def mask_email(email: str) -> str:
         if len(user) <= 2:
             return f"*@{domain}"
         return f"{user[0]}***{user[-1]}@{domain}"
-    except ValueError, IndexError:
+    except (ValueError, IndexError):
         return "***"
 
 

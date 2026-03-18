@@ -27,7 +27,6 @@ async def test_pagination_fields(
             db_session,
             user=test_user,
             name=f"Project {i}",
-            project_key=f"key-{i}",
         )
 
     # Request page 1 with page_size 2

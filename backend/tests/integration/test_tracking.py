@@ -14,7 +14,6 @@ async def api_key_and_project(db_session, test_user):
         db_session,
         user=test_user,
         name="Track Project",
-        project_key="track-key",
     )
     _, plain_key = await create_api_key(
         db_session,

@@ -35,7 +35,6 @@ async def create_project(
     *,
     user: Any,
     name: str = "Test Project",
-    project_key: str | None = None,
     description: str | None = None,
     is_active: bool = True,
 ):
@@ -44,7 +43,6 @@ async def create_project(
 
     project = models.Project(
         name=name,
-        **({"project_key": project_key} if project_key is not None else {}),
         description=description,
         user_id=user.id,
         is_active=is_active,

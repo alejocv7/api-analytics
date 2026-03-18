@@ -23,18 +23,8 @@ async def test_create_project(client: AsyncClient, auth_headers):
 
 async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_session):
     # Create some projects
-    await create_project(
-        db_session,
-        user=test_user,
-        name="P1",
-        project_key="p1-key",
-    )
-    await create_project(
-        db_session,
-        user=test_user,
-        name="P2",
-        project_key="p2-key",
-    )
+    await create_project(db_session, user=test_user, name="P1")
+    await create_project(db_session, user=test_user, name="P2")
 
     response = await client.get("/api/v1/projects/", headers=auth_headers)
     assert response.status_code == 200
@@ -48,12 +38,7 @@ async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_se
 async def test_get_project_by_key(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    p = await create_project(
-        db_session,
-        user=test_user,
-        name="Single",
-        project_key="single-key",
-    )
+    p = await create_project(db_session, user=test_user, name="Single")
 
     response = await client.get(
         f"/api/v1/projects/{p.project_key}", headers=auth_headers
@@ -70,12 +55,7 @@ async def test_get_nonexistent_project(client: AsyncClient, auth_headers):
 
 
 async def test_update_project(client: AsyncClient, auth_headers, test_user, db_session):
-    p = await create_project(
-        db_session,
-        user=test_user,
-        name="Old Name",
-        project_key="old-key",
-    )
+    p = await create_project(db_session, user=test_user, name="Old Name")
 
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
@@ -89,18 +69,8 @@ async def test_update_project(client: AsyncClient, auth_headers, test_user, db_s
 async def test_update_project_duplicate_name(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    await create_project(
-        db_session,
-        user=test_user,
-        name="Project A",
-        project_key="a-key",
-    )
-    p2 = await create_project(
-        db_session,
-        user=test_user,
-        name="Project B",
-        project_key="b-key",
-    )
+    await create_project(db_session, user=test_user, name="Project A")
+    p2 = await create_project(db_session, user=test_user, name="Project B")
 
     response = await client.patch(
         f"/api/v1/projects/{p2.project_key}",
@@ -114,9 +84,7 @@ async def test_update_project_duplicate_name(
 async def test_project_counts_reflect_api_keys(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    p = await create_project(
-        db_session, user=test_user, name="Counted", project_key="counted-key"
-    )
+    p = await create_project(db_session, user=test_user, name="Counted")
     await create_api_key(db_session, project=p, name="Key 1")
     await create_api_key(db_session, project=p, name="Key 2")
 
@@ -134,9 +102,7 @@ async def test_project_counts_reflect_members(
     from app import models
     from app.core.enums import ProjectRole
 
-    p = await create_project(
-        db_session, user=test_user, name="Multi Member", project_key="multi-member-key"
-    )
+    p = await create_project(db_session, user=test_user, name="Multi Member")
     extra_user = await create_user(
         db_session, email="member@example.com", full_name="Extra Member"
     )
@@ -158,15 +124,13 @@ async def test_project_counts_reflect_members(
 async def test_list_projects_includes_counts(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    p = await create_project(
-        db_session, user=test_user, name="Listed", project_key="listed-key"
-    )
+    p = await create_project(db_session, user=test_user, name="Listed")
     await create_api_key(db_session, project=p, name="Key A")
 
     response = await client.get("/api/v1/projects/", headers=auth_headers)
     assert response.status_code == 200
     listed = next(
-        i for i in response.json()["items"] if i["project_key"] == "listed-key"
+        i for i in response.json()["items"] if i["project_key"] == p.project_key
     )
     assert listed["member_count"] == 1
     assert listed["api_key_count"] == 1
@@ -175,12 +139,7 @@ async def test_list_projects_includes_counts(
 async def test_update_project_returns_counts(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    p = await create_project(
-        db_session,
-        user=test_user,
-        name="Before Update",
-        project_key="update-counts-key",
-    )
+    p = await create_project(db_session, user=test_user, name="Before Update")
     await create_api_key(db_session, project=p, name="My Key")
 
     response = await client.patch(
@@ -220,12 +179,7 @@ async def test_create_project_name_exceeds_max_length(
 async def test_update_project_name_exceeds_max_length(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    p = await create_project(
-        db_session,
-        user=test_user,
-        name="Valid Name",
-        project_key="valid-name-key",
-    )
+    p = await create_project(db_session, user=test_user, name="Valid Name")
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
         headers=auth_headers,
@@ -237,12 +191,7 @@ async def test_update_project_name_exceeds_max_length(
 async def test_rename_project_updates_project_key(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    p = await create_project(
-        db_session,
-        user=test_user,
-        name="Original Name",
-        project_key="original-name",
-    )
+    p = await create_project(db_session, user=test_user, name="Original Name")
 
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
@@ -268,12 +217,7 @@ async def test_rename_project_updates_project_key(
 async def test_create_project_case_insensitive_name_conflict(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    await create_project(
-        db_session,
-        user=test_user,
-        name="My API",
-        project_key="my-api",
-    )
+    await create_project(db_session, user=test_user, name="My API")
 
     # "my api" normalizes to "my api", same as "My API"
     response = await client.post(
@@ -288,18 +232,8 @@ async def test_create_project_case_insensitive_name_conflict(
 async def test_rename_project_case_insensitive_name_conflict(
     client: AsyncClient, auth_headers, test_user, db_session
 ):
-    await create_project(
-        db_session,
-        user=test_user,
-        name="My API",
-        project_key="my-api",
-    )
-    p2 = await create_project(
-        db_session,
-        user=test_user,
-        name="Other Project",
-        project_key="other-project",
-    )
+    await create_project(db_session, user=test_user, name="My API")
+    p2 = await create_project(db_session, user=test_user, name="Other Project")
 
     # "MY API" normalizes to "my api", same as existing "My API"
     response = await client.patch(
@@ -312,12 +246,7 @@ async def test_rename_project_case_insensitive_name_conflict(
 
 
 async def test_delete_project(client: AsyncClient, auth_headers, test_user, db_session):
-    p = await create_project(
-        db_session,
-        user=test_user,
-        name="To Delete",
-        project_key="delete-key",
-    )
+    p = await create_project(db_session, user=test_user, name="To Delete")
 
     response = await client.delete(
         f"/api/v1/projects/{p.project_key}", headers=auth_headers

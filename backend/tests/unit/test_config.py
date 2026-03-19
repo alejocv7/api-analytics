@@ -13,6 +13,10 @@ _BASE_SETTINGS: dict[str, Any] = {
     "PROJECT_ID": "00000000-0000-0000-0000-000000000000",
     "POSTGRES_SERVER": "localhost",
     "POSTGRES_USER": "user",
+    "POSTGRES_PASSWORD": "password",
+    "REDIS_PASSWORD": "password",
+    "POSTGRES_SSL": True,
+    "REDIS_SSL": True,
 }
 
 
@@ -77,32 +81,29 @@ def test_enforce_non_default_secrets(
 
 def test_redis_url_ssl_scheme():
     """Test that REDIS_URL uses 'rediss' only when REDIS_SSL is True."""
-    settings = Settings(ENVIRONMENT="test", REDIS_SSL=False, **_BASE_SETTINGS)
+    settings = Settings(ENVIRONMENT="test", **{**_BASE_SETTINGS, "REDIS_SSL": False})
     assert settings.REDIS_URL.startswith("redis://")
 
-    settings = Settings(ENVIRONMENT="test", REDIS_SSL=True, **_BASE_SETTINGS)
+    settings = Settings(ENVIRONMENT="test", **{**_BASE_SETTINGS, "REDIS_SSL": True})
     assert settings.REDIS_URL.startswith("rediss://")
 
 
 @pytest.mark.parametrize("env", ["staging", "prod"])
 def test_enforce_ssl_in_remote_envs(env: str):
     """Test that prod/staging environments require SSL to be True."""
-    # Both False (default) -> Error
-    with pytest.raises(ValidationError) as excinfo:
-        Settings(ENVIRONMENT=env, **_BASE_SETTINGS)
-    assert "POSTGRES_SSL must be True" in str(excinfo.value)
-
-    # Only DB True -> Error
-    with pytest.raises(ValidationError) as excinfo:
-        Settings(ENVIRONMENT=env, POSTGRES_SSL=True, **_BASE_SETTINGS)
-    assert "REDIS_SSL must be True" in str(excinfo.value)
-
-    # Both True -> Success
-    settings = Settings(
-        ENVIRONMENT=env, POSTGRES_SSL=True, REDIS_SSL=True, **_BASE_SETTINGS
-    )
+    # Both True (default) -> Success
+    settings = Settings(ENVIRONMENT=env, **_BASE_SETTINGS)
     assert settings.POSTGRES_SSL is True
     assert settings.REDIS_SSL is True
+
+    # Explicitly setting one to False -> Error
+    with pytest.raises(ValidationError) as excinfo:
+        Settings(ENVIRONMENT=env, **{**_BASE_SETTINGS, "POSTGRES_SSL": False})
+    assert "POSTGRES_SSL must be True" in str(excinfo.value)
+
+    with pytest.raises(ValidationError) as excinfo:
+        Settings(ENVIRONMENT=env, **{**_BASE_SETTINGS, "REDIS_SSL": False})
+    assert "REDIS_SSL must be True" in str(excinfo.value)
 
 
 def test_security_key_entropy_remote_envs():

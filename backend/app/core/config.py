@@ -86,13 +86,13 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str = ""
-    POSTGRES_SSL: bool = False
+    POSTGRES_SSL: bool = True
     # Redis
     REDIS_DB: str = "0"
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str
-    REDIS_SSL: bool = False
+    REDIS_SSL: bool = True
     REDIS_POOL_SIZE: int = 20
     REDIS_HEALTH_CHECK_INTERVAL: int = 30
 

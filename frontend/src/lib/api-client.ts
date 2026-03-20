@@ -1,36 +1,19 @@
 import { API_URL } from "@/lib/constants";
-import {
-  getAccessToken,
-  getRefreshToken,
-  setTokens,
-  clearTokens,
-} from "@/lib/auth";
-import type { ApiError, TokenResponse } from "@/types/api";
+import type { ApiError } from "@/types/api";
 
 // Mutex to prevent concurrent token refresh races
-let refreshPromise: Promise<string> | null = null;
+let refreshPromise: Promise<void> | null = null;
 
-async function refreshAccessToken(): Promise<string> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    clearTokens();
-    throw new ApiClientError("Session expired. Please log in again.", 401);
-  }
-
+async function refreshAccessToken(): Promise<void> {
   const response = await fetch(`${API_URL}/auth/refresh`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+    credentials: "include",
   });
 
   if (!response.ok) {
-    clearTokens();
     throw new ApiClientError("Session expired. Please log in again.", 401);
   }
-
-  const data: TokenResponse = await response.json();
-  setTokens(data.access_token, data.refresh_token);
-  return data.access_token;
+  // New access_token and refresh_token cookies are set by the server response.
 }
 
 export class ApiClientError extends Error {
@@ -80,9 +63,7 @@ async function request<T>(
     }
   }
 
-  const token = getAccessToken();
   const headers: Record<string, string> = {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(extraHeaders as Record<string, string>),
   };
 
@@ -94,6 +75,7 @@ async function request<T>(
   const response = await fetch(url.toString(), {
     ...rest,
     headers,
+    credentials: "include",
     body: body
       ? isFormData
         ? (body as URLSearchParams)

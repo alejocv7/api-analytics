@@ -8,13 +8,13 @@ from tests.fixtures.db import (
     engine,
     session_factory,
 )
-from tests.fixtures.domain import auth_headers, project, test_user
+from tests.fixtures.domain import auth_cookies, project, test_user
 
 __all__ = [
     "apply_migrations",
     "async_db_url",
     "async_redis_client",
-    "auth_headers",
+    "auth_cookies",
     "client",
     "db_session",
     "engine",

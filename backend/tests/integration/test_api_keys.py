@@ -9,15 +9,15 @@ from tests.factories import create_api_key, create_user
 pytestmark = pytest.mark.asyncio
 
 
-def _auth_headers_for(user) -> dict[str, str]:
+def _auth_cookies_for(user) -> dict[str, str]:
     token = auth_service.create_user_token(user)
-    return {"Authorization": f"Bearer {token.access_token}"}
+    return {"access_token": token.access_token}
 
 
-async def test_create_api_key(client: AsyncClient, auth_headers, project):
+async def test_create_api_key(client: AsyncClient, auth_cookies, project):
     response = await client.post(
         f"/api/v1/projects/{project.project_key}/api-keys/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "My API Key"},
     )
     assert response.status_code == 201
@@ -28,7 +28,7 @@ async def test_create_api_key(client: AsyncClient, auth_headers, project):
 
 
 async def test_create_api_key_over_limit(
-    client: AsyncClient, auth_headers, project, monkeypatch
+    client: AsyncClient, auth_cookies, project, monkeypatch
 ):
     API_KEY_TEST_LIMIT = 2
 
@@ -36,7 +36,7 @@ async def test_create_api_key_over_limit(
     for i in range(API_KEY_TEST_LIMIT):
         response = await client.post(
             f"/api/v1/projects/{project.project_key}/api-keys/",
-            headers=auth_headers,
+            cookies=auth_cookies,
             json={"name": f"K{i}"},
         )
         assert response.status_code == 201
@@ -44,14 +44,14 @@ async def test_create_api_key_over_limit(
     # Try to create a 3rd key
     response = await client.post(
         f"/api/v1/projects/{project.project_key}/api-keys/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "K3"},
     )
 
     assert response.status_code == 409
 
 
-async def test_list_api_keys(client: AsyncClient, auth_headers, project, db_session):
+async def test_list_api_keys(client: AsyncClient, auth_cookies, project, db_session):
     await create_api_key(
         db_session,
         project=project,
@@ -60,7 +60,7 @@ async def test_list_api_keys(client: AsyncClient, auth_headers, project, db_sess
     )
 
     response = await client.get(
-        f"/api/v1/projects/{project.project_key}/api-keys/", headers=auth_headers
+        f"/api/v1/projects/{project.project_key}/api-keys/", cookies=auth_cookies
     )
     assert response.status_code == 200
     data = response.json()
@@ -69,7 +69,7 @@ async def test_list_api_keys(client: AsyncClient, auth_headers, project, db_sess
     assert "key" not in data["items"][0]  # Hash shouldn't be leaked
 
 
-async def test_update_api_key(client: AsyncClient, auth_headers, project, db_session):
+async def test_update_api_key(client: AsyncClient, auth_cookies, project, db_session):
     k, _ = await create_api_key(
         db_session,
         project=project,
@@ -78,14 +78,14 @@ async def test_update_api_key(client: AsyncClient, auth_headers, project, db_ses
 
     response = await client.patch(
         f"/api/v1/projects/{project.project_key}/api-keys/{k.id}",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "New Name"},
     )
     assert response.status_code == 200
     assert response.json()["name"] == "New Name"
 
 
-async def test_rotate_api_key(client: AsyncClient, auth_headers, project, db_session):
+async def test_rotate_api_key(client: AsyncClient, auth_cookies, project, db_session):
     k, _ = await create_api_key(
         db_session,
         project=project,
@@ -95,7 +95,7 @@ async def test_rotate_api_key(client: AsyncClient, auth_headers, project, db_ses
 
     response = await client.post(
         f"/api/v1/projects/{project.project_key}/api-keys/{k.id}/rotate",
-        headers=auth_headers,
+        cookies=auth_cookies,
     )
     assert response.status_code == 200
     data = response.json()
@@ -107,7 +107,7 @@ async def test_rotate_api_key(client: AsyncClient, auth_headers, project, db_ses
     assert not k.is_active
 
 
-async def test_delete_api_key(client: AsyncClient, auth_headers, project, db_session):
+async def test_delete_api_key(client: AsyncClient, auth_cookies, project, db_session):
     # Create two keys
     k1, _ = await create_api_key(
         db_session,
@@ -126,13 +126,13 @@ async def test_delete_api_key(client: AsyncClient, auth_headers, project, db_ses
 
     response = await client.delete(
         f"/api/v1/projects/{project.project_key}/api-keys/{k1.id}",
-        headers=auth_headers,
+        cookies=auth_cookies,
     )
     assert response.status_code == 204
 
 
 async def test_delete_last_active_key(
-    client: AsyncClient, auth_headers, project, db_session
+    client: AsyncClient, auth_cookies, project, db_session
 ):
     # Conftest project fixture doesn't create a key.
     # Let's create one.
@@ -145,7 +145,7 @@ async def test_delete_last_active_key(
 
     response = await client.delete(
         f"/api/v1/projects/{project.project_key}/api-keys/{k1.id}",
-        headers=auth_headers,
+        cookies=auth_cookies,
     )
     assert response.status_code == 400
     assert "Cannot delete the last active API key" in response.json()["error"]
@@ -159,12 +159,12 @@ async def test_delete_last_active_key(
 async def _add_non_owner(
     db_session, project, email: str, role: models.ProjectRole
 ) -> dict[str, str]:
-    """Create a user with the given role and return their auth headers."""
+    """Create a user with the given role and return their auth cookies."""
     user = await create_user(db_session, email=email)
     membership = models.UserProject(user_id=user.id, project_id=project.id, role=role)
     db_session.add(membership)
     await db_session.commit()
-    return _auth_headers_for(user)
+    return _auth_cookies_for(user)
 
 
 @pytest.mark.parametrize("role", [models.ProjectRole.member, models.ProjectRole.viewer])
@@ -172,12 +172,12 @@ async def test_non_owner_cannot_create_api_key(
     client: AsyncClient, project, db_session, role
 ):
     """Members and viewers cannot create API keys."""
-    headers = await _add_non_owner(
+    cookies = await _add_non_owner(
         db_session, project, f"{role.value}-create@example.com", role
     )
     response = await client.post(
         f"/api/v1/projects/{project.project_key}/api-keys/",
-        headers=headers,
+        cookies=cookies,
         json={"name": "Forbidden Key"},
     )
     assert response.status_code == 403
@@ -189,12 +189,12 @@ async def test_non_owner_cannot_update_api_key(
 ):
     """Members and viewers cannot update API keys."""
     k, _ = await create_api_key(db_session, project=project, name="Existing Key")
-    headers = await _add_non_owner(
+    cookies = await _add_non_owner(
         db_session, project, f"{role.value}-update@example.com", role
     )
     response = await client.patch(
         f"/api/v1/projects/{project.project_key}/api-keys/{k.id}",
-        headers=headers,
+        cookies=cookies,
         json={"name": "Updated Name"},
     )
     assert response.status_code == 403
@@ -208,12 +208,12 @@ async def test_non_owner_cannot_rotate_api_key(
     k, _ = await create_api_key(
         db_session, project=project, name="To Rotate", plain_key="sk_rotate_test"
     )
-    headers = await _add_non_owner(
+    cookies = await _add_non_owner(
         db_session, project, f"{role.value}-rotate@example.com", role
     )
     response = await client.post(
         f"/api/v1/projects/{project.project_key}/api-keys/{k.id}/rotate",
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 403
 
@@ -230,11 +230,11 @@ async def test_non_owner_cannot_delete_api_key(
     await create_api_key(
         db_session, project=project, name="Other Key", plain_key="sk_other_test"
     )
-    headers = await _add_non_owner(
+    cookies = await _add_non_owner(
         db_session, project, f"{role.value}-delete@example.com", role
     )
     response = await client.delete(
         f"/api/v1/projects/{project.project_key}/api-keys/{k.id}",
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 403

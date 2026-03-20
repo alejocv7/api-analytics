@@ -9,12 +9,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiClientError } from "@/lib/api-client";
-import {
-  clearTokens,
-  getAccessToken,
-  setTokens,
-} from "@/lib/auth";
-import type { LoginRequest, TokenResponse, User } from "@/types/api";
+import type { LoginRequest, User } from "@/types/api";
 
 interface AuthContextValue {
   user: User | null;
@@ -33,16 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
 
   const fetchUser = useCallback(async (): Promise<void> => {
-    if (!getAccessToken()) {
-      setIsLoading(false);
-      return;
-    }
+    // Tokens are in HttpOnly cookies — always attempt /users/me and let the
+    // server (or the api-client refresh flow) determine auth state.
     try {
       const me = await apiClient.get<User>("/users/me");
       setUser(me);
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 401) {
-        clearTokens();
         setUser(null);
       }
     } finally {
@@ -56,12 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (credentials: LoginRequest): Promise<void> => {
-      const tokens = await apiClient.postForm<TokenResponse>("/auth/login", {
+      // Login sets HttpOnly cookies and returns UserResponse directly.
+      const me = await apiClient.postForm<User>("/auth/login", {
         username: credentials.username,
         password: credentials.password,
       });
-      setTokens(tokens.access_token, tokens.refresh_token);
-      const me = await apiClient.get<User>("/users/me");
       setUser(me);
     },
     [],
@@ -71,9 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await apiClient.post("/auth/logout");
     } catch {
-      // Best-effort logout; clear tokens regardless
+      // Best-effort: clear local state even if the server call fails.
     } finally {
-      clearTokens();
       setUser(null);
       queryClient.clear();
     }

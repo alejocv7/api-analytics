@@ -4,13 +4,14 @@ from typing import Annotated
 
 import redis.asyncio as redis
 from fastapi import Depends, Path, Security
-from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+from fastapi.security import APIKeyHeader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
 from app import models
 from app.core import config, db, security
+from app.core.cookies import ACCESS_TOKEN_COOKIE
 from app.core.exceptions import (
     AuthenticationError,
     BearerAuthenticationError,
@@ -20,11 +21,6 @@ from app.core.redis import redis_manager
 from app.services import project_service
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{config.settings.API_PREFIX}/auth/login"
-)
-TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
@@ -95,8 +91,12 @@ ProjectIdDep = Annotated[uuid.UUID, Depends(get_project_id_by_api_key)]
 
 
 async def get_current_user(
-    request: Request, session: SessionDep, token: TokenDep
+    request: Request,
+    session: SessionDep,
 ) -> models.User:
+    token = request.cookies.get(ACCESS_TOKEN_COOKIE)
+    if not token:
+        raise BearerAuthenticationError("Not authenticated")
     token_data = security.decode_token(token)
     user = await session.get(models.User, token_data.user_id)
     if user is None:

@@ -23,12 +23,6 @@ class TokenResponse(BaseModel):
     )
 
 
-class RefreshTokenRequest(BaseModel):
-    """Request body for the token refresh endpoint."""
-
-    refresh_token: str
-
-
 class TokenData(BaseModel):
     """Application identity extracted from a validated JWT token."""
 

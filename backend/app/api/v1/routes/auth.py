@@ -1,16 +1,53 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import models, schemas
 from app.core import rate_limits
+from app.core.config import settings
+from app.core.cookies import ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE
 from app.core.exceptions import BearerAuthenticationError
 from app.core.rate_limiter import limiter
 from app.dependencies import CurrentUserDep, RedisDep, SessionDep
 from app.services import auth_service
 
 router = APIRouter()
+
+_REFRESH_COOKIE_PATH = f"{settings.API_PREFIX}/auth/refresh"
+
+
+def _set_auth_cookies(
+    response: Response, access_token: str, refresh_token: str
+) -> None:
+    response.set_cookie(
+        key=ACCESS_TOKEN_COOKIE,
+        value=access_token,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+        max_age=settings.SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    # Scope the refresh token cookie to the refresh endpoint only so the
+    # browser never sends it to any other API path.
+    response.set_cookie(
+        key=REFRESH_TOKEN_COOKIE,
+        value=refresh_token,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+        path=_REFRESH_COOKIE_PATH,
+        max_age=settings.SECURITY_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie(key=ACCESS_TOKEN_COOKIE, samesite="strict")
+    response.delete_cookie(
+        key=REFRESH_TOKEN_COOKIE,
+        path=_REFRESH_COOKIE_PATH,
+        samesite="strict",
+    )
 
 
 @router.post(
@@ -46,15 +83,15 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=schemas.TokenResponse,
+    response_model=schemas.UserResponse,
     summary="User login",
     description="""
-    Authenticates a user with email and password and returns a JWT access token
-    and a refresh token.
+    Authenticates a user with email and password. Sets `access_token` and
+    `refresh_token` as HttpOnly cookies and returns the authenticated user.
 
-    The access token must be included in the `Authorization: Bearer <token>` header
-    for all authenticated requests. Use the refresh token at `/auth/refresh` to
-    obtain a new token pair when the access token expires.
+    The access token cookie is sent automatically by the browser for all
+    subsequent requests. Use `/auth/refresh` to rotate tokens when the
+    access token expires.
     """,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Invalid credentials"},
@@ -67,10 +104,11 @@ async def register(
 @limiter.limit(rate_limits.AUTH_LOGIN)
 async def login(
     request: Request,
+    response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: SessionDep,
     redis: RedisDep,
-) -> schemas.TokenResponse:
+) -> models.User:
     client_ip = request.client.host if request.client else "unknown"
     await auth_service.check_login_locked(client_ip, form_data.username, redis)
     try:
@@ -82,18 +120,18 @@ async def login(
         raise
 
     await auth_service.reset_login_attempts(form_data.username, client_ip, redis)
-    return auth_service.create_user_token(user)
+    tokens = auth_service.create_user_token(user)
+    _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
+    return user
 
 
 @router.post(
     "/refresh",
-    response_model=schemas.TokenResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Refresh access token",
     description="""
-    Exchanges a valid refresh token for a new access token and refresh token pair.
-
-    Both tokens are rotated on every call. The client should replace both stored tokens
-    with the newly issued pair.
+    Reads the `refresh_token` cookie, issues a new access + refresh token pair,
+    and sets both as fresh HttpOnly cookies. The old refresh token is invalidated.
     """,
     responses={
         401: {
@@ -105,11 +143,15 @@ async def login(
 )
 @limiter.limit(rate_limits.AUTH_REFRESH)
 async def refresh_token(
-    request: Request,  # noqa: ARG001
-    body: schemas.RefreshTokenRequest,
+    request: Request,
+    response: Response,
     session: SessionDep,
-) -> schemas.TokenResponse:
-    return await auth_service.refresh_user_token(body.refresh_token, session)
+) -> None:
+    token = request.cookies.get(REFRESH_TOKEN_COOKIE)
+    if not token:
+        raise BearerAuthenticationError("Refresh token not found")
+    tokens = await auth_service.refresh_user_token(token, session)
+    _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
 
 
 @router.post(
@@ -117,14 +159,16 @@ async def refresh_token(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Logout user",
     description="""
-    Logs out the current user by revoking all currently issued refresh tokens.
+    Revokes all currently issued refresh tokens and clears auth cookies.
     """,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
     },
 )
 async def logout(
+    response: Response,
     user: CurrentUserDep,
     session: SessionDep,
 ) -> None:
     await auth_service.logout(user.id, session)
+    _clear_auth_cookies(response)

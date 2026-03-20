@@ -25,7 +25,7 @@ async def test_expired_jwt_token(client: AsyncClient, test_user):
 
     response = await client.get(
         "/api/v1/projects/",
-        headers={"Authorization": f"Bearer {expired_token}"},
+        cookies={"access_token": expired_token},
     )
 
     assert response.status_code == 401
@@ -48,7 +48,7 @@ async def test_invalid_jwt_signature(client: AsyncClient, test_user):
 
     response = await client.get(
         "/api/v1/projects/",
-        headers={"Authorization": f"Bearer {fake_token}"},
+        cookies={"access_token": fake_token},
     )
     assert response.status_code == 401
 

@@ -7,11 +7,11 @@ from tests.factories import create_metric
 
 
 @pytest.mark.asyncio
-async def test_get_metrics_summary_empty(client: AsyncClient, auth_headers, project):
+async def test_get_metrics_summary_empty(client: AsyncClient, auth_cookies, project):
     """Test metrics summary when there are no metrics."""
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/metrics/summary",
-        headers=auth_headers,
+        cookies=auth_cookies,
     )
     assert response.status_code == 200
     data = response.json()
@@ -22,7 +22,7 @@ async def test_get_metrics_summary_empty(client: AsyncClient, auth_headers, proj
 
 @pytest.mark.asyncio
 async def test_get_metrics_invalid_date_range(
-    client: AsyncClient, auth_headers, project
+    client: AsyncClient, auth_cookies, project
 ):
     """Test that end_date before start_date raises an error."""
     start_date = datetime.now(UTC)
@@ -30,7 +30,7 @@ async def test_get_metrics_invalid_date_range(
 
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/metrics/summary",
-        headers=auth_headers,
+        cookies=auth_cookies,
         params={
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
@@ -41,7 +41,7 @@ async def test_get_metrics_invalid_date_range(
 
 @pytest.mark.asyncio
 async def test_pagination_edge_cases(
-    client: AsyncClient, auth_headers, project, db_session
+    client: AsyncClient, auth_cookies, project, db_session
 ):
     """Test pagination limits and offsets."""
     # Create 15 metrics
@@ -51,7 +51,7 @@ async def test_pagination_edge_cases(
     # Page 1, size 10
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/metrics/time-series",
-        headers=auth_headers,
+        cookies=auth_cookies,
         params={"page": 1, "page_size": 10, "granularity": "minute"},
     )
     assert response.status_code == 200
@@ -63,7 +63,7 @@ async def test_pagination_edge_cases(
     # Test invalid page size
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/metrics/time-series",
-        headers=auth_headers,
+        cookies=auth_cookies,
         params={"page_size": 10001},  # Exceeds max
     )
     assert response.status_code == 422
@@ -71,7 +71,7 @@ async def test_pagination_edge_cases(
 
 @pytest.mark.asyncio
 async def test_metrics_large_volume_simulation(
-    client: AsyncClient, auth_headers, project, db_session
+    client: AsyncClient, auth_cookies, project, db_session
 ):
     """Simulate a larger volume of metrics to ensure query performance/correctness."""
     # Create many metrics in loop. For test speed, we'll keep it reasonable, 50 metrics.
@@ -88,7 +88,7 @@ async def test_metrics_large_volume_simulation(
 
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/metrics/summary",
-        headers=auth_headers,
+        cookies=auth_cookies,
         params={
             "start_date": (datetime.now(UTC) - timedelta(hours=1)).isoformat(),
             "end_date": (datetime.now(UTC) + timedelta(minutes=1)).isoformat(),

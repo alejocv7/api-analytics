@@ -24,6 +24,9 @@ async def test_get_current_user_inactive():
     user = MagicMock(is_active=False)
     session.get.return_value = user
 
+    request = MagicMock()
+    request.cookies = {"access_token": "valid-token"}
+
     with (
         patch(
             "app.core.security.decode_token",
@@ -31,13 +34,16 @@ async def test_get_current_user_inactive():
         ),
         pytest.raises(ForbiddenError, match="Inactive user"),
     ):
-        await dependencies.get_current_user(MagicMock(), session, "valid-token")
+        await dependencies.get_current_user(request, session)
 
 
 @pytest.mark.asyncio
 async def test_get_current_user_not_found():
     session = AsyncMock()
     session.get.return_value = None
+
+    request = MagicMock()
+    request.cookies = {"access_token": "valid-token"}
 
     with (
         patch(
@@ -46,4 +52,4 @@ async def test_get_current_user_not_found():
         ),
         pytest.raises(BearerAuthenticationError, match="credentials"),
     ):
-        await dependencies.get_current_user(MagicMock(), session, "valid-token")
+        await dependencies.get_current_user(request, session)

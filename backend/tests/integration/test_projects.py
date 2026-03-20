@@ -6,10 +6,10 @@ from tests.factories import create_api_key, create_project, create_user
 pytestmark = pytest.mark.asyncio
 
 
-async def test_create_project(client: AsyncClient, auth_headers):
+async def test_create_project(client: AsyncClient, auth_cookies):
     response = await client.post(
         "/api/v1/projects/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "Test Project", "description": "Project Description"},
     )
     assert response.status_code == 201
@@ -21,12 +21,12 @@ async def test_create_project(client: AsyncClient, auth_headers):
     assert data["api_key_count"] == 0
 
 
-async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_session):
+async def test_list_projects(client: AsyncClient, auth_cookies, test_user, db_session):
     # Create some projects
     await create_project(db_session, user=test_user, name="P1")
     await create_project(db_session, user=test_user, name="P2")
 
-    response = await client.get("/api/v1/projects/", headers=auth_headers)
+    response = await client.get("/api/v1/projects/", cookies=auth_cookies)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 2
@@ -36,12 +36,12 @@ async def test_list_projects(client: AsyncClient, auth_headers, test_user, db_se
 
 
 async def test_get_project_by_key(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     p = await create_project(db_session, user=test_user, name="Single")
 
     response = await client.get(
-        f"/api/v1/projects/{p.project_key}", headers=auth_headers
+        f"/api/v1/projects/{p.project_key}", cookies=auth_cookies
     )
     assert response.status_code == 200
     assert response.json()["name"] == "Single"
@@ -49,17 +49,17 @@ async def test_get_project_by_key(
     assert response.json()["api_key_count"] == 0
 
 
-async def test_get_nonexistent_project(client: AsyncClient, auth_headers):
-    response = await client.get("/api/v1/projects/nonexistent", headers=auth_headers)
+async def test_get_nonexistent_project(client: AsyncClient, auth_cookies):
+    response = await client.get("/api/v1/projects/nonexistent", cookies=auth_cookies)
     assert response.status_code == 404
 
 
-async def test_update_project(client: AsyncClient, auth_headers, test_user, db_session):
+async def test_update_project(client: AsyncClient, auth_cookies, test_user, db_session):
     p = await create_project(db_session, user=test_user, name="Old Name")
 
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "New Name"},
     )
     assert response.status_code == 200
@@ -67,14 +67,14 @@ async def test_update_project(client: AsyncClient, auth_headers, test_user, db_s
 
 
 async def test_update_project_duplicate_name(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     await create_project(db_session, user=test_user, name="Project A")
     p2 = await create_project(db_session, user=test_user, name="Project B")
 
     response = await client.patch(
         f"/api/v1/projects/{p2.project_key}",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "Project A"},
     )
     assert response.status_code == 409
@@ -82,14 +82,14 @@ async def test_update_project_duplicate_name(
 
 
 async def test_project_counts_reflect_api_keys(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     p = await create_project(db_session, user=test_user, name="Counted")
     await create_api_key(db_session, project=p, name="Key 1")
     await create_api_key(db_session, project=p, name="Key 2")
 
     response = await client.get(
-        f"/api/v1/projects/{p.project_key}", headers=auth_headers
+        f"/api/v1/projects/{p.project_key}", cookies=auth_cookies
     )
     assert response.status_code == 200
     assert response.json()["api_key_count"] == 2
@@ -97,7 +97,7 @@ async def test_project_counts_reflect_api_keys(
 
 
 async def test_project_counts_reflect_members(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     from app import models
     from app.core.enums import ProjectRole
@@ -114,7 +114,7 @@ async def test_project_counts_reflect_members(
     await db_session.commit()
 
     response = await client.get(
-        f"/api/v1/projects/{p.project_key}", headers=auth_headers
+        f"/api/v1/projects/{p.project_key}", cookies=auth_cookies
     )
     assert response.status_code == 200
     assert response.json()["member_count"] == 2
@@ -122,12 +122,12 @@ async def test_project_counts_reflect_members(
 
 
 async def test_list_projects_includes_counts(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     p = await create_project(db_session, user=test_user, name="Listed")
     await create_api_key(db_session, project=p, name="Key A")
 
-    response = await client.get("/api/v1/projects/", headers=auth_headers)
+    response = await client.get("/api/v1/projects/", cookies=auth_cookies)
     assert response.status_code == 200
     listed = next(
         i for i in response.json()["items"] if i["project_key"] == p.project_key
@@ -137,14 +137,14 @@ async def test_list_projects_includes_counts(
 
 
 async def test_update_project_returns_counts(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     p = await create_project(db_session, user=test_user, name="Before Update")
     await create_api_key(db_session, project=p, name="My Key")
 
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "After Update"},
     )
     assert response.status_code == 200
@@ -154,11 +154,11 @@ async def test_update_project_returns_counts(
     assert data["api_key_count"] == 1
 
 
-async def test_create_project_name_at_max_length(client: AsyncClient, auth_headers):
+async def test_create_project_name_at_max_length(client: AsyncClient, auth_cookies):
     name = "A" * 40
     response = await client.post(
         "/api/v1/projects/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": name},
     )
     assert response.status_code == 201
@@ -166,36 +166,36 @@ async def test_create_project_name_at_max_length(client: AsyncClient, auth_heade
 
 
 async def test_create_project_name_exceeds_max_length(
-    client: AsyncClient, auth_headers
+    client: AsyncClient, auth_cookies
 ):
     response = await client.post(
         "/api/v1/projects/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "A" * 41},
     )
     assert response.status_code == 422
 
 
 async def test_update_project_name_exceeds_max_length(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     p = await create_project(db_session, user=test_user, name="Valid Name")
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "A" * 41},
     )
     assert response.status_code == 422
 
 
 async def test_rename_project_updates_project_key(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     p = await create_project(db_session, user=test_user, name="Original Name")
 
     response = await client.patch(
         f"/api/v1/projects/{p.project_key}",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "Renamed Project"},
     )
     assert response.status_code == 200
@@ -205,24 +205,24 @@ async def test_rename_project_updates_project_key(
 
     # New key is accessible
     response = await client.get(
-        "/api/v1/projects/renamed-project", headers=auth_headers
+        "/api/v1/projects/renamed-project", cookies=auth_cookies
     )
     assert response.status_code == 200
 
     # Old key is gone
-    response = await client.get("/api/v1/projects/original-name", headers=auth_headers)
+    response = await client.get("/api/v1/projects/original-name", cookies=auth_cookies)
     assert response.status_code == 404
 
 
 async def test_create_project_case_insensitive_name_conflict(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     await create_project(db_session, user=test_user, name="My API")
 
     # "my api" normalizes to "my api", same as "My API"
     response = await client.post(
         "/api/v1/projects/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "my api"},
     )
     assert response.status_code == 409
@@ -230,7 +230,7 @@ async def test_create_project_case_insensitive_name_conflict(
 
 
 async def test_rename_project_case_insensitive_name_conflict(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     await create_project(db_session, user=test_user, name="My API")
     p2 = await create_project(db_session, user=test_user, name="Other Project")
@@ -238,23 +238,23 @@ async def test_rename_project_case_insensitive_name_conflict(
     # "MY API" normalizes to "my api", same as existing "My API"
     response = await client.patch(
         f"/api/v1/projects/{p2.project_key}",
-        headers=auth_headers,
+        cookies=auth_cookies,
         json={"name": "MY API"},
     )
     assert response.status_code == 409
     assert "already in use" in response.json()["error"]
 
 
-async def test_delete_project(client: AsyncClient, auth_headers, test_user, db_session):
+async def test_delete_project(client: AsyncClient, auth_cookies, test_user, db_session):
     p = await create_project(db_session, user=test_user, name="To Delete")
 
     response = await client.delete(
-        f"/api/v1/projects/{p.project_key}", headers=auth_headers
+        f"/api/v1/projects/{p.project_key}", cookies=auth_cookies
     )
     assert response.status_code == 204
 
     # Verify gone
     response = await client.get(
-        f"/api/v1/projects/{p.project_key}", headers=auth_headers
+        f"/api/v1/projects/{p.project_key}", cookies=auth_cookies
     )
     assert response.status_code == 404

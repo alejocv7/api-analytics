@@ -25,12 +25,6 @@ export interface ApiError {
 // Auth
 // ============================================================
 
-export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-}
-
 export interface LoginRequest {
   username: string; // backend uses OAuth2PasswordRequestForm with `username` field
   password: string;

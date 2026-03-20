@@ -56,7 +56,7 @@ async def test_rate_limit_response_format(client: AsyncClient):
 
 
 async def test_per_user_rate_limit_isolation(
-    client: AsyncClient, db_session, auth_headers
+    client: AsyncClient, db_session, auth_cookies
 ):
     """Test that per-user rate limits only affect the specific user."""
     from tests.factories import create_user
@@ -66,7 +66,7 @@ async def test_per_user_rate_limit_isolation(
     from app.services import auth_service
 
     token_resp2 = auth_service.create_user_token(user2)
-    auth_headers2 = {"Authorization": f"Bearer {token_resp2.access_token}"}
+    auth_cookies2 = {"access_token": token_resp2.access_token}
 
     # User 1 creates projects up to rate limit (20/minute)
     user1_responses = []
@@ -74,7 +74,7 @@ async def test_per_user_rate_limit_isolation(
         response = await client.post(
             "/api/v1/projects/",
             json={"name": f"User1 Project {i}"},
-            headers=auth_headers,
+            cookies=auth_cookies,
         )
         user1_responses.append(response)
 
@@ -85,7 +85,7 @@ async def test_per_user_rate_limit_isolation(
     response = await client.post(
         "/api/v1/projects/",
         json={"name": "User2 Project"},
-        headers=auth_headers2,
+        cookies=auth_cookies2,
     )
     # Should not be rate limited (could be 201 or other error, but not 429)
     assert response.status_code != 429
@@ -108,7 +108,7 @@ async def test_auth_rate_limiting_by_ip(client: AsyncClient):
 
 
 async def test_metrics_endpoints_are_rate_limited(
-    client: AsyncClient, auth_headers, project
+    client: AsyncClient, auth_cookies, project
 ):
     """Test that metrics endpoints have rate limiting applied."""
     # Metrics read endpoints should have DATA_READ limit (60/minute)
@@ -116,7 +116,7 @@ async def test_metrics_endpoints_are_rate_limited(
     for _ in range(61):
         response = await client.get(
             f"/api/v1/projects/{project.project_key}/metrics/",
-            headers=auth_headers,
+            cookies=auth_cookies,
         )
         responses.append(response)
 

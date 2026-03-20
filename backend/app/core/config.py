@@ -149,6 +149,11 @@ class Settings(BaseSettings):
     SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     SECURITY_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def cookie_secure(self) -> bool:
+        return self.ENVIRONMENT not in ("local", "test")
+
     LOGIN_MAX_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_WINDOW_SECONDS: int = 900  # 15 minutes
 

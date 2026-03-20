@@ -7,7 +7,6 @@ from app.schemas.api_key import (
 )
 from app.schemas.auth import (
     RefreshTokenData,
-    RefreshTokenRequest,
     TokenData,
     TokenResponse,
 )
@@ -85,7 +84,6 @@ __all__ = [
     "ProjectResponse",
     "ProjectUpdate",
     "RefreshTokenData",
-    "RefreshTokenRequest",
     "TokenData",
     "TokenResponse",
     "UserCreate",

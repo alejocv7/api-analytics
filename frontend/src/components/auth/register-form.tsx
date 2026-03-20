@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,11 +29,10 @@ import { PasswordInput } from "@/components/shared/password-input";
 import { useAuth } from "@/providers/auth-provider";
 import { apiClient, ApiClientError } from "@/lib/api-client";
 import { registerSchema, type RegisterFormValues } from "@/lib/validators";
-import type { TokenResponse, User } from "@/types/api";
-import { setTokens } from "@/lib/auth";
+import type { User } from "@/types/api";
 
 export function RegisterForm() {
-  const { refetchUser } = useAuth();
+  const { login } = useAuth();
   const router = useRouter();
 
   const form = useForm<RegisterFormValues>({
@@ -57,12 +55,7 @@ export function RegisterForm() {
       });
 
       // Auto-login
-      const tokens = await apiClient.postForm<TokenResponse>("/auth/login", {
-        username: values.email,
-        password: values.password,
-      });
-      setTokens(tokens.access_token, tokens.refresh_token);
-      await refetchUser();
+      await login({ username: values.email, password: values.password });
 
       toast.success("Account created! Welcome aboard.");
       router.push("/projects");

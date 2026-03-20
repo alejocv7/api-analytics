@@ -44,16 +44,18 @@ async def test_register_duplicate_email(client: AsyncClient, test_user):
 
 
 async def test_login_success(client: AsyncClient, test_user):
-    # Login uses OAuth2PasswordRequestForm: form data with `username` field
     response = await client.post(
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "Password123!"},
     )
     assert response.status_code == 200
     data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["token_type"] == "bearer"
+    # Login now returns UserResponse, not TokenResponse
+    assert data["email"] == test_user.email
+    assert "id" in data
+    # Tokens are delivered as HttpOnly cookies
+    assert "access_token" in response.cookies
+    assert "refresh_token" in response.cookies
 
 
 async def test_login_invalid_credentials(client: AsyncClient, test_user):
@@ -69,45 +71,42 @@ async def test_login_invalid_credentials(client: AsyncClient, test_user):
 
 
 async def test_refresh_token(client: AsyncClient, test_user):
-    """A valid refresh token exchanges for a new access+refresh token pair."""
+    """A valid refresh token cookie exchanges for a new token pair."""
     login = await client.post(
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "Password123!"},
     )
     assert login.status_code == 200
-    refresh_token = login.json()["refresh_token"]
+    # httpx stores the Set-Cookie headers automatically; the refresh_token
+    # cookie is scoped to /api/v1/auth/refresh and will be sent automatically.
 
-    response = await client.post(
-        "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_token},
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["token_type"] == "bearer"
+    response = await client.post("/api/v1/auth/refresh")
+    assert response.status_code == 204
+    # New cookies must be issued
+    assert "access_token" in response.cookies
+    assert "refresh_token" in response.cookies
 
 
 async def test_refresh_token_invalid(client: AsyncClient):
-    """An invalid refresh token returns 401."""
+    """An invalid refresh token cookie returns 401."""
     response = await client.post(
         "/api/v1/auth/refresh",
-        json={"refresh_token": "not.a.valid.token"},
+        cookies={"refresh_token": "not.a.valid.token"},
     )
     assert response.status_code == 401
 
 
 async def test_refresh_token_with_access_token(client: AsyncClient, test_user):
-    """Using an access token as a refresh token must be rejected."""
+    """Sending an access token as the refresh token must be rejected."""
     login = await client.post(
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "Password123!"},
     )
-    access_token = login.json()["access_token"]
+    access_token = login.cookies["access_token"]
 
     response = await client.post(
         "/api/v1/auth/refresh",
-        json={"refresh_token": access_token},
+        cookies={"refresh_token": access_token},
     )
     assert response.status_code == 401
 
@@ -118,17 +117,16 @@ async def test_refresh_token_cannot_be_reused(client: AsyncClient, test_user):
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "Password123!"},
     )
-    refresh_token = login.json()["refresh_token"]
+    assert login.status_code == 200
+    original_refresh_token = login.cookies["refresh_token"]
 
-    first_refresh = await client.post(
-        "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_token},
-    )
-    assert first_refresh.status_code == 200
+    first_refresh = await client.post("/api/v1/auth/refresh")
+    assert first_refresh.status_code == 204
 
+    # Try to reuse the original (now-invalidated) refresh token
     replay = await client.post(
         "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_token},
+        cookies={"refresh_token": original_refresh_token},
     )
     assert replay.status_code == 401
 
@@ -139,18 +137,13 @@ async def test_new_access_token_from_refresh_is_usable(client: AsyncClient, test
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "Password123!"},
     )
-    refresh_token = login.json()["refresh_token"]
+    assert login.status_code == 200
 
-    refresh_resp = await client.post(
-        "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_token},
-    )
-    new_access_token = refresh_resp.json()["access_token"]
+    refresh_resp = await client.post("/api/v1/auth/refresh")
+    assert refresh_resp.status_code == 204
 
-    me_resp = await client.get(
-        "/api/v1/users/me",
-        headers={"Authorization": f"Bearer {new_access_token}"},
-    )
+    # The rotated access_token cookie is now in the client; /users/me should work.
+    me_resp = await client.get("/api/v1/users/me")
     assert me_resp.status_code == 200
 
 
@@ -229,7 +222,7 @@ async def test_inactive_user_cannot_access_protected(
 ):
     from app.services import auth_service
 
-    token = auth_service.create_user_token(test_user)
+    tokens = auth_service.create_user_token(test_user)
 
     test_user.is_active = False
     db_session.add(test_user)
@@ -237,39 +230,29 @@ async def test_inactive_user_cannot_access_protected(
 
     response = await client.get(
         "/api/v1/users/me",
-        headers={"Authorization": f"Bearer {token.access_token}"},
+        cookies={"access_token": tokens.access_token},
     )
     assert response.status_code == 403
     assert "Inactive user" in response.json()["error"]
 
 
 async def test_logout(client: AsyncClient, test_user):
-    # 1. Login to get tokens
+    # 1. Login — cookies set automatically in the httpx client
     login = await client.post(
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "Password123!"},
     )
-    tokens = login.json()
-    access_token = tokens["access_token"]
-    refresh_token = tokens["refresh_token"]
+    assert login.status_code == 200
 
-    # 2. Verify access works (stateless)
-    me = await client.get(
-        "/api/v1/users/me",
-        headers={"Authorization": f"Bearer {access_token}"},
-    )
+    # 2. Verify access works (access_token cookie sent automatically)
+    me = await client.get("/api/v1/users/me")
     assert me.status_code == 200
 
-    # 3. Logout
-    logout_resp = await client.post(
-        "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {access_token}"},
-    )
+    # 3. Logout — clears cookies server-side and invalidates refresh token version
+    logout_resp = await client.post("/api/v1/auth/logout")
     assert logout_resp.status_code == 204
 
-    # 4. Verify refresh token is revoked
-    refresh_fail = await client.post(
-        "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_token},
-    )
+    # 4. Refresh token version is incremented; even if the cookie were somehow
+    #    replayed, the server rejects it.
+    refresh_fail = await client.post("/api/v1/auth/refresh")
     assert refresh_fail.status_code == 401

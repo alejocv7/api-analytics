@@ -19,7 +19,7 @@ async def test_root_endpoint(client: AsyncClient):
 
 
 async def test_pagination_fields(
-    client: AsyncClient, auth_headers, test_user, db_session
+    client: AsyncClient, auth_cookies, test_user, db_session
 ):
     # Create 3 projects
     for i in range(3):
@@ -32,7 +32,7 @@ async def test_pagination_fields(
     # Request page 1 with page_size 2
     response = await client.get(
         "/api/v1/projects/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         params={"page": 1, "page_size": 2},
     )
     assert response.status_code == 200
@@ -49,7 +49,7 @@ async def test_pagination_fields(
     # Request page 2 with page_size 2
     response = await client.get(
         "/api/v1/projects/",
-        headers=auth_headers,
+        cookies=auth_cookies,
         params={"page": 2, "page_size": 2},
     )
     assert response.status_code == 200

@@ -19,9 +19,9 @@ async def project(db_session: AsyncSession, test_user):
 
 
 @pytest_asyncio.fixture
-async def auth_headers(test_user):
-    """Get auth headers for the test user."""
+async def auth_cookies(test_user):
+    """Get auth cookies for the test user."""
     from app.services import auth_service
 
     token_resp = auth_service.create_user_token(test_user)
-    return {"Authorization": f"Bearer {token_resp.access_token}"}
+    return {"access_token": token_resp.access_token}

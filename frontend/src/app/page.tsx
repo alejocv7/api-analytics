@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HomeAuthRedirect } from "@/components/auth/home-auth-redirect";
 import {
   BarChart3,
   Key,
@@ -50,7 +51,9 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <HomeAuthRedirect />
+      <div className="min-h-screen bg-background">
       {/* Nav */}
       <header className="border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
@@ -153,5 +156,6 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

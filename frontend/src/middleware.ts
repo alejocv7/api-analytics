@@ -12,6 +12,15 @@ function getApiOrigin(): string {
 }
 
 export function middleware(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+
+  // Redirect authenticated users away from the landing page before rendering.
+  // Checking cookie existence is enough — if the token is expired the user will
+  // be sent to /login by AuthGuard after the server rejects the request.
+  if (pathname === "/" && request.cookies.has("access_token")) {
+    return NextResponse.redirect(new URL("/projects", request.url));
+  }
+
   // Next.js dev mode uses eval-source-map (webpack devtool) which requires
   // 'unsafe-eval'. Skip CSP enforcement in development to preserve the dev
   // experience; the nonce-based policy is enforced in production builds only.

@@ -47,6 +47,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, [fetchUser]);
 
+  // When the refresh token is rejected (e.g. logout happened in another tab),
+  // the api-client dispatches this event. Clear local state so AuthGuard
+  // redirects to /login.
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+      queryClient.clear();
+    };
+    window.addEventListener("auth:session-expired", handleSessionExpired);
+    return () =>
+      window.removeEventListener("auth:session-expired", handleSessionExpired);
+  }, [queryClient]);
+
   const login = useCallback(
     async (credentials: LoginRequest): Promise<void> => {
       // Login sets HttpOnly cookies and returns UserResponse directly.

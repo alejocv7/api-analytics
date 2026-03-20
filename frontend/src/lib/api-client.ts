@@ -11,6 +11,7 @@ async function refreshAccessToken(): Promise<void> {
   });
 
   if (!response.ok) {
+    window.dispatchEvent(new Event("auth:session-expired"));
     throw new ApiClientError("Session expired. Please log in again.", 401);
   }
   // New access_token and refresh_token cookies are set by the server response.

@@ -12,6 +12,13 @@ function getApiOrigin(): string {
 }
 
 export function middleware(request: NextRequest): NextResponse {
+  // Next.js dev mode uses eval-source-map (webpack devtool) which requires
+  // 'unsafe-eval'. Skip CSP enforcement in development to preserve the dev
+  // experience; the nonce-based policy is enforced in production builds only.
+  if (process.env.NODE_ENV === "development") {
+    return NextResponse.next();
+  }
+
   const nonce = btoa(crypto.randomUUID());
   const apiOrigin = getApiOrigin();
 

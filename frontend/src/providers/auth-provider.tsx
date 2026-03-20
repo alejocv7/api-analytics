@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { apiClient, ApiClientError } from "@/lib/api-client";
 import type { LoginRequest, User } from "@/types/api";
 
@@ -61,8 +62,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async (): Promise<void> => {
     try {
       await apiClient.post("/auth/logout");
-    } catch {
-      // Best-effort: clear local state even if the server call fails.
+    } catch (err) {
+      // 401 means the token is already invalid server-side — treat as success.
+      // Any other error (network failure, 5xx) means the server didn't clear the
+      // HttpOnly cookies, so the session is still technically active.
+      if (!(err instanceof ApiClientError && err.status === 401)) {
+        toast.warning(
+          "Logout failed. Close your browser to fully end the session.",
+        );
+      }
     } finally {
       setUser(null);
       queryClient.clear();

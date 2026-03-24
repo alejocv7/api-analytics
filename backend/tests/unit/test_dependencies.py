@@ -34,7 +34,7 @@ async def test_get_current_user_inactive():
         ),
         pytest.raises(ForbiddenError, match="Inactive user"),
     ):
-        await dependencies.get_current_user(request, session)
+        await dependencies.get_current_user(request, session, None)
 
 
 @pytest.mark.asyncio
@@ -52,4 +52,4 @@ async def test_get_current_user_not_found():
         ),
         pytest.raises(BearerAuthenticationError, match="credentials"),
     ):
-        await dependencies.get_current_user(request, session)
+        await dependencies.get_current_user(request, session, None)

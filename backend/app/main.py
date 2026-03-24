@@ -12,6 +12,7 @@ from app.api.v1.routes import router as v1_router
 from app.core import db
 from app.core.config import settings
 from app.core.exceptions import register_exceptions
+from app.core.headers import REFRESH_TOKEN_HEADER, TOKEN_TRANSPORT_HEADER
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import limiter
 from app.core.redis import redis_manager
@@ -100,7 +101,14 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-API-Key"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Request-ID",
+        "X-API-Key",
+        TOKEN_TRANSPORT_HEADER,
+        REFRESH_TOKEN_HEADER,
+    ],
 )
 
 

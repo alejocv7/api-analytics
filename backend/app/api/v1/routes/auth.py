@@ -7,47 +7,21 @@ from app import models, schemas
 from app.core import rate_limits
 from app.core.config import settings
 from app.core.cookies import ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE
+from app.core.enums import TokenTransport
 from app.core.exceptions import BearerAuthenticationError
+from app.core.headers import REFRESH_TOKEN_HEADER
 from app.core.rate_limiter import limiter
-from app.dependencies import CurrentUserDep, RedisDep, SessionDep
+from app.dependencies import (
+    CurrentUserDep,
+    RedisDep,
+    SessionDep,
+    TokenTransportDep,
+)
 from app.services import auth_service
 
 router = APIRouter()
 
 _REFRESH_COOKIE_PATH = f"{settings.API_PREFIX}/auth/refresh"
-
-
-def _set_auth_cookies(
-    response: Response, access_token: str, refresh_token: str
-) -> None:
-    response.set_cookie(
-        key=ACCESS_TOKEN_COOKIE,
-        value=access_token,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="strict",
-        max_age=settings.SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
-    # Scope the refresh token cookie to the refresh endpoint only so the
-    # browser never sends it to any other API path.
-    response.set_cookie(
-        key=REFRESH_TOKEN_COOKIE,
-        value=refresh_token,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="strict",
-        path=_REFRESH_COOKIE_PATH,
-        max_age=settings.SECURITY_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-    )
-
-
-def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie(key=ACCESS_TOKEN_COOKIE, samesite="strict")
-    response.delete_cookie(
-        key=REFRESH_TOKEN_COOKIE,
-        path=_REFRESH_COOKIE_PATH,
-        samesite="strict",
-    )
 
 
 @router.post(
@@ -83,17 +57,35 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=schemas.UserResponse,
+    response_model=None,
     summary="User login",
     description="""
-    Authenticates a user with email and password. Sets `access_token` and
-    `refresh_token` as HttpOnly cookies and returns the authenticated user.
+    Authenticates a user with email and password.
 
-    The access token cookie is sent automatically by the browser for all
-    subsequent requests. Use `/auth/refresh` to rotate tokens when the
-    access token expires.
+    **Cookie transport** (default, browser): sets `access_token` and `refresh_token`
+    as HttpOnly cookies and returns the authenticated user.
+
+    **Bearer transport** (mobile): send `X-Token-Transport: bearer` — returns the
+    token pair in the response body. No cookies are set. Call `GET /users/me` to
+    retrieve the user profile.
     """,
     responses={
+        200: {
+            "description": (
+                "Cookie transport: returns UserResponse. "
+                "Bearer transport: returns TokenResponse."
+            ),
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "oneOf": [
+                            {"$ref": "#/components/schemas/UserResponse"},
+                            {"$ref": "#/components/schemas/TokenResponse"},
+                        ]
+                    }
+                }
+            },
+        },
         401: {"model": schemas.ErrorResponse, "description": "Invalid credentials"},
         429: {
             "model": schemas.ErrorResponse,
@@ -108,7 +100,8 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: SessionDep,
     redis: RedisDep,
-) -> models.User:
+    transport: TokenTransportDep,
+) -> schemas.UserResponse | schemas.TokenResponse:
     client_ip = request.client.host if request.client else "unknown"
     await auth_service.check_login_locked(client_ip, form_data.username, redis)
     try:
@@ -121,19 +114,34 @@ async def login(
 
     await auth_service.reset_login_attempts(form_data.username, client_ip, redis)
     tokens = auth_service.create_user_token(user)
+
+    if transport == TokenTransport.BEARER:
+        return tokens
+
     _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
-    return user
+    return schemas.UserResponse.model_validate(user)
 
 
 @router.post(
     "/refresh",
-    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     summary="Refresh access token",
     description="""
-    Reads the `refresh_token` cookie, issues a new access + refresh token pair,
-    and sets both as fresh HttpOnly cookies. The old refresh token is invalidated.
+    Issues a new access + refresh token pair. The old refresh token is invalidated.
+
+    **Cookie transport** (default, browser): reads the `refresh_token` cookie and
+    sets fresh HttpOnly cookies. Returns 204 No Content.
+
+    **Bearer transport** (mobile): send `X-Token-Transport: bearer` and pass the
+    refresh token in the `X-Refresh-Token` header. Returns 200 with the new token
+    pair in the response body.
     """,
     responses={
+        200: {
+            "model": schemas.TokenResponse,
+            "description": "Bearer transport — new token pair in response body",
+        },
+        204: {"description": "Cookie transport — fresh HttpOnly cookies set"},
         401: {
             "model": schemas.ErrorResponse,
             "description": "Invalid or expired refresh token",
@@ -146,12 +154,24 @@ async def refresh_token(
     request: Request,
     response: Response,
     session: SessionDep,
-) -> None:
-    token = request.cookies.get(REFRESH_TOKEN_COOKIE)
+    transport: TokenTransportDep,
+) -> schemas.TokenResponse | None:
+    if transport == TokenTransport.BEARER:
+        token = request.headers.get(REFRESH_TOKEN_HEADER)
+    else:
+        token = request.cookies.get(REFRESH_TOKEN_COOKIE)
+
     if not token:
         raise BearerAuthenticationError("Refresh token not found")
+
     tokens = await auth_service.refresh_user_token(token, session)
+
+    if transport == TokenTransport.BEARER:
+        return tokens
+
     _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return None
 
 
 @router.post(
@@ -172,3 +192,36 @@ async def logout(
 ) -> None:
     await auth_service.logout(user.id, session)
     _clear_auth_cookies(response)
+
+
+def _set_auth_cookies(
+    response: Response, access_token: str, refresh_token: str
+) -> None:
+    response.set_cookie(
+        key=ACCESS_TOKEN_COOKIE,
+        value=access_token,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+        max_age=settings.SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    # Scope the refresh token cookie to the refresh endpoint only so the
+    # browser never sends it to any other API path.
+    response.set_cookie(
+        key=REFRESH_TOKEN_COOKIE,
+        value=refresh_token,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+        path=_REFRESH_COOKIE_PATH,
+        max_age=settings.SECURITY_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie(key=ACCESS_TOKEN_COOKIE, samesite="strict")
+    response.delete_cookie(
+        key=REFRESH_TOKEN_COOKIE,
+        path=_REFRESH_COOKIE_PATH,
+        samesite="strict",
+    )

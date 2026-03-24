@@ -256,3 +256,91 @@ async def test_logout(client: AsyncClient, test_user):
     #    replayed, the server rejects it.
     refresh_fail = await client.post("/api/v1/auth/refresh")
     assert refresh_fail.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Bearer transport tests (mobile / non-browser clients)
+# ---------------------------------------------------------------------------
+
+BEARER_HEADERS = {"X-Token-Transport": "bearer"}
+
+
+async def test_login_bearer_returns_tokens_in_body(client: AsyncClient, test_user):
+    response = await client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "Password123!"},
+        headers=BEARER_HEADERS,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["token_type"] == "bearer"
+    assert "user" not in data
+    # No cookies set for bearer transport
+    assert "access_token" not in response.cookies
+    assert "refresh_token" not in response.cookies
+
+
+async def test_bearer_access_token_authenticates_protected_endpoint(
+    client: AsyncClient, test_user
+):
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "Password123!"},
+        headers=BEARER_HEADERS,
+    )
+    access_token = login.json()["access_token"]
+
+    me = await client.get(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["email"] == test_user.email
+
+
+async def test_bearer_refresh_returns_new_token_pair(client: AsyncClient, test_user):
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "Password123!"},
+        headers=BEARER_HEADERS,
+    )
+    refresh_token = login.json()["refresh_token"]
+
+    refresh = await client.post(
+        "/api/v1/auth/refresh",
+        headers={**BEARER_HEADERS, "X-Refresh-Token": refresh_token},
+    )
+    assert refresh.status_code == 200
+    data = refresh.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    # Rotated — old token must be rejected
+    replay = await client.post(
+        "/api/v1/auth/refresh",
+        headers={**BEARER_HEADERS, "X-Refresh-Token": refresh_token},
+    )
+    assert replay.status_code == 401
+
+
+async def test_bearer_logout_invalidates_refresh_token(client: AsyncClient, test_user):
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "Password123!"},
+        headers=BEARER_HEADERS,
+    )
+    tokens = login.json()
+
+    logout = await client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+    )
+    assert logout.status_code == 204
+
+    # Refresh token version incremented — old refresh token rejected
+    refresh_fail = await client.post(
+        "/api/v1/auth/refresh",
+        headers={**BEARER_HEADERS, "X-Refresh-Token": tokens["refresh_token"]},
+    )
+    assert refresh_fail.status_code == 401

@@ -3,8 +3,8 @@ from collections.abc import AsyncGenerator
 from typing import Annotated
 
 import redis.asyncio as redis
-from fastapi import Depends, Path, Security
-from fastapi.security import APIKeyHeader
+from fastapi import Depends, Header, Path, Security
+from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
@@ -12,15 +12,33 @@ from starlette.requests import Request
 from app import models
 from app.core import config, db, security
 from app.core.cookies import ACCESS_TOKEN_COOKIE
+from app.core.enums import TokenTransport
 from app.core.exceptions import (
     AuthenticationError,
     BearerAuthenticationError,
     ForbiddenError,
 )
+from app.core.headers import TOKEN_TRANSPORT_HEADER
 from app.core.redis import redis_manager
 from app.services import project_service
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+reusable_oauth2 = OAuth2PasswordBearer(
+    tokenUrl=f"{config.settings.API_PREFIX}/auth/login",
+    auto_error=False,  # cookie transport won't have a Bearer header; don't auto-raise
+)
+
+
+def get_token_transport(
+    x_token_transport: Annotated[
+        TokenTransport | None, Header(alias=TOKEN_TRANSPORT_HEADER)
+    ] = None,
+) -> TokenTransport:
+    return x_token_transport or TokenTransport.COOKIE
+
+
+TokenTransportDep = Annotated[TokenTransport, Depends(get_token_transport)]
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
@@ -93,8 +111,9 @@ ProjectIdDep = Annotated[uuid.UUID, Depends(get_project_id_by_api_key)]
 async def get_current_user(
     request: Request,
     session: SessionDep,
+    bearer_token: Annotated[str | None, Depends(reusable_oauth2)],
 ) -> models.User:
-    token = request.cookies.get(ACCESS_TOKEN_COOKIE)
+    token = request.cookies.get(ACCESS_TOKEN_COOKIE) or bearer_token
     if not token:
         raise BearerAuthenticationError("Not authenticated")
     token_data = security.decode_token(token)

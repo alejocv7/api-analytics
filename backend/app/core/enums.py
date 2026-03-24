@@ -20,3 +20,8 @@ class StatsFields(enum.StrEnum):
     fastest_request_ms = "fastest_request_ms"
     error_count = "error_count"
     error_rate = "error_rate"
+
+
+class TokenTransport(enum.StrEnum):
+    COOKIE = "cookie"
+    BEARER = "bearer"

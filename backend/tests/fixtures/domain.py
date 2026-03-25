@@ -19,9 +19,8 @@ async def project(db_session: AsyncSession, test_user):
 
 
 @pytest_asyncio.fixture
-async def auth_cookies(test_user):
+async def auth_cookies(test_user, db_session: AsyncSession):
     """Get auth cookies for the test user."""
-    from app.services import auth_service
+    from tests.factories import create_web_auth_cookies
 
-    token_resp = auth_service.create_user_token(test_user)
-    return {"access_token": token_resp.access_token}
+    return await create_web_auth_cookies(db_session, user=test_user)

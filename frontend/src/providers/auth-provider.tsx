@@ -62,9 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (credentials: LoginRequest): Promise<void> => {
-      // Login sets HttpOnly cookies and returns UserResponse directly.
-      const me = await apiClient.postForm<User>("/auth/login", {
-        username: credentials.username,
+      const me = await apiClient.post<User>("/auth/login", {
+        email: credentials.email,
         password: credentials.password,
       });
       setUser(me);

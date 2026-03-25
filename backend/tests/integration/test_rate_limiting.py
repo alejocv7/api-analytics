@@ -63,10 +63,9 @@ async def test_per_user_rate_limit_isolation(
 
     # Create a second user
     user2 = await create_user(db_session, email="user2@example.com")
-    from app.services import auth_service
+    from tests.factories import create_web_auth_cookies
 
-    token_resp2 = auth_service.create_user_token(user2)
-    auth_cookies2 = {"access_token": token_resp2.access_token}
+    auth_cookies2 = await create_web_auth_cookies(db_session, user=user2)
 
     # User 1 creates projects up to rate limit (20/minute)
     user1_responses = []
@@ -93,13 +92,11 @@ async def test_per_user_rate_limit_isolation(
 
 async def test_auth_rate_limiting_by_ip(client: AsyncClient):
     """Test that auth endpoints are rate limited by IP."""
-    # Login endpoint is 10/minute.
-    # Must use OAuth2 form data (not JSON) so requests reach the rate limiter.
     responses = []
     for _ in range(11):
         response = await client.post(
             "/api/v1/auth/login",
-            data={"username": "test@example.com", "password": "wrong"},
+            json={"email": "test@example.com", "password": "wrong"},
         )
         responses.append(response)
 

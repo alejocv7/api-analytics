@@ -55,7 +55,7 @@ export function RegisterForm() {
       });
 
       // Auto-login
-      await login({ username: values.email, password: values.password });
+      await login({ email: values.email, password: values.password });
 
       toast.success("Account created! Welcome aboard.");
       router.push("/projects");

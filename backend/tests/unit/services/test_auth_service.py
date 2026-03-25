@@ -1,12 +1,13 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app import models, schemas
 from app.core.exceptions import (
+    AuthenticationError,
     BadRequestError,
-    BearerAuthenticationError,
     RateLimitError,
 )
 from app.services import auth_service
@@ -42,7 +43,7 @@ async def test_authenticate_user_not_found():
     ) as mock_get:
         mock_get.return_value = None
 
-        with pytest.raises(BearerAuthenticationError) as exc:
+        with pytest.raises(AuthenticationError) as exc:
             await auth_service.authenticate_user("none@example.com", "pass", session)
         assert "Incorrect email or password" in str(exc.value)
 
@@ -58,7 +59,7 @@ async def test_authenticate_user_wrong_password():
         with patch("app.core.security.verify_password") as mock_verify:
             mock_verify.return_value = (False, None)
 
-            with pytest.raises(BearerAuthenticationError):
+            with pytest.raises(AuthenticationError):
                 await auth_service.authenticate_user(
                     "test@example.com", "wrong", session
                 )
@@ -94,46 +95,83 @@ async def test_authenticate_user_rehashes_password_when_needed():
 # --------------- Refresh token rotation ----------------
 
 
-async def test_refresh_user_token_rotates_refresh_version():
-    """refresh_user_token increments token version and returns a new token pair."""
+async def test_refresh_user_token_rotates_refresh_hash():
+    """refresh_user_token rotates only the current session's refresh secret."""
+    session_id = uuid.uuid4()
     uid = uuid.uuid4()
     session = AsyncMock()
     session.add = MagicMock()
-    user = models.User(id=uid, is_active=True, refresh_token_version=2)
-    session.scalar.return_value = user
+    auth_session = models.AuthSession.create_token(
+        user_id=uid,
+        refresh_token_hash="old-hash",
+    )
+    auth_session.id = session_id
+    auth_session.expires_at = datetime.now(UTC) + timedelta(days=1)
+    user = models.User(id=uid, is_active=True)
+    session.scalar.return_value = auth_session
+    session.get.return_value = user
 
-    with patch(
-        "app.core.security.decode_refresh_token",
-        return_value=schemas.RefreshTokenData(user_id=uid, token_version=2),
+    with (
+        patch(
+            "app.core.security.decode_refresh_token",
+            return_value=schemas.RefreshTokenData(
+                session_id=session_id, secret="valid-secret"
+            ),
+        ),
+        patch(
+            "app.core.security.compare_auth_secret",
+            return_value=True,
+        ),
+        patch(
+            "app.core.security.generate_refresh_secret",
+            return_value="new-secret",
+        ),
+        patch(
+            "app.core.security.hash_auth_secret",
+            return_value="new-hash",
+        ),
     ):
         result = await auth_service.refresh_user_token("valid.refresh.token", session)
 
     assert result.access_token
     assert result.refresh_token
-    assert user.refresh_token_version == 3
-    session.add.assert_called_once_with(user)
-    session.commit.assert_called_once()
-    session.refresh.assert_called_once_with(user)
+    assert auth_session.refresh_token_hash == "new-hash"
+    session.add.assert_called_once_with(auth_session)
+    assert session.commit.await_count == 1
+    session.refresh.assert_called_once_with(auth_session)
 
 
-async def test_refresh_user_token_rejects_replayed_token():
-    """refresh_user_token rejects old refresh tokens after rotation."""
-    uid = uuid.uuid4()
+async def test_refresh_user_token_rejects_replayed_token_and_revokes_session():
+    """Mismatched refresh secrets revoke the active token session."""
+    session_id = uuid.uuid4()
     session = AsyncMock()
     session.add = MagicMock()
-    user = models.User(id=uid, is_active=True, refresh_token_version=3)
-    session.scalar.return_value = user
+    auth_session = models.AuthSession.create_token(
+        user_id=uuid.uuid4(),
+        refresh_token_hash="current-hash",
+    )
+    auth_session.id = session_id
+    auth_session.expires_at = datetime.now(UTC) + timedelta(days=1)
+    session.scalar.return_value = auth_session
 
     with (
         patch(
             "app.core.security.decode_refresh_token",
-            return_value=schemas.RefreshTokenData(user_id=uid, token_version=2),
+            return_value=schemas.RefreshTokenData(
+                session_id=session_id, secret="old-secret"
+            ),
         ),
-        pytest.raises(BearerAuthenticationError),
+        patch(
+            "app.core.security.compare_auth_secret",
+            return_value=False,
+        ),
+        pytest.raises(AuthenticationError),
     ):
         await auth_service.refresh_user_token("replayed.refresh.token", session)
 
-    session.commit.assert_not_called()
+    assert auth_session.revoked_at is not None
+    assert auth_session.refresh_token_hash is None
+    session.commit.assert_called_once()
 
 
 # --------------- Account lockout ----------------
@@ -197,3 +235,80 @@ async def test_reset_login_attempts_clears_counter():
     await auth_service.reset_login_attempts("user@example.com", "127.0.0.1", redis)  # type: ignore[arg-type]
 
     assert "login_attempts:127.0.0.1:user@example.com" not in redis._data
+
+
+async def test_authenticate_with_lockout_records_failures_on_bad_credentials():
+    redis = FakeAsyncRedis()
+    session = AsyncMock()
+
+    with (
+        patch(
+            "app.services.auth_service.check_login_locked",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "app.services.auth_service.authenticate_user",
+            new_callable=AsyncMock,
+            side_effect=AuthenticationError("Incorrect email or password"),
+        ),
+        pytest.raises(AuthenticationError),
+    ):
+        await auth_service.authenticate_with_lockout(
+            "user@example.com",
+            "wrong-password",
+            "127.0.0.1",
+            redis,  # type: ignore[arg-type]
+            session,
+        )
+
+    assert redis._data["login_attempts:127.0.0.1:user@example.com"] == 1
+
+
+async def test_authenticate_with_lockout_resets_failures_on_success():
+    redis = FakeAsyncRedis()
+    redis._data["login_attempts:127.0.0.1:user@example.com"] = 2
+    session = AsyncMock()
+    user = models.User(id=uuid.uuid4(), email="user@example.com", is_active=True)
+
+    with (
+        patch(
+            "app.services.auth_service.check_login_locked",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "app.services.auth_service.authenticate_user",
+            new_callable=AsyncMock,
+            return_value=user,
+        ),
+    ):
+        result = await auth_service.authenticate_with_lockout(
+            "user@example.com",
+            "correct-password",
+            "127.0.0.1",
+            redis,  # type: ignore[arg-type]
+            session,
+        )
+
+    assert result is user
+    assert "login_attempts:127.0.0.1:user@example.com" not in redis._data
+
+
+async def test_auth_session_helpers_create_and_revoke():
+    auth_session = models.AuthSession.create_web(
+        user_id=uuid.uuid4(),
+        session_secret_hash="session-hash",
+        user_agent="pytest",
+        ip_hash="ip-hash",
+    )
+    auth_session.expires_at = datetime.now(UTC) + timedelta(days=1)
+
+    assert auth_session.is_active() is True
+    assert auth_session.session_secret_hash == "session-hash"
+    assert auth_session.refresh_token_hash is None
+
+    auth_session.revoke()
+
+    assert auth_session.is_active() is False
+    assert auth_session.revoked_at is not None
+    assert auth_session.session_secret_hash is None
+    assert auth_session.refresh_token_hash is None

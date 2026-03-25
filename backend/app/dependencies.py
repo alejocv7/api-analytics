@@ -1,9 +1,10 @@
 import uuid
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from typing import Annotated
 
 import redis.asyncio as redis
-from fastapi import Depends, Header, Path, Security
+from fastapi import Depends, Path, Security
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,34 +12,29 @@ from starlette.requests import Request
 
 from app import models
 from app.core import config, db, security
-from app.core.cookies import ACCESS_TOKEN_COOKIE
-from app.core.enums import TokenTransport
+from app.core.cookies import SESSION_COOKIE
+from app.core.enums import AuthSessionClientType
 from app.core.exceptions import (
     AuthenticationError,
     BearerAuthenticationError,
     ForbiddenError,
 )
-from app.core.headers import TOKEN_TRANSPORT_HEADER
 from app.core.redis import redis_manager
-from app.services import project_service
+from app.services import auth_service, project_service
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{config.settings.API_PREFIX}/auth/login",
-    auto_error=False,  # cookie transport won't have a Bearer header; don't auto-raise
+    tokenUrl=f"{config.settings.API_PREFIX}/auth/token/login",
+    auto_error=False,
 )
 
 
-def get_token_transport(
-    x_token_transport: Annotated[
-        TokenTransport | None, Header(alias=TOKEN_TRANSPORT_HEADER)
-    ] = None,
-) -> TokenTransport:
-    return x_token_transport or TokenTransport.COOKIE
-
-
-TokenTransportDep = Annotated[TokenTransport, Depends(get_token_transport)]
+@dataclass(slots=True)
+class AuthContext:
+    user: models.User
+    session_id: uuid.UUID
+    client_type: AuthSessionClientType
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
@@ -89,7 +85,7 @@ async def get_project_id_by_api_key(
     )
 
     if (
-        not security.compare_api_key(api_key, key_hash)
+        not security.compare_auth_secret(api_key, key_hash)
         or not api_key_obj
         or not api_key_obj.is_valid
     ):
@@ -108,23 +104,51 @@ async def get_project_id_by_api_key(
 ProjectIdDep = Annotated[uuid.UUID, Depends(get_project_id_by_api_key)]
 
 
-async def get_current_user(
-    request: Request,
-    session: SessionDep,
-    bearer_token: Annotated[str | None, Depends(reusable_oauth2)],
-) -> models.User:
-    token = request.cookies.get(ACCESS_TOKEN_COOKIE) or bearer_token
-    if not token:
-        raise BearerAuthenticationError("Not authenticated")
-    token_data = security.decode_token(token)
-    user = await session.get(models.User, token_data.user_id)
+async def get_user_by_id(user_id: uuid.UUID, session: SessionDep) -> models.User:
+    user = await session.get(models.User, user_id)
     if user is None:
         raise BearerAuthenticationError("Invalid authentication credentials")
     if not user.is_active:
         raise ForbiddenError("Inactive user")
+    return user
+
+
+async def get_current_auth(
+    request: Request,
+    session: SessionDep,
+    bearer_token: Annotated[str | None, Depends(reusable_oauth2)],
+) -> AuthContext:
+    if bearer_token:
+        token_data = security.decode_token(bearer_token)
+        user = await get_user_by_id(token_data.user_id, session)
+
+        request.state.user = user
+        return AuthContext(
+            user=user,
+            session_id=token_data.session_id,
+            client_type=AuthSessionClientType.token,
+        )
+
+    session_secret = request.cookies.get(SESSION_COOKIE)
+    if not session_secret:
+        raise AuthenticationError("Not authenticated")
+
+    auth_session = await auth_service.get_active_web_session(session_secret, session)
+    user = await get_user_by_id(auth_session.user_id, session)
 
     request.state.user = user
-    return user
+    return AuthContext(
+        user=user,
+        session_id=auth_session.id,
+        client_type=AuthSessionClientType.web,
+    )
+
+
+CurrentAuthDep = Annotated[AuthContext, Depends(get_current_auth)]
+
+
+async def get_current_user(auth: CurrentAuthDep) -> models.User:
+    return auth.user
 
 
 CurrentUserDep = Annotated[models.User, Depends(get_current_user)]

@@ -3,15 +3,13 @@ from httpx import AsyncClient
 
 from app import models
 from app.core.config import settings
-from app.services import auth_service
-from tests.factories import create_api_key, create_user
+from tests.factories import create_api_key, create_user, create_web_auth_cookies
 
 pytestmark = pytest.mark.asyncio
 
 
-def _auth_cookies_for(user) -> dict[str, str]:
-    token = auth_service.create_user_token(user)
-    return {"access_token": token.access_token}
+async def _auth_cookies_for(db_session, user) -> dict[str, str]:
+    return await create_web_auth_cookies(db_session, user=user)
 
 
 async def test_create_api_key(client: AsyncClient, auth_cookies, project):
@@ -164,7 +162,7 @@ async def _add_non_owner(
     membership = models.UserProject(user_id=user.id, project_id=project.id, role=role)
     db_session.add(membership)
     await db_session.commit()
-    return _auth_cookies_for(user)
+    return await _auth_cookies_for(db_session, user)
 
 
 @pytest.mark.parametrize("role", [models.ProjectRole.member, models.ProjectRole.viewer])

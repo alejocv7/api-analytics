@@ -1,22 +1,6 @@
 import { API_URL } from "@/lib/constants";
 import type { ApiError } from "@/types/api";
 
-// Mutex to prevent concurrent token refresh races
-let refreshPromise: Promise<void> | null = null;
-
-async function refreshAccessToken(): Promise<void> {
-  const response = await fetch(`${API_URL}/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    window.dispatchEvent(new Event("auth:session-expired"));
-    throw new ApiClientError("Session expired. Please log in again.", 401);
-  }
-  // New access_token and refresh_token cookies are set by the server response.
-}
-
 export class ApiClientError extends Error {
   constructor(
     message: string,
@@ -51,7 +35,6 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 async function request<T>(
   path: string,
   options: RequestOptions = {},
-  retry = true,
 ): Promise<T> {
   const { body, params, headers: extraHeaders, ...rest } = options;
 
@@ -84,24 +67,14 @@ async function request<T>(
       : undefined,
   });
 
-  if (response.status === 401 && retry) {
-    // Use mutex to prevent parallel refresh calls
-    if (!refreshPromise) {
-      refreshPromise = refreshAccessToken().finally(() => {
-        refreshPromise = null;
-      });
-    }
-
-    try {
-      await refreshPromise;
-    } catch (err) {
-      throw err;
-    }
-
-    return request<T>(path, options, false);
-  }
-
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      typeof window !== "undefined" &&
+      !path.startsWith("/auth/")
+    ) {
+      window.dispatchEvent(new Event("auth:session-expired"));
+    }
     throw await parseError(response);
   }
 
@@ -120,15 +93,6 @@ export const apiClient = {
 
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "POST", body }),
-
-  postForm: <T>(path: string, data: Record<string, string>) => {
-    const formData = new URLSearchParams(data);
-    return request<T>(path, {
-      method: "POST",
-      body: formData,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
-  },
 
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PATCH", body }),

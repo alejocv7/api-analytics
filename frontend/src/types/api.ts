@@ -26,7 +26,7 @@ export interface ApiError {
 // ============================================================
 
 export interface LoginRequest {
-  username: string; // backend uses OAuth2PasswordRequestForm with `username` field
+  email: string;
   password: string;
 }
 

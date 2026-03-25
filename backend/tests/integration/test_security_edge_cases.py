@@ -16,7 +16,8 @@ async def test_expired_jwt_token(client: AsyncClient, test_user):
     # Create a token that expired 1 minute ago manually
     payload = {
         "sub": str(test_user.id),
-        "email": test_user.email,
+        "sid": str(test_user.id),
+        "type": "access",
         "exp": datetime.now(UTC) - timedelta(minutes=1),
     }
     expired_token = jwt.encode(
@@ -25,7 +26,7 @@ async def test_expired_jwt_token(client: AsyncClient, test_user):
 
     response = await client.get(
         "/api/v1/projects/",
-        cookies={"access_token": expired_token},
+        headers={"Authorization": f"Bearer {expired_token}"},
     )
 
     assert response.status_code == 401
@@ -36,7 +37,8 @@ async def test_invalid_jwt_signature(client: AsyncClient, test_user):
     """Test using a JWT with invalid signature (different key)."""
     payload = {
         "sub": str(test_user.id),
-        "email": test_user.email,
+        "sid": str(test_user.id),
+        "type": "access",
         "exp": datetime.now(UTC) + timedelta(minutes=15),
     }
     # Sign with a different key
@@ -48,7 +50,7 @@ async def test_invalid_jwt_signature(client: AsyncClient, test_user):
 
     response = await client.get(
         "/api/v1/projects/",
-        cookies={"access_token": fake_token},
+        headers={"Authorization": f"Bearer {fake_token}"},
     )
     assert response.status_code == 401
 

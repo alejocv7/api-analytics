@@ -6,8 +6,7 @@ import pytest
 from httpx import AsyncClient, Response
 
 from app import models
-from app.services import auth_service
-from tests.factories import create_user
+from tests.factories import create_user, create_web_auth_cookies
 
 pytestmark = pytest.mark.asyncio
 
@@ -31,10 +30,9 @@ async def _add_member(
     )
 
 
-def _auth_cookies_for(user) -> dict[str, str]:
+async def _auth_cookies_for(db_session, user) -> dict[str, str]:
     """Build auth cookies for a given user."""
-    token = auth_service.create_user_token(user)
-    return {"access_token": token.access_token}
+    return await create_web_auth_cookies(db_session, user=user)
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +88,7 @@ async def test_list_members_non_member_cannot_access(
 
     response = await client.get(
         f"/api/v1/projects/{project.project_key}/members/",
-        cookies=_auth_cookies_for(other),
+        cookies=await _auth_cookies_for(db_session, other),
     )
     assert response.status_code == 404
 
@@ -168,7 +166,10 @@ async def test_add_member_non_owner_forbidden(client: AsyncClient, project, db_s
 
     another = await create_user(db_session, email="another@example.com")
     response = await _add_member(
-        client, _auth_cookies_for(viewer), project.project_key, another.email
+        client,
+        await _auth_cookies_for(db_session, viewer),
+        project.project_key,
+        another.email,
     )
     assert response.status_code == 403
 
@@ -372,7 +373,7 @@ async def test_member_can_read_project(
 
     response = await client.get(
         f"/api/v1/projects/{project.project_key}",
-        cookies=_auth_cookies_for(member_user),
+        cookies=await _auth_cookies_for(db_session, member_user),
     )
     assert response.status_code == 200
     assert response.json()["name"] == project.name
@@ -389,7 +390,7 @@ async def test_member_cannot_delete_project(
 
     response = await client.delete(
         f"/api/v1/projects/{project.project_key}",
-        cookies=_auth_cookies_for(member_user),
+        cookies=await _auth_cookies_for(db_session, member_user),
     )
     assert response.status_code == 403
 
@@ -411,7 +412,7 @@ async def _make_member_cookies(
     await _add_member(
         client, auth_cookies, project.project_key, member_user.email, role="member"
     )
-    return member_user, _auth_cookies_for(member_user)
+    return member_user, await _auth_cookies_for(db_session, member_user)
 
 
 async def test_member_role_user_cannot_add_member(

@@ -37,12 +37,12 @@ export function LoginForm() {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: "", password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   async function onSubmit(values: LoginFormValues) {
     try {
-      await login({ username: values.username, password: values.password });
+      await login({ email: values.email, password: values.password });
       router.push("/projects");
     } catch (err) {
       if (err instanceof ApiClientError) {
@@ -70,7 +70,7 @@ export function LoginForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="username"
+              name="email"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>

@@ -6,7 +6,7 @@ import { MAX_DATE_RANGE_DAYS, MIN_DATE_RANGE_MINUTES } from "@/lib/constants";
 // ============================================================
 
 export const loginSchema = z.object({
-  username: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 

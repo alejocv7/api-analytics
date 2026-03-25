@@ -22,6 +22,6 @@ class StatsFields(enum.StrEnum):
     error_rate = "error_rate"
 
 
-class TokenTransport(enum.StrEnum):
-    COOKIE = "cookie"
-    BEARER = "bearer"
+class AuthSessionClientType(enum.StrEnum):
+    web = "web"
+    token = "token"

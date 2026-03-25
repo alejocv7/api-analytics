@@ -23,6 +23,6 @@ async def test_get_me_requires_authentication(client: AsyncClient):
 async def test_get_me_with_invalid_token(client: AsyncClient):
     response = await client.get(
         "/api/v1/users/me",
-        cookies={"access_token": "this.is.not.a.valid.jwt"},
+        cookies={"session": "this-is-not-a-valid-session"},
     )
     assert response.status_code == 401

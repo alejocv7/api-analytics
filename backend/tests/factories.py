@@ -61,6 +61,21 @@ async def create_project(
     return project
 
 
+async def create_web_auth_cookies(
+    session: AsyncSession, *, user: Any
+) -> dict[str, str]:
+    from app.services import auth_service
+
+    _, session_secret = await auth_service.create_web_session(user, session)
+    return {"session": session_secret}
+
+
+async def create_token_login_response(session: AsyncSession, *, user: Any):
+    from app.services import auth_service
+
+    return await auth_service.create_token_session(user, session)
+
+
 async def create_api_key(
     session: AsyncSession,
     *,
@@ -76,7 +91,7 @@ async def create_api_key(
     if plain_key is None:
         plain_key, key_prefix, key_hash = security.generate_api_key()
     else:
-        key_hash = security.hash_api_key(plain_key)
+        key_hash = security.hash_auth_secret(plain_key)
         key_prefix = plain_key[: config.settings.API_KEY_LOOKUP_PREFIX_LENGTH]
 
     api_key = models.APIKey(

@@ -17,7 +17,7 @@ export function middleware(request: NextRequest): NextResponse {
   // Redirect authenticated users away from the landing page before rendering.
   // Checking cookie existence is enough — if the token is expired the user will
   // be sent to /login by AuthGuard after the server rejects the request.
-  if (pathname === "/" && request.cookies.has("access_token")) {
+  if (pathname === "/" && request.cookies.has("session")) {
     return NextResponse.redirect(new URL("/projects", request.url));
   }
 

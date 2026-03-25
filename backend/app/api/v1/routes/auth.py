@@ -6,22 +6,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app import models, schemas
 from app.core import rate_limits
 from app.core.config import settings
-from app.core.cookies import ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE
-from app.core.enums import TokenTransport
-from app.core.exceptions import BearerAuthenticationError
-from app.core.headers import REFRESH_TOKEN_HEADER
+from app.core.cookies import SESSION_COOKIE
+from app.core.enums import AuthSessionClientType
+from app.core.exceptions import AuthenticationError
 from app.core.rate_limiter import limiter
-from app.dependencies import (
-    CurrentUserDep,
-    RedisDep,
-    SessionDep,
-    TokenTransportDep,
-)
+from app.dependencies import CurrentAuthDep, RedisDep, SessionDep
 from app.services import auth_service
 
 router = APIRouter()
-
-_REFRESH_COOKIE_PATH = f"{settings.API_PREFIX}/auth/refresh"
 
 
 @router.post(
@@ -57,35 +49,13 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=None,
-    summary="User login",
+    response_model=schemas.UserResponse,
+    summary="Browser login",
     description="""
-    Authenticates a user with email and password.
-
-    **Cookie transport** (default, browser): sets `access_token` and `refresh_token`
-    as HttpOnly cookies and returns the authenticated user.
-
-    **Bearer transport** (mobile): send `X-Token-Transport: bearer` — returns the
-    token pair in the response body. No cookies are set. Call `GET /users/me` to
-    retrieve the user profile.
+    Authenticates a browser user with email and password, sets an opaque
+    HttpOnly session cookie, and returns the authenticated user.
     """,
     responses={
-        200: {
-            "description": (
-                "Cookie transport: returns UserResponse. "
-                "Bearer transport: returns TokenResponse."
-            ),
-            "content": {
-                "application/json": {
-                    "schema": {
-                        "oneOf": [
-                            {"$ref": "#/components/schemas/UserResponse"},
-                            {"$ref": "#/components/schemas/TokenResponse"},
-                        ]
-                    }
-                }
-            },
-        },
         401: {"model": schemas.ErrorResponse, "description": "Invalid credentials"},
         429: {
             "model": schemas.ErrorResponse,
@@ -97,51 +67,90 @@ async def register(
 async def login(
     request: Request,
     response: Response,
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    credentials: schemas.LoginRequest,
     session: SessionDep,
     redis: RedisDep,
-    transport: TokenTransportDep,
-) -> schemas.UserResponse | schemas.TokenResponse:
+) -> schemas.UserResponse:
     client_ip = request.client.host if request.client else "unknown"
-    await auth_service.check_login_locked(client_ip, form_data.username, redis)
-    try:
-        user = await auth_service.authenticate_user(
-            form_data.username, form_data.password, session
-        )
-    except BearerAuthenticationError:
-        await auth_service.record_failed_login(client_ip, form_data.username, redis)
-        raise
-
-    await auth_service.reset_login_attempts(form_data.username, client_ip, redis)
-    tokens = auth_service.create_user_token(user)
-
-    if transport == TokenTransport.BEARER:
-        return tokens
-
-    _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
+    user = await auth_service.authenticate_with_lockout(
+        credentials.email, credentials.password, client_ip, redis, session
+    )
+    _, session_secret = await auth_service.create_web_session(
+        user,
+        session,
+        user_agent=request.headers.get("user-agent"),
+        client_ip=client_ip,
+    )
+    _set_session_cookie(response, session_secret)
     return schemas.UserResponse.model_validate(user)
 
 
 @router.post(
-    "/refresh",
-    response_model=None,
-    summary="Refresh access token",
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Browser logout",
     description="""
-    Issues a new access + refresh token pair. The old refresh token is invalidated.
-
-    **Cookie transport** (default, browser): reads the `refresh_token` cookie and
-    sets fresh HttpOnly cookies. Returns 204 No Content.
-
-    **Bearer transport** (mobile): send `X-Token-Transport: bearer` and pass the
-    refresh token in the `X-Refresh-Token` header. Returns 200 with the new token
-    pair in the response body.
+    Revokes the current browser session and clears the session cookie.
     """,
     responses={
-        200: {
-            "model": schemas.TokenResponse,
-            "description": "Bearer transport — new token pair in response body",
+        401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
+    },
+)
+async def logout(
+    response: Response,
+    auth: CurrentAuthDep,
+    session: SessionDep,
+) -> None:
+    if auth.client_type != AuthSessionClientType.web:
+        raise AuthenticationError("Not authenticated")
+    await auth_service.revoke_session(auth.session_id, session)
+    _clear_session_cookie(response)
+
+
+@router.post(
+    "/token/login",
+    response_model=schemas.TokenLoginResponse,
+    summary="Token client login",
+    description="""
+    Authenticates a token client and returns the user profile plus an access
+    token and opaque refresh token.
+    """,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Invalid credentials"},
+        429: {
+            "model": schemas.ErrorResponse,
+            "description": "Rate limit exceeded or account locked",
         },
-        204: {"description": "Cookie transport — fresh HttpOnly cookies set"},
+    },
+)
+@limiter.limit(rate_limits.AUTH_LOGIN)
+async def token_login(
+    request: Request,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: SessionDep,
+    redis: RedisDep,
+) -> schemas.TokenLoginResponse:
+    client_ip = request.client.host if request.client else "unknown"
+    user = await auth_service.authenticate_with_lockout(
+        form_data.username, form_data.password, client_ip, redis, session
+    )
+    return await auth_service.create_token_session(
+        user,
+        session,
+        user_agent=request.headers.get("user-agent"),
+        client_ip=client_ip,
+    )
+
+
+@router.post(
+    "/token/refresh",
+    response_model=schemas.TokenRefreshResponse,
+    summary="Token client refresh",
+    description="""
+    Rotates the refresh token for the current token-client session and returns a
+    fresh access token and refresh token.
+    """,
+    responses={
         401: {
             "model": schemas.ErrorResponse,
             "description": "Invalid or expired refresh token",
@@ -150,78 +159,44 @@ async def login(
     },
 )
 @limiter.limit(rate_limits.AUTH_REFRESH)
-async def refresh_token(
-    request: Request,
-    response: Response,
+async def token_refresh(
+    request: Request,  # noqa: ARG001
+    payload: schemas.TokenRefreshRequest,
     session: SessionDep,
-    transport: TokenTransportDep,
-) -> schemas.TokenResponse | None:
-    if transport == TokenTransport.BEARER:
-        token = request.headers.get(REFRESH_TOKEN_HEADER)
-    else:
-        token = request.cookies.get(REFRESH_TOKEN_COOKIE)
-
-    if not token:
-        raise BearerAuthenticationError("Refresh token not found")
-
-    tokens = await auth_service.refresh_user_token(token, session)
-
-    if transport == TokenTransport.BEARER:
-        return tokens
-
-    _set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
-    response.status_code = status.HTTP_204_NO_CONTENT
-    return None
+) -> schemas.TokenRefreshResponse:
+    return await auth_service.refresh_user_token(payload.refresh_token, session)
 
 
 @router.post(
-    "/logout",
+    "/token/logout",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Logout user",
+    summary="Token client logout",
     description="""
-    Revokes all currently issued refresh tokens and clears auth cookies.
+    Revokes the current token-client session.
     """,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "Not authenticated"},
     },
 )
-async def logout(
-    response: Response,
-    user: CurrentUserDep,
+async def token_logout(
+    auth: CurrentAuthDep,
     session: SessionDep,
 ) -> None:
-    await auth_service.logout(user.id, session)
-    _clear_auth_cookies(response)
+    if auth.client_type != AuthSessionClientType.token:
+        raise AuthenticationError("Not authenticated")
+    await auth_service.revoke_session(auth.session_id, session)
 
 
-def _set_auth_cookies(
-    response: Response, access_token: str, refresh_token: str
-) -> None:
+def _set_session_cookie(response: Response, session_secret: str) -> None:
     response.set_cookie(
-        key=ACCESS_TOKEN_COOKIE,
-        value=access_token,
+        key=SESSION_COOKIE,
+        value=session_secret,
         httponly=True,
         secure=settings.cookie_secure,
         samesite="strict",
-        max_age=settings.SECURITY_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
-    # Scope the refresh token cookie to the refresh endpoint only so the
-    # browser never sends it to any other API path.
-    response.set_cookie(
-        key=REFRESH_TOKEN_COOKIE,
-        value=refresh_token,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="strict",
-        path=_REFRESH_COOKIE_PATH,
         max_age=settings.SECURITY_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 
 
-def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie(key=ACCESS_TOKEN_COOKIE, samesite="strict")
-    response.delete_cookie(
-        key=REFRESH_TOKEN_COOKIE,
-        path=_REFRESH_COOKIE_PATH,
-        samesite="strict",
-    )
+def _clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(key=SESSION_COOKIE, samesite="strict")

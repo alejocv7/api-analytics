@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/shared/password-input";
 import { useAuth } from "@/providers/auth-provider";
 import { apiClient, ApiClientError } from "@/lib/api-client";
+import { applyApiFieldErrors } from "@/lib/form-errors";
 import { registerSchema, type RegisterFormValues } from "@/lib/validators";
 import type { User } from "@/types/api";
 
@@ -63,24 +64,8 @@ export function RegisterForm() {
       if (err instanceof ApiClientError) {
         if (err.status === 400 || err.status === 409) {
           toast.error("Registration failed. Please try again.");
-        } else if (err.status === 422 && Array.isArray(err.details)) {
-          // Map backend validation errors to their form fields
-          let handled = false;
-          for (const detail of err.details as {
-            field: unknown[];
-            message: string;
-          }[]) {
-            const field = detail.field?.at(-1);
-            const message = detail.message.replace(/^Value error,\s*/i, "");
-            if (field === "password") {
-              form.setError("password", { message });
-              handled = true;
-            } else if (field === "email") {
-              form.setError("email", { message });
-              handled = true;
-            }
-          }
-          if (!handled) {
+        } else if (err.status === 422) {
+          if (!applyApiFieldErrors(form, err)) {
             toast.error("Registration failed. Please check your details.");
           }
         } else if (err.status === 429) {

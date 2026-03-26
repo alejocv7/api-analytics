@@ -57,7 +57,6 @@ async def create_web_session(
     )
     session.add(auth_session)
     await session.commit()
-    await session.refresh(auth_session)
     return auth_session, secret
 
 
@@ -78,7 +77,6 @@ async def create_token_session(
 
     session.add(auth_session)
     await session.commit()
-    await session.refresh(auth_session)
 
     token_response = _build_token_response(user, auth_session.id, refresh_secret)
     return schemas.TokenLoginResponse(
@@ -94,9 +92,10 @@ async def get_active_web_session(
             models.AuthSession.session_secret_hash
             == security.hash_auth_secret(session_secret),
             models.AuthSession.client_type == AuthSessionClientType.web,
+            models.AuthSession.is_active,
         )
     )
-    if auth_session is None or not auth_session.is_active():
+    if auth_session is None:
         raise AuthenticationError("Invalid authentication credentials")
     return auth_session
 
@@ -107,15 +106,15 @@ async def refresh_user_token(
     token_data = security.decode_refresh_token(refresh_token)
     auth_session = await session.scalar(
         select(models.AuthSession)
-        .where(models.AuthSession.id == token_data.session_id)
+        .where(
+            models.AuthSession.id == token_data.session_id,
+            models.AuthSession.client_type == AuthSessionClientType.token,
+            models.AuthSession.is_active,
+        )
         .with_for_update()
     )
 
-    if (
-        auth_session is None
-        or auth_session.client_type != AuthSessionClientType.token
-        or not auth_session.is_active()
-    ):
+    if auth_session is None:
         raise AuthenticationError("Invalid authentication credentials")
 
     if not security.compare_auth_secret(
@@ -146,10 +145,13 @@ async def refresh_user_token(
 async def revoke_session(session_id: uuid.UUID, session: AsyncSession) -> None:
     auth_session = await session.scalar(
         select(models.AuthSession)
-        .where(models.AuthSession.id == session_id)
+        .where(
+            models.AuthSession.id == session_id,
+            models.AuthSession.is_active,
+        )
         .with_for_update()
     )
-    if auth_session is None or not auth_session.is_active():
+    if auth_session is None:
         return
 
     auth_session.revoke()
@@ -184,7 +186,6 @@ async def authenticate_user(
         user.hashed_password = updated_hash
         session.add(user)
         await session.commit()
-        await session.refresh(user)
 
     logger.info("Authentication successful (user_id: %s)", user.id)
     return user
@@ -227,11 +228,12 @@ async def check_login_locked(ip: str, email: str, redis_client: redis.Redis) -> 
 
 
 async def record_failed_login(ip: str, email: str, redis_client: redis.Redis) -> None:
-    """Increment the failed login counter. Sets expiry on first failure."""
+    """Increment the failed login counter and set the expiry atomically."""
     key = _login_attempts_key(ip, email)
-    attempts = await redis_client.incr(key)
-    if attempts == 1:
-        await redis_client.expire(key, settings.LOGIN_LOCKOUT_WINDOW_SECONDS)
+    async with redis_client.pipeline(transaction=False) as pipe:
+        pipe.incr(key)
+        pipe.expire(key, settings.LOGIN_LOCKOUT_WINDOW_SECONDS, nx=True)
+        await pipe.execute()
 
 
 async def reset_login_attempts(email: str, ip: str, redis_client: redis.Redis) -> None:

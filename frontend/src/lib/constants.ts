@@ -1,6 +1,8 @@
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
+export const SESSION_COOKIE = "session";
+
 export const DEFAULT_PAGE_SIZE = 20;
 
 export const DATE_PRESETS = [

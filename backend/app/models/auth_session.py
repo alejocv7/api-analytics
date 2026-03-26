@@ -2,7 +2,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ColumnElement, ForeignKey, and_, func, text
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import settings
@@ -17,7 +18,7 @@ class AuthSession(Base, TimestampMixin):
     __tablename__ = "auth_sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        primary_key=True, default=uuid.uuid4, index=True
+        primary_key=True, server_default=text("gen_random_uuid()"), index=True
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
@@ -25,7 +26,7 @@ class AuthSession(Base, TimestampMixin):
     client_type: Mapped[AuthSessionClientType]
     session_secret_hash: Mapped[str | None] = mapped_column(unique=True)
     refresh_token_hash: Mapped[str | None] = mapped_column(unique=True)
-    last_used_at: Mapped[datetime] = mapped_column(default=datetime.now(UTC))
+    last_used_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
     expires_at: Mapped[datetime] = mapped_column(
         default=lambda: (
             datetime.now(UTC)
@@ -72,10 +73,16 @@ class AuthSession(Base, TimestampMixin):
             ip_hash=ip_hash,
         )
 
+    @hybrid_property
     def is_active(self) -> bool:
         return self.revoked_at is None and self.expires_at > datetime.now(UTC)
 
-    def revoke(self, *, revoked_at: datetime | None = None) -> None:
+    @is_active.inplace.expression
+    @classmethod
+    def _is_active_expression(cls) -> ColumnElement[bool]:
+        return and_(cls.revoked_at.is_(None), cls.expires_at > func.now())
+
+    def revoke(self) -> None:
         self.revoked_at = datetime.now(UTC)
         self.session_secret_hash = None
         self.refresh_token_hash = None

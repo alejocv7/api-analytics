@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-function getApiOrigin(): string {
+import { API_URL, SESSION_COOKIE } from "@/lib/constants";
+
+function getApiOrigin(url: string): string {
   try {
-    return new URL(
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
-    ).origin;
+    return new URL(url).origin;
   } catch {
     return "http://localhost:8000";
   }
 }
+
+const API_ORIGIN = getApiOrigin(API_URL);
 
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
@@ -17,7 +19,7 @@ export function middleware(request: NextRequest): NextResponse {
   // Redirect authenticated users away from the landing page before rendering.
   // Checking cookie existence is enough — if the token is expired the user will
   // be sent to /login by AuthGuard after the server rejects the request.
-  if (pathname === "/" && request.cookies.has("session")) {
+  if (pathname === "/" && request.cookies.has(SESSION_COOKIE)) {
     return NextResponse.redirect(new URL("/projects", request.url));
   }
 
@@ -29,7 +31,6 @@ export function middleware(request: NextRequest): NextResponse {
   }
 
   const nonce = btoa(crypto.randomUUID());
-  const apiOrigin = getApiOrigin();
 
   // 'strict-dynamic' lets nonce-trusted scripts load further scripts
   // (required by Next.js's dynamic chunking).
@@ -41,7 +42,7 @@ export function middleware(request: NextRequest): NextResponse {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data:",
-    `connect-src 'self' ${apiOrigin}`,
+    `connect-src 'self' ${API_ORIGIN}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

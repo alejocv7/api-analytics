@@ -215,11 +215,11 @@ async def test_record_failed_login_sets_expiry_only_on_first():
 
     original_expire = redis.expire
 
-    async def tracking_expire(key: str, seconds: int) -> bool:
+    async def tracking_expire(key: str, seconds: int, **kwargs: object) -> bool:
         expire_calls.append((key, seconds))
-        return await original_expire(key, seconds)
+        return await original_expire(key, seconds, **kwargs)  # type: ignore[arg-type]
 
-    redis.expire = tracking_expire  # type: ignore[method-assign]
+    redis.expire = tracking_expire  # type: ignore[assignment]
 
     await auth_service.record_failed_login("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
     await auth_service.record_failed_login("127.0.0.1", "user@example.com", redis)  # type: ignore[arg-type]
@@ -302,13 +302,13 @@ async def test_auth_session_helpers_create_and_revoke():
     )
     auth_session.expires_at = datetime.now(UTC) + timedelta(days=1)
 
-    assert auth_session.is_active() is True
+    assert auth_session.is_active is True
     assert auth_session.session_secret_hash == "session-hash"
     assert auth_session.refresh_token_hash is None
 
     auth_session.revoke()
 
-    assert auth_session.is_active() is False
+    assert auth_session.is_active is False
     assert auth_session.revoked_at is not None
     assert auth_session.session_secret_hash is None
     assert auth_session.refresh_token_hash is None

@@ -44,6 +44,13 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("updated_at", app.models.base.UTCDateTime(timezone=True), nullable=True),
+        sa.CheckConstraint(
+            "(client_type = 'web' AND refresh_token_hash IS NULL"
+            " AND (session_secret_hash IS NOT NULL OR revoked_at IS NOT NULL))"
+            " OR (client_type = 'token' AND session_secret_hash IS NULL"
+            " AND (refresh_token_hash IS NOT NULL OR revoked_at IS NOT NULL))",
+            name="ck_auth_sessions_hash_per_client_type",
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )

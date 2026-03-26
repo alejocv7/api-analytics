@@ -1,8 +1,13 @@
+import uuid
+from datetime import UTC, datetime, timedelta
+
+import jwt
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from app import models
+from app.core.config import settings
 from tests.factories import create_web_auth_cookies
 
 pytestmark = pytest.mark.asyncio
@@ -329,3 +334,42 @@ async def test_successful_login_resets_counter(
     )
     assert response.status_code == 200
     assert await async_redis_client.get(key) is None
+
+
+# --------------- Token expiry ----------------
+
+
+async def test_expired_access_token_returns_401(client: AsyncClient, test_user):
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(test_user.id),
+        "sid": str(uuid.uuid4()),
+        "type": "access",
+        "iat": now - timedelta(hours=1),
+        "exp": now - timedelta(minutes=1),
+    }
+    expired_token = jwt.encode(
+        payload, settings.SECURITY_KEY, algorithm=settings.SECURITY_ALGORITHM
+    )
+
+    response = await client.get(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {expired_token}"},
+    )
+    assert response.status_code == 401
+
+
+async def test_expired_web_session_returns_401(
+    client: AsyncClient, test_user, db_session
+):
+    from app.services import auth_service
+
+    auth_session_obj, session_secret = await auth_service.create_web_session(
+        test_user, db_session
+    )
+    auth_session_obj.expires_at = datetime.now(UTC) - timedelta(days=1)
+    db_session.add(auth_session_obj)
+    await db_session.commit()
+
+    response = await client.get("/api/v1/users/me", cookies={"session": session_secret})
+    assert response.status_code == 401

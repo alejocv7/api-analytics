@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ColumnElement, ForeignKey, and_, func, text
+from sqlalchemy import CheckConstraint, ColumnElement, ForeignKey, and_, func, text
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,15 @@ if TYPE_CHECKING:
 
 class AuthSession(Base, TimestampMixin):
     __tablename__ = "auth_sessions"
+    __table_args__ = (
+        CheckConstraint(
+            "(client_type = 'web' AND refresh_token_hash IS NULL"
+            " AND (session_secret_hash IS NOT NULL OR revoked_at IS NOT NULL))"
+            " OR (client_type = 'token' AND session_secret_hash IS NULL"
+            " AND (refresh_token_hash IS NOT NULL OR revoked_at IS NOT NULL))",
+            name="ck_auth_sessions_hash_per_client_type",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True, server_default=text("gen_random_uuid()"), index=True

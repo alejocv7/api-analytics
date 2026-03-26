@@ -121,12 +121,8 @@ async def get_current_auth(
     if bearer_token:
         token_data = security.decode_token(bearer_token)
         user = await get_user_by_id(token_data.user_id, session)
-
-        request.state.user = user
-        return AuthContext(
-            user=user,
-            session_id=token_data.session_id,
-            client_type=AuthSessionClientType.token,
+        return _make_auth_context(
+            request, user, token_data.session_id, AuthSessionClientType.token
         )
 
     session_secret = request.cookies.get(SESSION_COOKIE)
@@ -135,13 +131,7 @@ async def get_current_auth(
 
     auth_session = await auth_service.get_active_web_session(session_secret, session)
     user = await get_user_by_id(auth_session.user_id, session)
-
-    request.state.user = user
-    return AuthContext(
-        user=user,
-        session_id=auth_session.id,
-        client_type=AuthSessionClientType.web,
-    )
+    return _make_auth_context(request, user, auth_session.id, AuthSessionClientType.web)
 
 
 CurrentAuthDep = Annotated[AuthContext, Depends(get_current_auth)]
@@ -194,3 +184,15 @@ async def get_owner_project(
 
 
 OwnerProjectDep = Annotated[models.Project, Depends(get_owner_project)]
+
+# ------------------- Helper functions -------------------
+
+
+def _make_auth_context(
+    request: Request,
+    user: models.User,
+    session_id: uuid.UUID,
+    client_type: AuthSessionClientType,
+) -> AuthContext:
+    request.state.user = user
+    return AuthContext(user=user, session_id=session_id, client_type=client_type)

@@ -147,6 +147,24 @@ async def get_current_auth(
 CurrentAuthDep = Annotated[AuthContext, Depends(get_current_auth)]
 
 
+async def get_current_web_auth(auth: CurrentAuthDep) -> AuthContext:
+    if auth.client_type != AuthSessionClientType.web:
+        raise AuthenticationError("Not authenticated")
+    return auth
+
+
+CurrentWebAuthDep = Annotated[AuthContext, Depends(get_current_web_auth)]
+
+
+async def get_current_token_auth(auth: CurrentAuthDep) -> AuthContext:
+    if auth.client_type != AuthSessionClientType.token:
+        raise AuthenticationError("Not authenticated")
+    return auth
+
+
+CurrentTokenAuthDep = Annotated[AuthContext, Depends(get_current_token_auth)]
+
+
 async def get_current_user(auth: CurrentAuthDep) -> models.User:
     return auth.user
 

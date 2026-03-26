@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app import models, schemas
-from app.core.security import hash_ip
+from app.core import security
 
 
 @retry(
@@ -35,7 +35,7 @@ async def add_metric(
     data["project_id"] = project_id
 
     if ip := data.pop("ip", None):
-        data["ip_hash"] = hash_ip(ip)
+        data["ip_hash"] = security.hash_ip(ip)
 
     metric = models.Metric(**data)
 

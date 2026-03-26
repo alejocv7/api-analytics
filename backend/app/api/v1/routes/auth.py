@@ -6,11 +6,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app import models, schemas
 from app.core import rate_limits
 from app.core.config import settings
-from app.core.cookies import SESSION_COOKIE
-from app.core.enums import AuthSessionClientType
-from app.core.exceptions import AuthenticationError
+from app.core.cookies import clear_session_cookie, set_session_cookie
 from app.core.rate_limiter import limiter
-from app.dependencies import CurrentAuthDep, RedisDep, SessionDep
+from app.dependencies import (
+    CurrentTokenAuthDep,
+    CurrentWebAuthDep,
+    RedisDep,
+    SessionDep,
+)
 from app.services import auth_service
 
 router = APIRouter()
@@ -71,7 +74,7 @@ async def login(
     session: SessionDep,
     redis: RedisDep,
 ) -> schemas.UserResponse:
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _get_client_ip(request)
     user = await auth_service.authenticate_with_lockout(
         credentials.email, credentials.password, client_ip, redis, session
     )
@@ -81,7 +84,9 @@ async def login(
         user_agent=request.headers.get("user-agent"),
         client_ip=client_ip,
     )
-    _set_session_cookie(response, session_secret)
+    set_session_cookie(
+        response, session_secret, settings.session_cookie_max_age_seconds
+    )
     return schemas.UserResponse.model_validate(user)
 
 
@@ -98,13 +103,11 @@ async def login(
 )
 async def logout(
     response: Response,
-    auth: CurrentAuthDep,
+    auth: CurrentWebAuthDep,
     session: SessionDep,
 ) -> None:
-    if auth.client_type != AuthSessionClientType.web:
-        raise AuthenticationError("Not authenticated")
     await auth_service.revoke_session(auth.session_id, session)
-    _clear_session_cookie(response)
+    clear_session_cookie(response)
 
 
 @router.post(
@@ -130,7 +133,7 @@ async def token_login(
     session: SessionDep,
     redis: RedisDep,
 ) -> schemas.TokenLoginResponse:
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _get_client_ip(request)
     user = await auth_service.authenticate_with_lockout(
         form_data.username, form_data.password, client_ip, redis, session
     )
@@ -179,24 +182,11 @@ async def token_refresh(
     },
 )
 async def token_logout(
-    auth: CurrentAuthDep,
+    auth: CurrentTokenAuthDep,
     session: SessionDep,
 ) -> None:
-    if auth.client_type != AuthSessionClientType.token:
-        raise AuthenticationError("Not authenticated")
     await auth_service.revoke_session(auth.session_id, session)
 
 
-def _set_session_cookie(response: Response, session_secret: str) -> None:
-    response.set_cookie(
-        key=SESSION_COOKIE,
-        value=session_secret,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="strict",
-        max_age=settings.SECURITY_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-    )
-
-
-def _clear_session_cookie(response: Response) -> None:
-    response.delete_cookie(key=SESSION_COOKIE, samesite="strict")
+def _get_client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"

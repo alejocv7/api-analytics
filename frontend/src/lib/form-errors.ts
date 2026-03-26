@@ -27,7 +27,8 @@ export function applyApiFieldErrors<T extends FieldValues>(
       .filter((seg) => seg !== "body")
       .join(".");
     if (fieldPath) {
-      form.setError(fieldPath as Path<T>, { message: detail.message });
+      const message = detail.message.replace(/^Value error,\s*/i, "");
+      form.setError(fieldPath as Path<T>, { message });
       applied = true;
     }
   }

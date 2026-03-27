@@ -28,13 +28,12 @@ ENV PATH="/app/backend/.venv/bin:$PATH"
 
 # Install dependencies only — app code excluded to maximise layer cache reuse.
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,id=s/1d242016-11c0-4bbf-9f3c-f9e18ccbcc9a-/root/.cache/uv,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project
 
 # Copy the application into the container
-COPY pyproject.toml alembic.ini README.md ./
+COPY alembic.ini README.md ./
 COPY scripts ./scripts
 COPY alembic ./alembic
 COPY app ./app
@@ -42,8 +41,6 @@ COPY app ./app
 # Sync the project
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,id=s/1d242016-11c0-4bbf-9f3c-f9e18ccbcc9a-/root/.cache/uv,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked
 
 # Reset the entrypoint, don't invoke `uv`

@@ -234,11 +234,8 @@ class Settings(BaseSettings):
                     "SECURITY_KEY has too low entropy (fewer than 10 unique characters)"
                 )
 
-        if self.ENVIRONMENT in ("prod", "staging"):
-            if not self.POSTGRES_SSL:
-                raise ValueError("POSTGRES_SSL must be True in prod/staging")
-            if not self.REDIS_SSL:
-                raise ValueError("REDIS_SSL must be True in prod/staging")
+        if self.ENVIRONMENT in ("prod", "staging") and not self.POSTGRES_SSL:
+            raise ValueError("POSTGRES_SSL must be True in prod/staging")
 
         return self
 

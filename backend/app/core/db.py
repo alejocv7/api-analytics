@@ -13,6 +13,7 @@ async_engine = create_async_engine(
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,
     pool_recycle=settings.DB_POOL_RECYCLE,
+    connect_args={"ssl": "require"} if settings.POSTGRES_SSL else {},
 )
 AsyncSessionLocal = async_sessionmaker(
     async_engine,

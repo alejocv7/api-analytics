@@ -30,9 +30,11 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_logging()
 
+    logger.info("Starting database connection")
     if not await db.is_db_connected():
         raise RuntimeError("Database connection failed during startup")
 
+    logger.info("Starting redis connection")
     redis_manager.init()
     if not await redis_manager.is_connected():
         raise RuntimeError("Redis connection failed during startup")

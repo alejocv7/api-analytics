@@ -22,6 +22,7 @@ class RedisManager:
             health_check_interval=settings.REDIS_HEALTH_CHECK_INTERVAL,
             retry=Retry(ExponentialBackoff(), 3),
             retry_on_timeout=True,
+            ssl_cert_reqs="none" if settings.REDIS_SSL else None,
         )
         self.client = redis.Redis(connection_pool=self.pool)
 

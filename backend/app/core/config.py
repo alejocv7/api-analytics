@@ -111,7 +111,7 @@ class Settings(BaseSettings):
                 host=self.POSTGRES_SERVER,
                 port=self.POSTGRES_PORT,
                 path=self.POSTGRES_DB,
-                query="sslmode=require" if self.POSTGRES_SSL else None,
+                query="ssl=require" if self.POSTGRES_SSL else None,
             )
         )
 

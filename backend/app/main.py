@@ -39,6 +39,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     if not await redis_manager.is_connected():
         raise RuntimeError("Redis connection failed during startup")
 
+    logger.info("Finished db/redis connection")
+
     cleanup_scheduler = MetricCleanupScheduler()
     cleanup_scheduler.start()
 

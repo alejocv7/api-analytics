@@ -56,16 +56,25 @@ async function request<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(url.toString(), {
-    ...rest,
-    headers,
-    credentials: "include",
-    body: body
-      ? isFormData
-        ? (body as URLSearchParams)
-        : JSON.stringify(body)
-      : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      ...rest,
+      headers,
+      credentials: "include",
+      body: body
+        ? isFormData
+          ? (body as URLSearchParams)
+          : JSON.stringify(body)
+        : undefined,
+    });
+  } catch (err) {
+    console.error(
+      `[api] Network error on ${options.method ?? "GET"} ${path}:`,
+      err,
+    );
+    throw err;
+  }
 
   if (!response.ok) {
     if (
@@ -75,7 +84,13 @@ async function request<T>(
     ) {
       window.dispatchEvent(new Event("auth:session-expired"));
     }
-    throw await parseError(response);
+    const apiError = await parseError(response);
+    console.error(
+      `[api] ${options.method ?? "GET"} ${path} → ${response.status}:`,
+      apiError.message,
+      apiError.details ?? "",
+    );
+    throw apiError;
   }
 
   if (response.status === 204) {
@@ -86,10 +101,8 @@ async function request<T>(
 }
 
 export const apiClient = {
-  get: <T>(
-    path: string,
-    params?: RequestOptions["params"],
-  ) => request<T>(path, { method: "GET", params }),
+  get: <T>(path: string, params?: RequestOptions["params"]) =>
+    request<T>(path, { method: "GET", params }),
 
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "POST", body }),

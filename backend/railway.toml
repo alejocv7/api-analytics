@@ -4,7 +4,7 @@ dockerfilePath = "Dockerfile"
 watchPatterns = ["backend/**"]
 
 [deploy]
-startCommand = "fastapi run app/main.py"
+startCommand = "fastapi run app/main.py --proxy-headers"
 preDeployCommand = "./scripts/migrate.sh"
 healthcheckPath = "/health"
 healthcheckTimeout = 60

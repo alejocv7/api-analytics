@@ -25,7 +25,7 @@ async def test_expired_jwt_token(client: AsyncClient, test_user):
     )
 
     response = await client.get(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         headers={"Authorization": f"Bearer {expired_token}"},
     )
 
@@ -49,7 +49,7 @@ async def test_invalid_jwt_signature(client: AsyncClient, test_user):
     )
 
     response = await client.get(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         headers={"Authorization": f"Bearer {fake_token}"},
     )
     assert response.status_code == 401
@@ -69,7 +69,7 @@ async def test_api_key_expired(client: AsyncClient, project, db_session):
 
     # Try to track metric
     response = await client.post(
-        "/api/v1/track/",
+        "/api/v1/track",
         headers={"X-API-Key": plain_key},
         json={
             "url_path": "/test",
@@ -88,7 +88,7 @@ async def test_api_key_inactive(client: AsyncClient, project, db_session):
     _, plain_key = await create_api_key(db_session, project=project, is_active=False)
 
     response = await client.post(
-        "/api/v1/track/",
+        "/api/v1/track",
         headers={"X-API-Key": plain_key},
         json={
             "url_path": "/test",

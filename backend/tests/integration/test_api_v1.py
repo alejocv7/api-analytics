@@ -31,7 +31,7 @@ async def test_pagination_fields(
 
     # Request page 1 with page_size 2
     response = await client.get(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         params={"page": 1, "page_size": 2},
     )
@@ -48,7 +48,7 @@ async def test_pagination_fields(
 
     # Request page 2 with page_size 2
     response = await client.get(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         params={"page": 2, "page_size": 2},
     )

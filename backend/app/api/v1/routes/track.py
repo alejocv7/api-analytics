@@ -8,12 +8,12 @@ from app.core.rate_limiter import get_project_key, limiter
 from app.dependencies import ProjectIdDep, SessionDep
 from app.services import metric_service
 
-router = APIRouter()
+router = APIRouter(prefix="/track", tags=["track"])
 logger = logging.getLogger(__name__)
 
 
 @router.post(
-    "/",
+    "",
     response_model=schemas.MetricResponse,
     summary="Track an API metric",
     description="""

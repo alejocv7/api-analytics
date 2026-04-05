@@ -71,7 +71,7 @@ async def test_per_user_rate_limit_isolation(
     user1_responses = []
     for i in range(21):
         response = await client.post(
-            "/api/v1/projects/",
+            "/api/v1/projects",
             json={"name": f"User1 Project {i}"},
             cookies=auth_cookies,
         )
@@ -82,7 +82,7 @@ async def test_per_user_rate_limit_isolation(
 
     # User 2 should still be able to create a project
     response = await client.post(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         json={"name": "User2 Project"},
         cookies=auth_cookies2,
     )
@@ -112,7 +112,7 @@ async def test_metrics_endpoints_are_rate_limited(
     responses = []
     for _ in range(61):
         response = await client.get(
-            f"/api/v1/projects/{project.project_key}/metrics/",
+            f"/api/v1/projects/{project.project_key}/metrics",
             cookies=auth_cookies,
         )
         responses.append(response)

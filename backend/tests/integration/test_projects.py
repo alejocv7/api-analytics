@@ -8,7 +8,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_create_project(client: AsyncClient, auth_cookies):
     response = await client.post(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         json={"name": "Test Project", "description": "Project Description"},
     )
@@ -26,7 +26,7 @@ async def test_list_projects(client: AsyncClient, auth_cookies, test_user, db_se
     await create_project(db_session, user=test_user, name="P1")
     await create_project(db_session, user=test_user, name="P2")
 
-    response = await client.get("/api/v1/projects/", cookies=auth_cookies)
+    response = await client.get("/api/v1/projects", cookies=auth_cookies)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 2
@@ -127,7 +127,7 @@ async def test_list_projects_includes_counts(
     p = await create_project(db_session, user=test_user, name="Listed")
     await create_api_key(db_session, project=p, name="Key A")
 
-    response = await client.get("/api/v1/projects/", cookies=auth_cookies)
+    response = await client.get("/api/v1/projects", cookies=auth_cookies)
     assert response.status_code == 200
     listed = next(
         i for i in response.json()["items"] if i["project_key"] == p.project_key
@@ -157,7 +157,7 @@ async def test_update_project_returns_counts(
 async def test_create_project_name_at_max_length(client: AsyncClient, auth_cookies):
     name = "A" * 40
     response = await client.post(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         json={"name": name},
     )
@@ -169,7 +169,7 @@ async def test_create_project_name_exceeds_max_length(
     client: AsyncClient, auth_cookies
 ):
     response = await client.post(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         json={"name": "A" * 41},
     )
@@ -221,7 +221,7 @@ async def test_create_project_case_insensitive_name_conflict(
 
     # "my api" normalizes to "my api", same as "My API"
     response = await client.post(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         json={"name": "my api"},
     )

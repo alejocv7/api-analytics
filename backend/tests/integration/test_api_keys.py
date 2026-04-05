@@ -14,7 +14,7 @@ async def _auth_cookies_for(db_session, user) -> dict[str, str]:
 
 async def test_create_api_key(client: AsyncClient, auth_cookies, project):
     response = await client.post(
-        f"/api/v1/projects/{project.project_key}/api-keys/",
+        f"/api/v1/projects/{project.project_key}/api-keys",
         cookies=auth_cookies,
         json={"name": "My API Key"},
     )
@@ -33,7 +33,7 @@ async def test_create_api_key_over_limit(
     monkeypatch.setattr(settings, "API_KEY_PROJECT_LIMIT", API_KEY_TEST_LIMIT)
     for i in range(API_KEY_TEST_LIMIT):
         response = await client.post(
-            f"/api/v1/projects/{project.project_key}/api-keys/",
+            f"/api/v1/projects/{project.project_key}/api-keys",
             cookies=auth_cookies,
             json={"name": f"K{i}"},
         )
@@ -41,7 +41,7 @@ async def test_create_api_key_over_limit(
 
     # Try to create a 3rd key
     response = await client.post(
-        f"/api/v1/projects/{project.project_key}/api-keys/",
+        f"/api/v1/projects/{project.project_key}/api-keys",
         cookies=auth_cookies,
         json={"name": "K3"},
     )
@@ -58,7 +58,7 @@ async def test_list_api_keys(client: AsyncClient, auth_cookies, project, db_sess
     )
 
     response = await client.get(
-        f"/api/v1/projects/{project.project_key}/api-keys/", cookies=auth_cookies
+        f"/api/v1/projects/{project.project_key}/api-keys", cookies=auth_cookies
     )
     assert response.status_code == 200
     data = response.json()
@@ -174,7 +174,7 @@ async def test_non_owner_cannot_create_api_key(
         db_session, project, f"{role.value}-create@example.com", role
     )
     response = await client.post(
-        f"/api/v1/projects/{project.project_key}/api-keys/",
+        f"/api/v1/projects/{project.project_key}/api-keys",
         cookies=cookies,
         json={"name": "Forbidden Key"},
     )

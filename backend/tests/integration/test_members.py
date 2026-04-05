@@ -24,7 +24,7 @@ async def _add_member(
     role: str = "viewer",
 ) -> Response:
     return await client.post(
-        f"/api/v1/projects/{project_key}/members/",
+        f"/api/v1/projects/{project_key}/members",
         cookies=auth_cookies,
         json={"email": email, "role": role},
     )
@@ -45,7 +45,7 @@ async def test_list_members_includes_owner(
 ):
     """Owner row is automatically created and appears in the member list."""
     response = await client.get(
-        f"/api/v1/projects/{project.project_key}/members/",
+        f"/api/v1/projects/{project.project_key}/members",
         cookies=auth_cookies,
     )
     assert response.status_code == 200
@@ -73,7 +73,7 @@ async def test_list_members_total_reflects_all_members(
     await _add_member(client, auth_cookies, project.project_key, user_b.email)
 
     response = await client.get(
-        f"/api/v1/projects/{project.project_key}/members/",
+        f"/api/v1/projects/{project.project_key}/members",
         cookies=auth_cookies,
     )
     assert response.status_code == 200
@@ -87,7 +87,7 @@ async def test_list_members_non_member_cannot_access(
     other = await create_user(db_session, email="other@example.com")
 
     response = await client.get(
-        f"/api/v1/projects/{project.project_key}/members/",
+        f"/api/v1/projects/{project.project_key}/members",
         cookies=await _auth_cookies_for(db_session, other),
     )
     assert response.status_code == 404
@@ -223,7 +223,7 @@ async def test_add_member_invalid_email_format(
 ):
     """Invalid email format returns 422."""
     response = await client.post(
-        f"/api/v1/projects/{project.project_key}/members/",
+        f"/api/v1/projects/{project.project_key}/members",
         cookies=auth_cookies,
         json={"email": "not-an-email", "role": "viewer"},
     )
@@ -343,14 +343,14 @@ async def test_owner_cannot_have_duplicate_project_names(
 ):
     """An owner cannot create two projects with the same name."""
     response1 = await client.post(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         json={"name": "Unique Project"},
     )
     assert response1.status_code == 201
 
     response2 = await client.post(
-        "/api/v1/projects/",
+        "/api/v1/projects",
         cookies=auth_cookies,
         json={"name": "Unique Project"},
     )

@@ -7,11 +7,11 @@ from app.dependencies import OwnerProjectDep, ProjectDep, SessionDep
 from app.schemas import PaginationQuery
 from app.services import member_service
 
-router = APIRouter()
+router = APIRouter(prefix="/members", tags=["members"])
 
 
 @router.post(
-    "/",
+    "",
     response_model=schemas.MemberResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Add a project member",
@@ -47,7 +47,7 @@ async def add_member(
 
 
 @router.get(
-    "/",
+    "",
     response_model=schemas.MemberListResponse,
     summary="List project members",
     description="""

@@ -33,7 +33,7 @@ async def test_track_metric_success(
     plain_key, project = api_key_and_project
 
     response = await client.post(
-        "/api/v1/track/",
+        "/api/v1/track",
         headers={"X-API-Key": plain_key},
         json={
             "url_path": "/api/v1/users",
@@ -61,7 +61,7 @@ async def test_track_metric_success(
 
 async def test_track_metric_invalid_key(client: AsyncClient):
     response = await client.post(
-        "/api/v1/track/",
+        "/api/v1/track",
         headers={"X-API-Key": "invalid_key"},
         json={
             "url_path": "/api/v1/users",
@@ -76,7 +76,7 @@ async def test_track_metric_invalid_key(client: AsyncClient):
 
 async def test_track_metric_missing_key(client: AsyncClient):
     response = await client.post(
-        "/api/v1/track/",
+        "/api/v1/track",
         json={
             "url_path": "/api/v1/users",
             "method": "GET",
@@ -101,7 +101,7 @@ async def test_track_metric_expired_key(client: AsyncClient, db_session, project
     )
 
     response = await client.post(
-        "/api/v1/track/",
+        "/api/v1/track",
         headers={"X-API-Key": plain_key},
         json={
             "url_path": "/x",
@@ -123,7 +123,7 @@ async def test_track_metric_inactive_key(client: AsyncClient, db_session, projec
     )
 
     response = await client.post(
-        "/api/v1/track/",
+        "/api/v1/track",
         headers={"X-API-Key": plain_key},
         json={
             "url_path": "/x",

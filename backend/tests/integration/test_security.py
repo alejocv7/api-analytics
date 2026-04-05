@@ -43,7 +43,7 @@ async def test_cors_preflight_headers_on_add_member(
     await create_user(db_session, email="cors-member@example.com")
 
     response = await client.options(
-        f"/api/v1/projects/{project.project_key}/members/",
+        f"/api/v1/projects/{project.project_key}/members",
         headers={
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "POST",
@@ -64,7 +64,7 @@ async def test_cors_headers_on_add_member_response(
     new_user = await create_user(db_session, email="cors-response@example.com")
 
     response = await client.post(
-        f"/api/v1/projects/{project.project_key}/members/",
+        f"/api/v1/projects/{project.project_key}/members",
         headers={"Origin": "http://localhost:3000"},
         cookies=auth_cookies,
         json={"email": new_user.email, "role": "viewer"},

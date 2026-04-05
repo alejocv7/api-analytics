@@ -6,11 +6,11 @@ from app.core.rate_limiter import get_user_key, limiter
 from app.dependencies import ProjectDep, SessionDep
 from app.services import metric_service
 
-router = APIRouter()
+router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 
 @router.get(
-    "/",
+    "",
     response_model=schemas.MetricListResponse,
     summary="List raw metrics",
     description="Retrieves a list of individual metrics recorded for the project.",

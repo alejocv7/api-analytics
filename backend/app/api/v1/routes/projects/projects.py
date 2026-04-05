@@ -12,11 +12,11 @@ from app.dependencies import (
 from app.schemas import PaginationQuery
 from app.services import project_service
 
-router = APIRouter()
+router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 @router.get(
-    "/",
+    "",
     response_model=schemas.ProjectListResponse,
     summary="List all projects",
     description="""
@@ -43,7 +43,7 @@ async def get_projects(
 
 
 @router.post(
-    "/",
+    "",
     response_model=schemas.ProjectResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new project",

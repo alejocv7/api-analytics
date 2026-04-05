@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from app import models, schemas
 from app.dependencies import CurrentUserDep
 
-router = APIRouter()
+router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get(

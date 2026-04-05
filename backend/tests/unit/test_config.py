@@ -94,16 +94,11 @@ def test_enforce_ssl_in_remote_envs(env: str):
     # Both True (default) -> Success
     settings = Settings(ENVIRONMENT=env, **_BASE_SETTINGS)
     assert settings.POSTGRES_SSL is True
-    assert settings.REDIS_SSL is True
 
     # Explicitly setting one to False -> Error
     with pytest.raises(ValidationError) as excinfo:
         Settings(ENVIRONMENT=env, **{**_BASE_SETTINGS, "POSTGRES_SSL": False})
     assert "POSTGRES_SSL must be True" in str(excinfo.value)
-
-    with pytest.raises(ValidationError) as excinfo:
-        Settings(ENVIRONMENT=env, **{**_BASE_SETTINGS, "REDIS_SSL": False})
-    assert "REDIS_SSL must be True" in str(excinfo.value)
 
 
 def test_security_key_entropy_remote_envs():

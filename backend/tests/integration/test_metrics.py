@@ -134,7 +134,7 @@ async def test_metrics_pagination(client: AsyncClient, auth_cookies, project_wit
     # project_with_data has 3 metrics
     # Request page 1 with page_size 2
     response = await client.get(
-        f"/api/v1/projects/{project_with_data.project_key}/metrics/",
+        f"/api/v1/projects/{project_with_data.project_key}/metrics",
         cookies=auth_cookies,
         params={"page": 1, "page_size": 2},
     )
@@ -145,7 +145,7 @@ async def test_metrics_pagination(client: AsyncClient, auth_cookies, project_wit
 
     # Request page 2 with page_size 2
     response = await client.get(
-        f"/api/v1/projects/{project_with_data.project_key}/metrics/",
+        f"/api/v1/projects/{project_with_data.project_key}/metrics",
         cookies=auth_cookies,
         params={"page": 2, "page_size": 2},
     )
@@ -159,7 +159,7 @@ async def test_metrics_range_too_long(client: AsyncClient, auth_cookies, project
     start = datetime.now(UTC)
     end = start + timedelta(days=61)
     response = await client.get(
-        f"/api/v1/projects/{project.project_key}/metrics/",
+        f"/api/v1/projects/{project.project_key}/metrics",
         cookies=auth_cookies,
         params={"start_date": start.isoformat(), "end_date": end.isoformat()},
     )
@@ -171,7 +171,7 @@ async def test_metrics_range_too_short(client: AsyncClient, auth_cookies, projec
     start = datetime.now(UTC)
     end = start + timedelta(seconds=30)
     response = await client.get(
-        f"/api/v1/projects/{project.project_key}/metrics/",
+        f"/api/v1/projects/{project.project_key}/metrics",
         cookies=auth_cookies,
         params={"start_date": start.isoformat(), "end_date": end.isoformat()},
     )
@@ -188,7 +188,7 @@ async def test_self_metrics_are_recorded_when_enabled(
     from app.core.seed import seed_initial_data
     from app.main import app
 
-    request_path = "/api/v1/projects/"
+    request_path = "/api/v1/projects"
     monkeypatch.setattr(settings, "ENABLE_SELF_METRICS", True)
     monkeypatch.setattr(core_db, "AsyncSessionLocal", session_factory)
 

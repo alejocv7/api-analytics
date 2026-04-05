@@ -16,7 +16,7 @@ from app.dependencies import (
 )
 from app.services import auth_service
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post(

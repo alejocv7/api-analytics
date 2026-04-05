@@ -9,11 +9,11 @@ from app.dependencies import OwnerProjectDep, ProjectDep, SessionDep
 from app.schemas import PaginationQuery
 from app.services import api_key_service
 
-router = APIRouter()
+router = APIRouter(prefix="/api-keys", tags=["api-keys"])
 
 
 @router.post(
-    "/",
+    "",
     response_model=schemas.APIKeyCreateResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create an API key",
@@ -45,7 +45,7 @@ async def create_api_key(
 
 
 @router.get(
-    "/",
+    "",
     response_model=schemas.APIKeyListResponse,
     summary="List API keys",
     description="""

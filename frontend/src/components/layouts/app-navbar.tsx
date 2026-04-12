@@ -97,7 +97,7 @@ export function AppNavbar() {
                 <p className="text-sm font-medium leading-none">
                   {user.full_name}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 break-all">
                   {user.email}
                 </p>
               </div>

@@ -1,4 +1,18 @@
 services:
+  caddy:
+    restart: "no"
+    ports:
+      - "127.0.0.1:80:80"
+    environment:
+      - BACKEND_DOMAIN=backend
+      - FRONTEND_DOMAIN=frontend
+      - BACKEND_PORT=8000
+      - FRONTEND_PORT=3000
+    develop:
+      watch:
+        - path: ./caddy
+          action: rebuild
+
   db:
     restart: "no"
     ports:
@@ -29,10 +43,10 @@ services:
     restart: "no"
     ports:
       - "127.0.0.1:3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost/api/v1
     build:
       target: dev
-      args:
-        - NEXT_PUBLIC_API_URL=http://backend:8000
     develop:
       watch:
         - path: ./frontend

@@ -3,11 +3,9 @@ import uuid
 import warnings
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Annotated, Any, Literal, Self
+from typing import Literal, Self
 
 from pydantic import (
-    AnyUrl,
-    BeforeValidator,
     EmailStr,
     Field,
     PostgresDsn,
@@ -21,14 +19,6 @@ try:
     __VERSION__ = version("app")
 except PackageNotFoundError:
     __VERSION__ = "1.0.0"
-
-
-def parse_list(v: Any) -> list[str] | str:
-    if isinstance(v, str) and not v.startswith("["):
-        return [i.strip() for i in v.split(",") if i.strip()]
-    elif isinstance(v, list | str):
-        return v
-    raise ValueError(v)
 
 
 def get_env_file() -> Path:
@@ -177,17 +167,6 @@ class Settings(BaseSettings):
     SECURITY_DUMMY_API_KEY_HASH: str = (
         "a3f1c2e4b5d6789012345678901234567890abcdef1234567890abcdef123456"
     )
-
-    # CORS & Trusted Hosts
-    TRUSTED_HOSTS: Annotated[list[str] | str, BeforeValidator(parse_list)] = []
-    BACKEND_CORS_ORIGINS: Annotated[
-        list[AnyUrl] | str, BeforeValidator(parse_list)
-    ] = []
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def cors_origins(self) -> list[str]:
-        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS]
 
     # API Keys
     API_KEY_LENGTH: int = 32

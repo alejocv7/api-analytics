@@ -4,9 +4,7 @@ from contextlib import asynccontextmanager
 
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.routes import router as v1_router
 from app.core import db
@@ -92,23 +90,7 @@ app.add_middleware(MetricMiddleware, app_state=app.state)
 app.add_middleware(CorrelationIdMiddleware, header_name=settings.REQUEST_ID_HEADER)
 
 # Security Middlewares
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.TRUSTED_HOSTS,
-)
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "X-Request-ID",
-        "X-API-Key",
-    ],
-)
 
 
 @app.get("/", tags=["root"])

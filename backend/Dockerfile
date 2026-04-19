@@ -50,4 +50,4 @@ ENTRYPOINT []
 USER nonroot
 
 # Run the application
-CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+CMD ["fastapi", "run", "--proxy-headers", "--forwarded-allow-ips=*", "app/main.py"]

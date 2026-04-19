@@ -27,7 +27,7 @@ services:
     restart: "no"
     ports:
       - "8000:8000"
-    command: ["fastapi", "run", "--reload", "app/main.py"]
+    command: ["fastapi", "run", "--reload", "app/main.py", "--proxy-headers", "--forwarded-allow-ips=*"]
     develop:
       watch:
         - path: ./backend
